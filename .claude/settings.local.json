@@ -6,7 +6,8 @@
       "Bash(npx prisma init)",
       "Bash(npx prisma generate:*)",
       "Bash(npm uninstall:*)",
-      "Bash(del prisma.config.ts)"
+      "Bash(del prisma.config.ts)",
+      "Bash(npx prisma db push:*)"
     ]
   }
 }

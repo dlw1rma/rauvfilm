@@ -20,11 +20,24 @@ export default function ContactPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // TODO: API 연동 후 실제 제출 로직 구현
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-    setIsSubmitted(true);
-    setIsSubmitting(false);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "문의 등록에 실패했습니다.");
+      }
+
+      setIsSubmitted(true);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "오류가 발생했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (

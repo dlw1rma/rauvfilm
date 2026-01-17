@@ -11,6 +11,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const reservationId = parseInt(id);
+    const { searchParams } = new URL(request.url);
+    const passwordParam = searchParams.get("password");
 
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
@@ -35,20 +37,44 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // 비밀번호 제외하고 반환
     const { password, ...reservationWithoutPassword } = reservation;
 
-    // 비밀글인 경우 민감 정보 마스킹
+    // 비밀글인 경우
     if (reservation.isPrivate) {
+      // 비밀번호가 제공된 경우 검증
+      if (passwordParam) {
+        const isPasswordValid = await bcrypt.compare(passwordParam, reservation.password);
+        if (isPasswordValid) {
+          // 비밀번호 일치 - 전체 내용 반환
+          return NextResponse.json({
+            ...reservationWithoutPassword,
+            isLocked: false,
+          });
+        }
+      }
+
+      // 비밀번호 없거나 불일치 - 잠금 상태로 반환 (내용 숨김)
       return NextResponse.json({
-        ...reservationWithoutPassword,
-        phone: reservation.phone
-          ? reservation.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")
-          : null,
-        email: reservation.email
-          ? reservation.email.replace(/(.{3}).*(@.*)/, "$1***$2")
-          : null,
+        id: reservation.id,
+        title: reservation.title,
+        author: reservation.author,
+        isPrivate: true,
+        isLocked: true,
+        createdAt: reservation.createdAt,
+        content: "비밀글입니다. 비밀번호를 입력해주세요.",
+        phone: null,
+        email: null,
+        weddingDate: null,
+        location: null,
+        reply: reservation.reply ? {
+          content: "비밀글입니다.",
+          createdAt: reservation.reply.createdAt
+        } : null,
       });
     }
 
-    return NextResponse.json(reservationWithoutPassword);
+    return NextResponse.json({
+      ...reservationWithoutPassword,
+      isLocked: false,
+    });
   } catch (error) {
     console.error("Error fetching reservation:", error);
     return NextResponse.json(
@@ -120,7 +146,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const reservationId = parseInt(id);
     const body = await request.json();
-    const { password } = body;
+    const { password, adminDelete } = body;
 
     // 기존 예약 조회
     const reservation = await prisma.reservation.findUnique({
@@ -134,13 +160,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 비밀번호 확인
-    const isPasswordValid = await bcrypt.compare(password, reservation.password);
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: "비밀번호가 일치하지 않습니다." },
-        { status: 401 }
-      );
+    // 관리자 삭제가 아닌 경우 비밀번호 확인
+    if (!adminDelete) {
+      const isPasswordValid = await bcrypt.compare(password, reservation.password);
+      if (!isPasswordValid) {
+        return NextResponse.json(
+          { error: "비밀번호가 일치하지 않습니다." },
+          { status: 401 }
+        );
+      }
     }
 
     // 삭제

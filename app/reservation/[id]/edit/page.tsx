@@ -1,24 +1,66 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function NewReservationPage() {
+interface Reservation {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  phone: string | null;
+  email: string | null;
+  weddingDate: string | null;
+  location: string | null;
+  isPrivate: boolean;
+}
+
+export default function EditReservationPage() {
+  const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const passwordFromQuery = searchParams.get("token") || "";
+
   const [formData, setFormData] = useState({
     title: "",
-    author: "",
-    password: "",
+    content: "",
     phone: "",
     email: "",
     weddingDate: "",
     location: "",
-    content: "",
     isPrivate: false,
   });
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchReservation() {
+      try {
+        const res = await fetch(`/api/reservations/${params.id}`);
+        if (!res.ok) {
+          throw new Error("예약 정보를 불러올 수 없습니다.");
+        }
+        const data: Reservation = await res.json();
+        setFormData({
+          title: data.title,
+          content: data.content,
+          phone: data.phone || "",
+          email: data.email || "",
+          weddingDate: data.weddingDate?.split("T")[0] || "",
+          location: data.location || "",
+          isPrivate: data.isPrivate,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchReservation();
+  }, [params.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,19 +68,22 @@ export default function NewReservationPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/reservations", {
-        method: "POST",
+      const res = await fetch(`/api/reservations/${params.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          password: passwordFromQuery,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "등록에 실패했습니다.");
+        throw new Error(data.error || "수정에 실패했습니다.");
       }
 
-      router.push("/reservation");
+      router.push(`/reservation/${params.id}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
@@ -57,13 +102,21 @@ export default function NewReservationPage() {
     }));
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen py-20 px-4">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="mb-8">
           <Link
-            href="/reservation"
+            href={`/reservation/${params.id}`}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <svg
@@ -79,9 +132,9 @@ export default function NewReservationPage() {
                 d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
               />
             </svg>
-            목록으로
+            돌아가기
           </Link>
-          <h1 className="text-3xl font-bold">예약 문의 작성</h1>
+          <h1 className="text-3xl font-bold">예약 문의 수정</h1>
         </div>
 
         {/* Error */}
@@ -108,40 +161,6 @@ export default function NewReservationPage() {
               className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               placeholder="문의 제목을 입력해주세요"
             />
-          </div>
-
-          {/* Author & Password */}
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div>
-              <label htmlFor="author" className="mb-2 block text-sm font-medium">
-                작성자 <span className="text-accent">*</span>
-              </label>
-              <input
-                type="text"
-                id="author"
-                name="author"
-                required
-                value={formData.author}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="이름"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-medium">
-                비밀번호 <span className="text-accent">*</span>
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="글 수정/삭제 시 필요"
-              />
-            </div>
           </div>
 
           {/* Contact Info */}
@@ -242,7 +261,7 @@ export default function NewReservationPage() {
           {/* Submit Buttons */}
           <div className="flex gap-4 pt-4">
             <Link
-              href="/reservation"
+              href={`/reservation/${params.id}`}
               className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
             >
               취소
@@ -252,7 +271,7 @@ export default function NewReservationPage() {
               disabled={isSubmitting}
               className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "등록 중..." : "등록하기"}
+              {isSubmitting ? "수정 중..." : "수정하기"}
             </button>
           </div>
         </form>

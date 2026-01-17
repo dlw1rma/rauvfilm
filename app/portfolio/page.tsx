@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import YouTubeFacade from "@/components/video/YouTubeFacade";
+import prisma from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "포트폴리오 | 라우브필름",
@@ -10,47 +11,40 @@ export const metadata: Metadata = {
   },
 };
 
-// 임시 포트폴리오 데이터 (나중에 DB에서 가져올 예정)
-const portfolioItems = [
-  {
-    id: 1,
-    title: "본식 DVD 샘플 영상",
-    videoId: "dQw4w9WgXcQ", // 실제 영상 ID로 교체 필요
-    category: "본식DVD",
-  },
-  {
-    id: 2,
-    title: "시네마틱 웨딩 영상",
-    videoId: "dQw4w9WgXcQ",
-    category: "시네마틱",
-  },
-  {
-    id: 3,
-    title: "하이라이트 영상",
-    videoId: "dQw4w9WgXcQ",
-    category: "하이라이트",
-  },
-  {
-    id: 4,
-    title: "본식 DVD 샘플 2",
-    videoId: "dQw4w9WgXcQ",
-    category: "본식DVD",
-  },
-  {
-    id: 5,
-    title: "야외 웨딩 시네마틱",
-    videoId: "dQw4w9WgXcQ",
-    category: "시네마틱",
-  },
-  {
-    id: 6,
-    title: "호텔 웨딩 하이라이트",
-    videoId: "dQw4w9WgXcQ",
-    category: "하이라이트",
-  },
-];
+export const dynamic = "force-dynamic";
 
-export default function PortfolioPage() {
+function extractVideoId(url: string): string {
+  // YouTube URL에서 video ID 추출
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+
+  return url; // 추출 실패시 원본 반환
+}
+
+async function getPortfolios() {
+  const portfolios = await prisma.portfolio.findMany({
+    where: { isVisible: true },
+    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+  });
+
+  return portfolios.map((p) => ({
+    id: p.id,
+    title: p.title,
+    videoId: extractVideoId(p.youtubeUrl),
+    category: p.category,
+  }));
+}
+
+export default async function PortfolioPage() {
+  const portfolioItems = await getPortfolios();
+
   return (
     <div className="min-h-screen py-20 px-4">
       <div className="mx-auto max-w-7xl">
@@ -65,22 +59,28 @@ export default function PortfolioPage() {
         </div>
 
         {/* Video Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {portfolioItems.map((item) => (
-            <div
-              key={item.id}
-              className="group rounded-xl border border-border bg-muted p-3 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/10"
-            >
-              <YouTubeFacade videoId={item.videoId} title={item.title} />
-              <div className="mt-3 px-1">
-                <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
-                  {item.category}
-                </span>
-                <h3 className="mt-2 font-medium">{item.title}</h3>
+        {portfolioItems.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">등록된 포트폴리오가 없습니다.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {portfolioItems.map((item) => (
+              <div
+                key={item.id}
+                className="group rounded-xl border border-border bg-muted p-3 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/10"
+              >
+                <YouTubeFacade videoId={item.videoId} title={item.title} />
+                <div className="mt-3 px-1">
+                  <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+                    {item.category}
+                  </span>
+                  <h3 className="mt-2 font-medium">{item.title}</h3>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* CTA */}
         <div className="mt-16 text-center">

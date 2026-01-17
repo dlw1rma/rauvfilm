@@ -1,60 +1,42 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import prisma from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "예약 문의 | 라우브필름",
+  title: "예약 문의",
   description: "라우브필름 웨딩 영상 촬영 예약 게시판입니다.",
-  openGraph: {
-    title: "예약 문의 | 라우브필름",
-    description: "라우브필름 웨딩 영상 촬영 예약 게시판입니다.",
-  },
 };
 
-// 임시 예약 데이터 (나중에 DB에서 가져올 예정)
-const reservations = [
-  {
-    id: 1,
-    title: "25년 3월 예식 문의드립니다",
-    author: "김**",
-    createdAt: "2025-01-15",
-    isPrivate: true,
-    hasReply: true,
-  },
-  {
-    id: 2,
-    title: "시네마틱 촬영 가능 여부 문의",
-    author: "이**",
-    createdAt: "2025-01-14",
-    isPrivate: false,
-    hasReply: true,
-  },
-  {
-    id: 3,
-    title: "드론 촬영 추가 문의",
-    author: "박**",
-    createdAt: "2025-01-13",
-    isPrivate: true,
-    hasReply: false,
-  },
-  {
-    id: 4,
-    title: "야외 촬영 관련 질문이요",
-    author: "최**",
-    createdAt: "2025-01-12",
-    isPrivate: false,
-    hasReply: true,
-  },
-  {
-    id: 5,
-    title: "4월 예식 예약 가능한가요?",
-    author: "정**",
-    createdAt: "2025-01-10",
-    isPrivate: true,
-    hasReply: true,
-  },
-];
+export const dynamic = "force-dynamic";
 
-export default function ReservationPage() {
+async function getReservations() {
+  const reservations = await prisma.reservation.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      author: true,
+      isPrivate: true,
+      createdAt: true,
+      reply: {
+        select: { id: true },
+      },
+    },
+  });
+
+  return reservations.map((r) => ({
+    id: r.id,
+    title: r.title,
+    author: r.author,
+    isPrivate: r.isPrivate,
+    createdAt: r.createdAt.toISOString().split("T")[0],
+    hasReply: !!r.reply,
+  }));
+}
+
+export default async function ReservationPage() {
+  const reservations = await getReservations();
+
   return (
     <div className="min-h-screen py-20 px-4">
       <div className="mx-auto max-w-4xl">
@@ -96,110 +78,95 @@ export default function ReservationPage() {
 
           {/* Table Body */}
           <div className="divide-y divide-border">
-            {reservations.map((post, index) => (
-              <Link
-                key={post.id}
-                href={`/reservation/${post.id}`}
-                className="block px-6 py-4 transition-colors hover:bg-muted/50"
-              >
-                {/* Mobile Layout */}
-                <div className="sm:hidden">
-                  <div className="flex items-center gap-2 mb-2">
-                    {post.isPrivate && (
-                      <svg
-                        className="h-4 w-4 text-muted-foreground"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth="1.5"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                        />
-                      </svg>
-                    )}
-                    <span className="font-medium">{post.title}</span>
-                    {post.hasReply && (
-                      <span className="rounded bg-accent/10 px-2 py-0.5 text-xs text-accent">
-                        답변완료
-                      </span>
-                    )}
+            {reservations.length === 0 ? (
+              <div className="px-6 py-12 text-center text-muted-foreground">
+                등록된 예약 문의가 없습니다.
+              </div>
+            ) : (
+              reservations.map((post, index) => (
+                <Link
+                  key={post.id}
+                  href={`/reservation/${post.id}`}
+                  className="block px-6 py-4 transition-colors hover:bg-muted/50"
+                >
+                  {/* Mobile Layout */}
+                  <div className="sm:hidden">
+                    <div className="flex items-center gap-2 mb-2">
+                      {post.isPrivate && (
+                        <svg
+                          className="h-4 w-4 text-muted-foreground"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="1.5"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                          />
+                        </svg>
+                      )}
+                      <span className="font-medium">{post.title}</span>
+                      {post.hasReply && (
+                        <span className="rounded bg-accent/10 px-2 py-0.5 text-xs text-accent">
+                          답변완료
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{post.author}</span>
+                      <span>|</span>
+                      <span>{post.createdAt}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{post.author}</span>
-                    <span>|</span>
-                    <span>{post.createdAt}</span>
-                  </div>
-                </div>
 
-                {/* Desktop Layout */}
-                <div className="hidden sm:grid sm:grid-cols-12 sm:items-center">
-                  <div className="col-span-1 text-center text-sm text-muted-foreground">
-                    {reservations.length - index}
-                  </div>
-                  <div className="col-span-6 flex items-center gap-2">
-                    {post.isPrivate && (
-                      <svg
-                        className="h-4 w-4 text-muted-foreground"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth="1.5"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                        />
-                      </svg>
-                    )}
-                    <span className="font-medium hover:text-accent transition-colors">
-                      {post.title}
-                    </span>
-                  </div>
-                  <div className="col-span-2 text-center text-sm text-muted-foreground">
-                    {post.author}
-                  </div>
-                  <div className="col-span-2 text-center text-sm text-muted-foreground">
-                    {post.createdAt}
-                  </div>
-                  <div className="col-span-1 text-center">
-                    {post.hasReply ? (
-                      <span className="rounded bg-accent/10 px-2 py-1 text-xs text-accent">
-                        답변완료
+                  {/* Desktop Layout */}
+                  <div className="hidden sm:grid sm:grid-cols-12 sm:items-center">
+                    <div className="col-span-1 text-center text-sm text-muted-foreground">
+                      {reservations.length - index}
+                    </div>
+                    <div className="col-span-6 flex items-center gap-2">
+                      {post.isPrivate && (
+                        <svg
+                          className="h-4 w-4 text-muted-foreground"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="1.5"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                          />
+                        </svg>
+                      )}
+                      <span className="font-medium hover:text-accent transition-colors">
+                        {post.title}
                       </span>
-                    ) : (
-                      <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
-                        대기중
-                      </span>
-                    )}
+                    </div>
+                    <div className="col-span-2 text-center text-sm text-muted-foreground">
+                      {post.author}
+                    </div>
+                    <div className="col-span-2 text-center text-sm text-muted-foreground">
+                      {post.createdAt}
+                    </div>
+                    <div className="col-span-1 text-center">
+                      {post.hasReply ? (
+                        <span className="rounded bg-accent/10 px-2 py-1 text-xs text-accent">
+                          답변완료
+                        </span>
+                      ) : (
+                        <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
+                          대기중
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Pagination Placeholder */}
-        <div className="mt-8 flex justify-center">
-          <div className="flex items-center gap-2">
-            <button className="h-10 w-10 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">
-              &lt;
-            </button>
-            <button className="h-10 w-10 rounded-lg bg-accent text-white">
-              1
-            </button>
-            <button className="h-10 w-10 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">
-              2
-            </button>
-            <button className="h-10 w-10 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">
-              3
-            </button>
-            <button className="h-10 w-10 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">
-              &gt;
-            </button>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -1,43 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
-// 임시 데이터
-const mockPortfolios = [
-  {
-    id: 1,
-    title: "본식 DVD 샘플 영상",
-    youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    category: "본식DVD",
-    featured: true,
-    isVisible: true,
-    order: 1,
-  },
-  {
-    id: 2,
-    title: "시네마틱 웨딩 영상",
-    youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    category: "시네마틱",
-    featured: true,
-    isVisible: true,
-    order: 2,
-  },
-  {
-    id: 3,
-    title: "하이라이트 영상",
-    youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    category: "하이라이트",
-    featured: false,
-    isVisible: true,
-    order: 3,
-  },
-];
+interface Portfolio {
+  id: number;
+  title: string;
+  youtubeUrl: string;
+  category: string;
+  featured: boolean;
+  isVisible: boolean;
+  order: number;
+}
 
 export default function AdminPortfolioPage() {
-  const [portfolios, setPortfolios] = useState(mockPortfolios);
+  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     youtubeUrl: "",
@@ -45,31 +26,64 @@ export default function AdminPortfolioPage() {
     featured: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingId) {
-      setPortfolios((prev) =>
-        prev.map((p) =>
-          p.id === editingId ? { ...p, ...formData } : p
-        )
-      );
-    } else {
-      setPortfolios((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          ...formData,
-          isVisible: true,
-          order: prev.length + 1,
-        },
-      ]);
+  useEffect(() => {
+    fetchPortfolios();
+  }, []);
+
+  const fetchPortfolios = async () => {
+    try {
+      const res = await fetch("/api/portfolio?admin=true");
+      const data = await res.json();
+      setPortfolios(data.portfolios || []);
+    } catch (error) {
+      console.error("Failed to fetch portfolios:", error);
+    } finally {
+      setLoading(false);
     }
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
   };
 
-  const handleEdit = (portfolio: typeof mockPortfolios[0]) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      if (editingId) {
+        // 수정
+        const res = await fetch(`/api/portfolio/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          await fetchPortfolios();
+          setIsModalOpen(false);
+          setEditingId(null);
+          setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
+        }
+      } else {
+        // 추가
+        const res = await fetch("/api/portfolio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          await fetchPortfolios();
+          setIsModalOpen(false);
+          setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
+        }
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      alert("저장에 실패했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEdit = (portfolio: Portfolio) => {
     setFormData({
       title: portfolio.title,
       youtubeUrl: portfolio.youtubeUrl,
@@ -80,19 +94,50 @@ export default function AdminPortfolioPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("정말 삭제하시겠습니까?")) {
-      setPortfolios((prev) => prev.filter((p) => p.id !== id));
+  const handleDelete = async (id: number) => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+
+    try {
+      const res = await fetch(`/api/portfolio/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        await fetchPortfolios();
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("삭제에 실패했습니다.");
     }
   };
 
-  const toggleVisibility = (id: number) => {
-    setPortfolios((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, isVisible: !p.isVisible } : p
-      )
-    );
+  const toggleVisibility = async (id: number, currentVisible: boolean) => {
+    try {
+      const res = await fetch(`/api/portfolio/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isVisible: !currentVisible }),
+      });
+
+      if (res.ok) {
+        setPortfolios((prev) =>
+          prev.map((p) =>
+            p.id === id ? { ...p, isVisible: !currentVisible } : p
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Toggle visibility error:", error);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-10 px-4">
@@ -144,54 +189,62 @@ export default function AdminPortfolioPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {portfolios.map((portfolio) => (
-                <tr key={portfolio.id} className="hover:bg-muted/50">
-                  <td className="px-4 py-3">
-                    <p className="font-medium">{portfolio.title}</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-xs">
-                      {portfolio.youtubeUrl}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-accent/10 px-2 py-1 text-xs text-accent">
-                      {portfolio.category}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {portfolio.featured ? (
-                      <span className="text-accent">★</span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => toggleVisibility(portfolio.id)}
-                      className={`rounded-full px-2 py-1 text-xs ${
-                        portfolio.isVisible
-                          ? "bg-green-500/10 text-green-500"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {portfolio.isVisible ? "공개" : "비공개"}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleEdit(portfolio)}
-                      className="text-sm text-muted-foreground hover:text-foreground mr-3"
-                    >
-                      수정
-                    </button>
-                    <button
-                      onClick={() => handleDelete(portfolio.id)}
-                      className="text-sm text-accent hover:underline"
-                    >
-                      삭제
-                    </button>
+              {portfolios.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    등록된 포트폴리오가 없습니다.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                portfolios.map((portfolio) => (
+                  <tr key={portfolio.id} className="hover:bg-muted/50">
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{portfolio.title}</p>
+                      <p className="text-xs text-muted-foreground truncate max-w-xs">
+                        {portfolio.youtubeUrl}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-accent/10 px-2 py-1 text-xs text-accent">
+                        {portfolio.category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {portfolio.featured ? (
+                        <span className="text-accent">★</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => toggleVisibility(portfolio.id, portfolio.isVisible)}
+                        className={`rounded-full px-2 py-1 text-xs ${
+                          portfolio.isVisible
+                            ? "bg-green-500/10 text-green-500"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {portfolio.isVisible ? "공개" : "비공개"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => handleEdit(portfolio)}
+                        className="text-sm text-muted-foreground hover:text-foreground mr-3"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => handleDelete(portfolio.id)}
+                        className="text-sm text-accent hover:underline"
+                      >
+                        삭제
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -257,9 +310,10 @@ export default function AdminPortfolioPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 rounded-lg bg-accent py-2 text-white transition-colors hover:bg-accent-hover"
+                    disabled={submitting}
+                    className="flex-1 rounded-lg bg-accent py-2 text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
                   >
-                    {editingId ? "수정" : "추가"}
+                    {submitting ? "저장 중..." : (editingId ? "수정" : "추가")}
                   </button>
                 </div>
               </form>

@@ -1,36 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
-// 임시 데이터
-const mockReviews = [
-  {
-    id: 1,
-    title: "정말 감동적인 영상이었어요!",
-    excerpt: "우리 결혼식을 이렇게 아름답게 담아주셔서 정말 감사해요.",
-    sourceUrl: "https://blog.naver.com/example1",
-    sourceType: "naver_blog",
-    author: "신부 김**",
-    isVisible: true,
-    order: 1,
-  },
-  {
-    id: 2,
-    title: "친구들이 다 물어봐요",
-    excerpt: "영상 받고 나서 친구들한테 보여줬더니 다들 어디서 찍었냐고 물어봐요.",
-    sourceUrl: "https://blog.naver.com/example2",
-    sourceType: "naver_blog",
-    author: "신랑 이**",
-    isVisible: true,
-    order: 2,
-  },
-];
+interface Review {
+  id: number;
+  title: string;
+  excerpt: string | null;
+  sourceUrl: string;
+  sourceType: string;
+  author: string | null;
+  isVisible: boolean;
+  order: number;
+}
 
 export default function AdminReviewsPage() {
-  const [reviews, setReviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     excerpt: "",
@@ -39,54 +28,108 @@ export default function AdminReviewsPage() {
     author: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingId) {
-      setReviews((prev) =>
-        prev.map((r) =>
-          r.id === editingId ? { ...r, ...formData } : r
-        )
-      );
-    } else {
-      setReviews((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          ...formData,
-          isVisible: true,
-          order: prev.length + 1,
-        },
-      ]);
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch("/api/reviews?admin=true");
+      const data = await res.json();
+      setReviews(data.reviews || []);
+    } catch (error) {
+      console.error("Failed to fetch reviews:", error);
+    } finally {
+      setLoading(false);
     }
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "" });
   };
 
-  const handleEdit = (review: typeof mockReviews[0]) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      if (editingId) {
+        const res = await fetch(`/api/reviews/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          await fetchReviews();
+          setIsModalOpen(false);
+          setEditingId(null);
+          setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "" });
+        }
+      } else {
+        const res = await fetch("/api/reviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          await fetchReviews();
+          setIsModalOpen(false);
+          setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "" });
+        }
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      alert("저장에 실패했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEdit = (review: Review) => {
     setFormData({
       title: review.title,
-      excerpt: review.excerpt,
+      excerpt: review.excerpt || "",
       sourceUrl: review.sourceUrl,
       sourceType: review.sourceType,
-      author: review.author,
+      author: review.author || "",
     });
     setEditingId(review.id);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("정말 삭제하시겠습니까?")) {
-      setReviews((prev) => prev.filter((r) => r.id !== id));
+  const handleDelete = async (id: number) => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+
+    try {
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        await fetchReviews();
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("삭제에 실패했습니다.");
     }
   };
 
-  const toggleVisibility = (id: number) => {
-    setReviews((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, isVisible: !r.isVisible } : r
-      )
-    );
+  const toggleVisibility = async (id: number, currentVisible: boolean) => {
+    try {
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isVisible: !currentVisible }),
+      });
+
+      if (res.ok) {
+        setReviews((prev) =>
+          prev.map((r) =>
+            r.id === id ? { ...r, isVisible: !currentVisible } : r
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Toggle visibility error:", error);
+    }
   };
 
   const getSourceLabel = (type: string) => {
@@ -97,6 +140,14 @@ export default function AdminReviewsPage() {
       default: return type;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-10 px-4">
@@ -137,47 +188,53 @@ export default function AdminReviewsPage() {
 
         {/* List */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {reviews.map((review) => (
-            <div
-              key={review.id}
-              className={`rounded-xl border p-4 transition-all ${
-                review.isVisible ? "border-border bg-muted" : "border-border/50 bg-muted/50 opacity-60"
-              }`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <span className="rounded-full bg-accent/10 px-2 py-1 text-xs text-accent">
-                  {getSourceLabel(review.sourceType)}
-                </span>
+          {reviews.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              등록된 후기가 없습니다.
+            </div>
+          ) : (
+            reviews.map((review) => (
+              <div
+                key={review.id}
+                className={`rounded-xl border p-4 transition-all ${
+                  review.isVisible ? "border-border bg-muted" : "border-border/50 bg-muted/50 opacity-60"
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <span className="rounded-full bg-accent/10 px-2 py-1 text-xs text-accent">
+                    {getSourceLabel(review.sourceType)}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => toggleVisibility(review.id, review.isVisible)}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      {review.isVisible ? "숨기기" : "공개"}
+                    </button>
+                  </div>
+                </div>
+                <h3 className="font-medium mb-2">{review.title}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                  {review.excerpt || "-"}
+                </p>
+                <p className="text-xs text-muted-foreground mb-4">- {review.author || "익명"}</p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => toggleVisibility(review.id)}
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => handleEdit(review)}
+                    className="flex-1 rounded-lg border border-border py-2 text-sm transition-colors hover:bg-background"
                   >
-                    {review.isVisible ? "숨기기" : "공개"}
+                    수정
+                  </button>
+                  <button
+                    onClick={() => handleDelete(review.id)}
+                    className="rounded-lg border border-accent/30 px-4 py-2 text-sm text-accent transition-colors hover:bg-accent/10"
+                  >
+                    삭제
                   </button>
                 </div>
               </div>
-              <h3 className="font-medium mb-2">{review.title}</h3>
-              <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                {review.excerpt}
-              </p>
-              <p className="text-xs text-muted-foreground mb-4">- {review.author}</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(review)}
-                  className="flex-1 rounded-lg border border-border py-2 text-sm transition-colors hover:bg-background"
-                >
-                  수정
-                </button>
-                <button
-                  onClick={() => handleDelete(review.id)}
-                  className="rounded-lg border border-accent/30 px-4 py-2 text-sm text-accent transition-colors hover:bg-accent/10"
-                >
-                  삭제
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Modal */}
@@ -250,9 +307,10 @@ export default function AdminReviewsPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 rounded-lg bg-accent py-2 text-white transition-colors hover:bg-accent-hover"
+                    disabled={submitting}
+                    className="flex-1 rounded-lg bg-accent py-2 text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
                   >
-                    {editingId ? "수정" : "추가"}
+                    {submitting ? "저장 중..." : (editingId ? "수정" : "추가")}
                   </button>
                 </div>
               </form>

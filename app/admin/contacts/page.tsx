@@ -1,60 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
-// 임시 데이터
-const mockContacts = [
-  {
-    id: 1,
-    name: "홍길동",
-    phone: "010-1111-2222",
-    email: "hong@email.com",
-    weddingDate: "2025-06-15",
-    message: "시네마틱 영상 촬영 문의드립니다. 6월 15일 예식인데 가능할까요?",
-    isRead: false,
-    createdAt: "2025-01-17 14:30",
-  },
-  {
-    id: 2,
-    name: "김철수",
-    phone: "010-3333-4444",
-    email: "kim@email.com",
-    weddingDate: "2025-05-20",
-    message: "드론 촬영 추가 비용 문의드립니다.",
-    isRead: false,
-    createdAt: "2025-01-16 10:15",
-  },
-  {
-    id: 3,
-    name: "이영희",
-    phone: "010-5555-6666",
-    email: "lee@email.com",
-    weddingDate: "2025-07-01",
-    message: "본식 DVD만 촬영할 경우 가격이 어떻게 되나요?",
-    isRead: true,
-    createdAt: "2025-01-15 09:00",
-  },
-];
+interface Contact {
+  id: number;
+  name: string;
+  phone: string;
+  email: string | null;
+  weddingDate: string | null;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
 
 export default function AdminContactsPage() {
-  const [contacts, setContacts] = useState(mockContacts);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const fetchContacts = async () => {
+    try {
+      const res = await fetch("/api/contact");
+      const data = await res.json();
+      setContacts(data.contacts || []);
+    } catch (error) {
+      console.error("Failed to fetch contacts:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const selectedContact = contacts.find((c) => c.id === selectedId);
 
-  const handleMarkAsRead = (id: number) => {
-    setContacts((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, isRead: true } : c))
-    );
-  };
-
-  const handleDelete = (id: number) => {
-    if (confirm("정말 삭제하시겠습니까?")) {
-      setContacts((prev) => prev.filter((c) => c.id !== id));
-      setSelectedId(null);
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      await fetch(`/api/contact/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isRead: true }),
+      });
+      setContacts((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, isRead: true } : c))
+      );
+    } catch (error) {
+      console.error("Mark as read error:", error);
     }
   };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+
+    try {
+      const res = await fetch(`/api/contact/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setContacts((prev) => prev.filter((c) => c.id !== id));
+        setSelectedId(null);
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("삭제에 실패했습니다.");
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-10 px-4">
@@ -86,34 +119,40 @@ export default function AdminContactsPage() {
               </span>
             </div>
             <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
-              {contacts.map((contact) => (
-                <button
-                  key={contact.id}
-                  onClick={() => {
-                    setSelectedId(contact.id);
-                    if (!contact.isRead) handleMarkAsRead(contact.id);
-                  }}
-                  className={`w-full text-left px-4 py-4 transition-colors hover:bg-muted/50 ${
-                    selectedId === contact.id ? "bg-accent/10" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {!contact.isRead && (
-                      <span className="h-2 w-2 rounded-full bg-accent" />
-                    )}
-                    <span className="font-medium text-sm">{contact.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {contact.phone}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-1">
-                    {contact.message}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {contact.createdAt}
-                  </p>
-                </button>
-              ))}
+              {contacts.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  등록된 문의가 없습니다.
+                </div>
+              ) : (
+                contacts.map((contact) => (
+                  <button
+                    key={contact.id}
+                    onClick={() => {
+                      setSelectedId(contact.id);
+                      if (!contact.isRead) handleMarkAsRead(contact.id);
+                    }}
+                    className={`w-full text-left px-4 py-4 transition-colors hover:bg-muted/50 ${
+                      selectedId === contact.id ? "bg-accent/10" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {!contact.isRead && (
+                        <span className="h-2 w-2 rounded-full bg-accent" />
+                      )}
+                      <span className="font-medium text-sm">{contact.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {contact.phone}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-1">
+                      {contact.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDate(contact.createdAt)}
+                    </p>
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
@@ -139,7 +178,9 @@ export default function AdminContactsPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">예식일</p>
-                    <p className="font-medium">{selectedContact.weddingDate || "-"}</p>
+                    <p className="font-medium">
+                      {selectedContact.weddingDate?.split("T")[0] || "-"}
+                    </p>
                   </div>
                 </div>
 

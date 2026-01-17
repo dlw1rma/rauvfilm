@@ -1,0 +1,14 @@
+DATABASE_URL="postgresql://neondb_owner:npg_hRrHID8ZxSy5@ep-lingering-butterfly-a1nukq3v-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+```
+
+저장 후 Claude Code에게:
+```
+.env 수정 완료했어. 다시 확인하고 진행해줘.
+```
+
+---
+
+또는 Claude Code에게 바로:
+```
+.env 파일의 DATABASE_URL을 이걸로 수정해줘:
+postgresql://neondb_owner:npg_hRrHID8ZxSy5@ep-lingering-butterfly-a1nukq3v-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
