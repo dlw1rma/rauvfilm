@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 예약 게시판
+model Reservation {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String    @db.Text
+  author      String
+  password    String    // bcrypt 해시
+  phone       String?
+  email       String?
+  weddingDate DateTime?
+  location    String?
+  isPrivate   Boolean   @default(false)
+  viewCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  reply       Reply?
+}
+
+// 예약 게시판 답변
+model Reply {
+  id            Int         @id @default(autoincrement())
+  content       String      @db.Text
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  reservationId Int         @unique
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// 포트폴리오
+model Portfolio {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String?  @db.Text
+  youtubeUrl   String
+  thumbnailUrl String?
+  category     String?
+  featured     Boolean  @default(false)
+  order        Int      @default(0)
+  isVisible    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// 문의
+model Contact {
+  id          Int       @id @default(autoincrement())
+  name        String
+  phone       String
+  email       String?
+  weddingDate DateTime?
+  message     String    @db.Text
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
+
+// 고객 후기
+model Review {
+  id         Int      @id @default(autoincrement())
+  title      String
+  excerpt    String?  @db.Text
+  imageUrl   String?
+  sourceUrl  String   // 네이버 블로그/카페 원본 링크
+  sourceType String   // 'naver_blog', 'naver_cafe', 'instagram'
+  author     String?
+  order      Int      @default(0)
+  isVisible  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

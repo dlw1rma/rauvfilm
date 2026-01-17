@@ -1,0 +1,272 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+
+// 임시 데이터
+const mockPortfolios = [
+  {
+    id: 1,
+    title: "본식 DVD 샘플 영상",
+    youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    category: "본식DVD",
+    featured: true,
+    isVisible: true,
+    order: 1,
+  },
+  {
+    id: 2,
+    title: "시네마틱 웨딩 영상",
+    youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    category: "시네마틱",
+    featured: true,
+    isVisible: true,
+    order: 2,
+  },
+  {
+    id: 3,
+    title: "하이라이트 영상",
+    youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    category: "하이라이트",
+    featured: false,
+    isVisible: true,
+    order: 3,
+  },
+];
+
+export default function AdminPortfolioPage() {
+  const [portfolios, setPortfolios] = useState(mockPortfolios);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formData, setFormData] = useState({
+    title: "",
+    youtubeUrl: "",
+    category: "본식DVD",
+    featured: false,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingId) {
+      setPortfolios((prev) =>
+        prev.map((p) =>
+          p.id === editingId ? { ...p, ...formData } : p
+        )
+      );
+    } else {
+      setPortfolios((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          ...formData,
+          isVisible: true,
+          order: prev.length + 1,
+        },
+      ]);
+    }
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
+  };
+
+  const handleEdit = (portfolio: typeof mockPortfolios[0]) => {
+    setFormData({
+      title: portfolio.title,
+      youtubeUrl: portfolio.youtubeUrl,
+      category: portfolio.category,
+      featured: portfolio.featured,
+    });
+    setEditingId(portfolio.id);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    if (confirm("정말 삭제하시겠습니까?")) {
+      setPortfolios((prev) => prev.filter((p) => p.id !== id));
+    }
+  };
+
+  const toggleVisibility = (id: number) => {
+    setPortfolios((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, isVisible: !p.isVisible } : p
+      )
+    );
+  };
+
+  return (
+    <div className="min-h-screen py-10 px-4">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="mb-6">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            대시보드로 돌아가기
+          </Link>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">포트폴리오 관리</h1>
+              <p className="mt-1 text-muted-foreground">
+                웨딩 영상 포트폴리오를 관리합니다.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
+                setEditingId(null);
+                setIsModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-all hover:bg-accent-hover"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              영상 추가
+            </button>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="rounded-xl border border-border overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-muted text-sm">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">제목</th>
+                <th className="px-4 py-3 text-left font-medium">카테고리</th>
+                <th className="px-4 py-3 text-center font-medium">대표</th>
+                <th className="px-4 py-3 text-center font-medium">공개</th>
+                <th className="px-4 py-3 text-right font-medium">관리</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {portfolios.map((portfolio) => (
+                <tr key={portfolio.id} className="hover:bg-muted/50">
+                  <td className="px-4 py-3">
+                    <p className="font-medium">{portfolio.title}</p>
+                    <p className="text-xs text-muted-foreground truncate max-w-xs">
+                      {portfolio.youtubeUrl}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-full bg-accent/10 px-2 py-1 text-xs text-accent">
+                      {portfolio.category}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {portfolio.featured ? (
+                      <span className="text-accent">★</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => toggleVisibility(portfolio.id)}
+                      className={`rounded-full px-2 py-1 text-xs ${
+                        portfolio.isVisible
+                          ? "bg-green-500/10 text-green-500"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {portfolio.isVisible ? "공개" : "비공개"}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => handleEdit(portfolio)}
+                      className="text-sm text-muted-foreground hover:text-foreground mr-3"
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={() => handleDelete(portfolio.id)}
+                      className="text-sm text-accent hover:underline"
+                    >
+                      삭제
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-xl bg-muted p-6">
+              <h3 className="text-lg font-bold mb-4">
+                {editingId ? "영상 수정" : "영상 추가"}
+              </h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">제목</label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    required
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">YouTube URL</label>
+                  <input
+                    type="url"
+                    value={formData.youtubeUrl}
+                    onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
+                    required
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">카테고리</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
+                  >
+                    <option value="본식DVD">본식DVD</option>
+                    <option value="시네마틱">시네마틱</option>
+                    <option value="하이라이트">하이라이트</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="featured"
+                    checked={formData.featured}
+                    onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                    className="h-4 w-4"
+                  />
+                  <label htmlFor="featured" className="text-sm">대표 영상으로 설정</label>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 rounded-lg border border-border py-2 transition-colors hover:bg-background"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 rounded-lg bg-accent py-2 text-white transition-colors hover:bg-accent-hover"
+                  >
+                    {editingId ? "수정" : "추가"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
