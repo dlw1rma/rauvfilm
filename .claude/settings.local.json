@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: 긴급 디자인 업데이트 - 카카오톡 버튼 및 로고 적용\n\n- 카카오톡 채널 플로팅 버튼 추가 \\(우측 하단\\)\n- 로고 이미지 적용 \\(데스크톱/모바일\\)\n- 관리자 인증 강화 \\(서버 측 세션 기반\\)\n- 후기 페이지 DB 연동\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}

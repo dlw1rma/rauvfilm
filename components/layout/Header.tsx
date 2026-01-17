@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -21,9 +22,22 @@ export default function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <span className="text-xl font-bold text-foreground">
-              RAUV<span className="text-accent">FILM</span>
-            </span>
+            <Image
+              src="/logo.png"
+              alt="라우브필름"
+              width={150}
+              height={40}
+              className="hidden md:block h-8 w-auto"
+              priority
+            />
+            <Image
+              src="/logo-mobile.png"
+              alt="라우브필름"
+              width={120}
+              height={35}
+              className="md:hidden h-7 w-auto"
+              priority
+            />
           </Link>
 
           {/* Desktop Navigation */}

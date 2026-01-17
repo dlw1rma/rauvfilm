@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 interface Reservation {
   id: number;
@@ -22,6 +23,7 @@ interface Reservation {
 }
 
 export default function AdminReservationsPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAdminAuth();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -29,8 +31,10 @@ export default function AdminReservationsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchReservations();
-  }, []);
+    if (isAuthenticated) {
+      fetchReservations();
+    }
+  }, [isAuthenticated]);
 
   const fetchReservations = async () => {
     try {
@@ -94,12 +98,16 @@ export default function AdminReservationsPage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

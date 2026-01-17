@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 interface Review {
   id: number;
@@ -15,6 +16,7 @@ interface Review {
 }
 
 export default function AdminReviewsPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAdminAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,8 +31,10 @@ export default function AdminReviewsPage() {
   });
 
   useEffect(() => {
-    fetchReviews();
-  }, []);
+    if (isAuthenticated) {
+      fetchReviews();
+    }
+  }, [isAuthenticated]);
 
   const fetchReviews = async () => {
     try {
@@ -141,12 +145,16 @@ export default function AdminReviewsPage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

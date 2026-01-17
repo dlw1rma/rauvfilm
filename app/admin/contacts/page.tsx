@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 interface Contact {
   id: number;
@@ -15,13 +16,16 @@ interface Contact {
 }
 
 export default function AdminContactsPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAdminAuth();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchContacts();
-  }, []);
+    if (isAuthenticated) {
+      fetchContacts();
+    }
+  }, [isAuthenticated]);
 
   const fetchContacts = async () => {
     try {
@@ -81,12 +85,16 @@ export default function AdminContactsPage() {
     });
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

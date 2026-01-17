@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 interface Portfolio {
   id: number;
@@ -14,6 +15,7 @@ interface Portfolio {
 }
 
 export default function AdminPortfolioPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAdminAuth();
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,8 +29,10 @@ export default function AdminPortfolioPage() {
   });
 
   useEffect(() => {
-    fetchPortfolios();
-  }, []);
+    if (isAuthenticated) {
+      fetchPortfolios();
+    }
+  }, [isAuthenticated]);
 
   const fetchPortfolios = async () => {
     try {
@@ -131,12 +135,16 @@ export default function AdminPortfolioPage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

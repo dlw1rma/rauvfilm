@@ -12,8 +12,10 @@ interface Stats {
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [stats, setStats] = useState<Stats>({
     reservations: { total: 0, pending: 0 },
     contacts: { total: 0, unread: 0 },
@@ -21,6 +23,12 @@ export default function AdminPage() {
     reviews: 0,
   });
 
+  // 페이지 로드 시 세션 확인
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  // 로그인 후 통계 불러오기
   useEffect(() => {
     if (isLoggedIn) {
       fetch("/api/admin/stats")
@@ -29,6 +37,18 @@ export default function AdminPage() {
         .catch(console.error);
     }
   }, [isLoggedIn]);
+
+  const checkSession = async () => {
+    try {
+      const res = await fetch("/api/admin/auth");
+      const data = await res.json();
+      setIsLoggedIn(data.authenticated === true);
+    } catch {
+      setIsLoggedIn(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const menuItems = [
     {
@@ -77,17 +97,55 @@ export default function AdminPage() {
     },
   ];
 
-  // 임시 로그인 (실제로는 Auth.js 사용)
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // 임시 비밀번호 체크 (실제로는 서버에서 검증)
-    if (password === "admin1234") {
-      setIsLoggedIn(true);
-      setError("");
-    } else {
-      setError("비밀번호가 올바르지 않습니다.");
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setIsLoggedIn(true);
+        setPassword("");
+      } else {
+        setError(data.error || "로그인에 실패했습니다.");
+      }
+    } catch {
+      setError("로그인 처리 중 오류가 발생했습니다.");
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/auth", { method: "DELETE" });
+      setIsLoggedIn(false);
+      setStats({
+        reservations: { total: 0, pending: 0 },
+        contacts: { total: 0, unread: 0 },
+        portfolios: 0,
+        reviews: 0,
+      });
+    } catch {
+      console.error("Logout failed");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -111,6 +169,7 @@ export default function AdminPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 placeholder="관리자 비밀번호"
+                disabled={submitting}
               />
             </div>
             {error && (
@@ -118,14 +177,12 @@ export default function AdminPage() {
             )}
             <button
               type="submit"
-              className="w-full rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover"
+              disabled={submitting}
+              className="w-full rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50"
             >
-              로그인
+              {submitting ? "로그인 중..." : "로그인"}
             </button>
           </form>
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            * 임시 비밀번호: admin1234 (개발용)
-          </p>
         </div>
       </div>
     );
@@ -143,7 +200,7 @@ export default function AdminPage() {
             </p>
           </div>
           <button
-            onClick={() => setIsLoggedIn(false)}
+            onClick={handleLogout}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             로그아웃

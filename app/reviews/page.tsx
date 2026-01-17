@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import prisma from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "고객 후기 | 라우브필름",
@@ -10,69 +10,24 @@ export const metadata: Metadata = {
   },
 };
 
-// 임시 리뷰 데이터 (나중에 DB에서 가져올 예정)
-const reviews = [
-  {
-    id: 1,
-    title: "정말 감동적인 영상이었어요!",
-    excerpt: "우리 결혼식을 이렇게 아름답게 담아주셔서 정말 감사해요. 볼 때마다 눈물이 나요...",
-    imageUrl: "/reviews/review-1.jpg",
-    sourceUrl: "https://blog.naver.com/example1",
-    sourceType: "naver_blog",
-    author: "신부 김**",
-    date: "2024.12",
-  },
-  {
-    id: 2,
-    title: "친구들이 다 물어봐요",
-    excerpt: "영상 받고 나서 친구들한테 보여줬더니 다들 어디서 찍었냐고 물어봐요. 너무 만족합니다!",
-    imageUrl: "/reviews/review-2.jpg",
-    sourceUrl: "https://blog.naver.com/example2",
-    sourceType: "naver_blog",
-    author: "신랑 이**",
-    date: "2024.11",
-  },
-  {
-    id: 3,
-    title: "평생 간직할 보물이에요",
-    excerpt: "시네마틱 영상으로 받았는데, 정말 영화 같아요. 부모님도 너무 좋아하세요.",
-    imageUrl: "/reviews/review-3.jpg",
-    sourceUrl: "https://cafe.naver.com/example3",
-    sourceType: "naver_cafe",
-    author: "신부 박**",
-    date: "2024.10",
-  },
-  {
-    id: 4,
-    title: "촬영 당일 케어가 최고였어요",
-    excerpt: "바쁜 예식 중에도 전혀 부담 없이 촬영해주셨어요. 자연스러운 순간들이 잘 담겼어요.",
-    imageUrl: "/reviews/review-4.jpg",
-    sourceUrl: "https://blog.naver.com/example4",
-    sourceType: "naver_blog",
-    author: "신부 최**",
-    date: "2024.09",
-  },
-  {
-    id: 5,
-    title: "가성비 최고",
-    excerpt: "이 가격에 이 퀄리티는 정말 대만족입니다. 주변에 결혼 예정인 친구들에게 추천하고 있어요.",
-    imageUrl: "/reviews/review-5.jpg",
-    sourceUrl: "https://blog.naver.com/example5",
-    sourceType: "naver_blog",
-    author: "신랑 정**",
-    date: "2024.08",
-  },
-  {
-    id: 6,
-    title: "소통이 정말 잘 되었어요",
-    excerpt: "촬영 전 상담부터 영상 수정까지 모든 과정에서 친절하게 응대해주셨어요.",
-    imageUrl: "/reviews/review-6.jpg",
-    sourceUrl: "https://cafe.naver.com/example6",
-    sourceType: "naver_cafe",
-    author: "신부 강**",
-    date: "2024.07",
-  },
-];
+export const dynamic = "force-dynamic";
+
+async function getReviews() {
+  const reviews = await prisma.review.findMany({
+    where: { isVisible: true },
+    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+  });
+
+  return reviews.map((r) => ({
+    id: r.id,
+    title: r.title,
+    excerpt: r.excerpt,
+    sourceUrl: r.sourceUrl,
+    sourceType: r.sourceType,
+    author: r.author,
+    createdAt: r.createdAt,
+  }));
+}
 
 function getSourceLabel(sourceType: string) {
   switch (sourceType) {
@@ -87,7 +42,9 @@ function getSourceLabel(sourceType: string) {
   }
 }
 
-export default function ReviewsPage() {
+export default async function ReviewsPage() {
+  const reviews = await getReviews();
+
   return (
     <div className="min-h-screen py-20 px-4">
       <div className="mx-auto max-w-7xl">
@@ -95,13 +52,18 @@ export default function ReviewsPage() {
         <div className="mb-12 text-center">
           <h1 className="mb-4 text-4xl font-bold">고객 후기</h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            라우브필름과 함께한 신랑신부님들의.
+            라우브필름과 함께한 신랑신부님들의
             <br />
             소중한 후기를 확인해보세요.
           </p>
         </div>
 
         {/* Reviews Grid */}
+        {reviews.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">등록된 후기가 없습니다.</p>
+          </div>
+        ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {reviews.map((review) => (
             <a
@@ -155,22 +117,23 @@ export default function ReviewsPage() {
                     {getSourceLabel(review.sourceType)}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {review.date}
+                    {new Date(review.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "long" })}
                   </span>
                 </div>
                 <h3 className="mb-2 font-medium group-hover:text-accent transition-colors">
                   {review.title}
                 </h3>
                 <p className="text-sm text-muted-foreground line-clamp-2">
-                  {review.excerpt}
+                  {review.excerpt || ""}
                 </p>
                 <p className="mt-3 text-xs text-muted-foreground">
-                  - {review.author}
+                  - {review.author || "익명"}
                 </p>
               </div>
             </a>
           ))}
         </div>
+        )}
 
         {/* CTA */}
         <div className="mt-16 text-center">
