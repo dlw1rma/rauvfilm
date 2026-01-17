@@ -5,19 +5,44 @@ import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-const navigation = [
-  { name: "포트폴리오", href: "/portfolio" },
-  { name: "가격 안내", href: "/pricing" },
-  { name: "예약", href: "/reservation" },
-  { name: "고객 후기", href: "/reviews" },
-  { name: "문의하기", href: "/contact" },
+interface NavItem {
+  name: string;
+  href: string;
+  children?: { name: string; href: string }[];
+}
+
+const navigation: NavItem[] = [
+  { name: "ABOUT", href: "/about" },
+  { name: "PRODUCT", href: "/pricing" },
+  { name: "PORTFOLIO", href: "/portfolio" },
+  {
+    name: "EVENT SNAP",
+    href: "/event-snap",
+    children: [
+      { name: "동작대교", href: "/event-snap/djbg" },
+      { name: "창경궁", href: "/event-snap/chg" },
+      { name: "노을공원", href: "/event-snap/nepark" },
+      { name: "올림픽공원", href: "/event-snap/olpark" },
+    ],
+  },
+  {
+    name: "RESERVATION",
+    href: "/reservation",
+    children: [
+      { name: "예약하기", href: "/reservation" },
+      { name: "FAQ", href: "/faq" },
+      { name: "제휴", href: "/coalition" },
+    ],
+  },
 ];
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [mobileOpenDropdown, setMobileOpenDropdown] = useState<string | null>(null);
 
   return (
-    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -41,15 +66,38 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-8">
+          <div className="hidden md:flex md:items-center md:space-x-1">
             {navigation.map((item) => (
-              <Link
+              <div
                 key={item.name}
-                href={item.href}
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="relative"
+                onMouseEnter={() => item.children && setOpenDropdown(item.name)}
+                onMouseLeave={() => setOpenDropdown(null)}
               >
-                {item.name}
-              </Link>
+                <Link
+                  href={item.href}
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground tracking-wider"
+                >
+                  {item.name}
+                </Link>
+
+                {/* Dropdown Menu */}
+                {item.children && openDropdown === item.name && (
+                  <div className="absolute top-full left-0 pt-2 min-w-[160px]">
+                    <div className="bg-background border border-border rounded-lg shadow-lg py-2">
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.name}
+                          href={child.href}
+                          className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        >
+                          {child.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
 
@@ -97,19 +145,68 @@ export default function Header() {
         <div
           className={cn(
             "md:hidden overflow-hidden transition-all duration-300 ease-in-out",
-            isMobileMenuOpen ? "max-h-64 pb-4" : "max-h-0"
+            isMobileMenuOpen ? "max-h-[500px] pb-4" : "max-h-0"
           )}
         >
           <div className="space-y-1 pt-2">
             {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {item.name}
-              </Link>
+              <div key={item.name}>
+                {item.children ? (
+                  <>
+                    <button
+                      onClick={() =>
+                        setMobileOpenDropdown(
+                          mobileOpenDropdown === item.name ? null : item.name
+                        )
+                      }
+                      className="w-full flex items-center justify-between px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                    >
+                      <span>{item.name}</span>
+                      <svg
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          mobileOpenDropdown === item.name && "rotate-180"
+                        )}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="2"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+                    <div
+                      className={cn(
+                        "overflow-hidden transition-all duration-200",
+                        mobileOpenDropdown === item.name ? "max-h-48" : "max-h-0"
+                      )}
+                    >
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.name}
+                          href={child.href}
+                          className="block pl-6 pr-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          {child.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                )}
+              </div>
             ))}
           </div>
         </div>
