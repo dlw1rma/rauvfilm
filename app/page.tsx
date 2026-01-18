@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PortfolioSlider from "@/components/home/PortfolioSlider";
+import HeroVideoSlider from "@/components/home/HeroVideoSlider";
 
 const serviceItems = [
   {
@@ -49,34 +50,8 @@ const cameras = [
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative flex min-h-[90vh] items-center justify-center px-4">
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted" />
-        <div className="relative z-10 mx-auto max-w-4xl text-center">
-          <h1 className="mb-6 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl leading-tight">
-            소중한 날의 기억들을
-            <br />
-            <span className="text-accent">영원히</span> 간직하세요
-          </h1>
-          <p className="mx-auto mb-10 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            &apos;기록&apos;이 아닌 &apos;기억&apos;을 남기는 영상을 선사합니다.
-          </p>
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="/portfolio"
-              className="inline-flex h-12 items-center justify-center rounded bg-accent px-8 text-base font-medium text-white transition-all hover:bg-accent-hover hover:-translate-y-1"
-            >
-              PORTFOLIO
-            </Link>
-            <Link
-              href="/reservation"
-              className="inline-flex h-12 items-center justify-center rounded border border-border px-8 text-base font-medium text-foreground transition-all hover:bg-muted hover:-translate-y-1"
-            >
-              RESERVATION
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Hero Video Slider Section */}
+      <HeroVideoSlider />
 
       {/* Portfolio Slider Section */}
       <section className="py-16 overflow-hidden">
