@@ -2,45 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-
-interface VideoItem {
-  id: string;
-  videoId: string;
-  title: string;
-  subtitle: string;
-  type: string;
-}
-
-const heroVideos: VideoItem[] = [
-  {
-    id: "1",
-    videoId: "KfMCApWc5xE",
-    title: "더링크호텔",
-    subtitle: "The Link Hotel",
-    type: "2인3캠",
-  },
-  {
-    id: "2",
-    videoId: "qg0_FinB6EE",
-    title: "그랜드워커힐",
-    subtitle: "Grand Walkerhill Seoul",
-    type: "2인2캠",
-  },
-  {
-    id: "3",
-    videoId: "YMfYIi9dLJY",
-    title: "포시즌스호텔",
-    subtitle: "Four Seasons Seoul",
-    type: "2인3캠",
-  },
-  {
-    id: "4",
-    videoId: "zXtsGAkyeIo",
-    title: "시그니엘서울",
-    subtitle: "Signiel Seoul",
-    type: "2인2캠",
-  },
-];
+import { heroVideos } from "@/src/data/portfolio";
 
 export default function HeroVideoSlider() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,8 +30,8 @@ export default function HeroVideoSlider() {
       {/* Video Background */}
       <div className="absolute inset-0">
         <iframe
-          key={currentVideo.videoId}
-          src={`https://www.youtube.com/embed/${currentVideo.videoId}?autoplay=1&mute=1&loop=1&playlist=${currentVideo.videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+          key={currentVideo.youtubeId}
+          src={`https://www.youtube.com/embed/${currentVideo.youtubeId}?autoplay=1&mute=1&loop=1&playlist=${currentVideo.youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
           title={currentVideo.title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           className="absolute w-[300%] h-[300%] -top-[100%] -left-[100%] pointer-events-none"
@@ -83,13 +45,13 @@ export default function HeroVideoSlider() {
       <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
         <div className="mb-8">
           <span className="inline-block px-4 py-1 text-sm tracking-widest border border-white/30 rounded-full mb-6">
-            {currentVideo.type}
+            {currentVideo.camera}
           </span>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 tracking-tight">
             {currentVideo.title}
           </h1>
           <p className="text-lg md:text-xl text-white/80 tracking-widest">
-            {currentVideo.subtitle}
+            {currentVideo.titleEn}
           </p>
         </div>
 
