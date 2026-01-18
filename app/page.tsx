@@ -1,6 +1,7 @@
 import Link from "next/link";
 import PortfolioSlider from "@/components/home/PortfolioSlider";
 import HeroVideoSlider from "@/components/home/HeroVideoSlider";
+import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 
 const serviceItems = [
   {
@@ -84,10 +85,8 @@ export default function Home() {
       <section className="py-20 px-4">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-8 text-center text-2xl font-bold tracking-widest">COLOR</h2>
-          <div className="bg-muted rounded-xl p-8 border border-border mb-8">
-            <div className="aspect-video bg-background rounded-lg flex items-center justify-center mb-6">
-              <p className="text-muted-foreground text-sm">Before / After 비교 슬라이더</p>
-            </div>
+          <div className="mb-8">
+            <BeforeAfterSlider />
           </div>
           <p className="text-center text-muted-foreground leading-relaxed">
             특수한 촬영 방식과 자연스러운 색감 보정으로
