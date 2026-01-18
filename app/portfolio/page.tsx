@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { Portfolio } from "@prisma/client";
 import YouTubeFacade from "@/components/video/YouTubeFacade";
 import prisma from "@/lib/prisma";
 
@@ -34,7 +35,7 @@ async function getPortfolios() {
     orderBy: [{ order: "asc" }, { createdAt: "desc" }],
   });
 
-  return portfolios.map((p) => ({
+  return portfolios.map((p: Portfolio) => ({
     id: p.id,
     title: p.title,
     videoId: extractVideoId(p.youtubeUrl),
