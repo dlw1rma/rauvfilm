@@ -3,42 +3,47 @@ import PortfolioSlider from "@/components/home/PortfolioSlider";
 import HeroVideoSlider from "@/components/home/HeroVideoSlider";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 
-const serviceItems = [
+// SERVICE 섹션 상단 4개 카드
+const serviceItemsTop = [
   {
-    title: "Product",
-    subtitle: "상품 구성",
+    title: "상품 구성",
+    titleEn: "Product",
     href: "/pricing",
-    description: "본식DVD, 시네마틱 영상, 하이라이트 영상 등",
+    icon: "dollar",
   },
   {
-    title: "Reservation",
-    subtitle: "예약 절차",
+    title: "예약 절차",
+    titleEn: "Reservation process",
     href: "/reservation",
-    description: "간편한 예약 과정 안내",
+    icon: "calendar",
   },
   {
-    title: "Contract",
-    subtitle: "계약 약관",
+    title: "계약 약관",
+    titleEn: "Contract terms",
     href: "/terms",
-    description: "계약금, 잔금, 취소 규정 안내",
+    icon: "document",
   },
   {
     title: "FAQ",
-    subtitle: "자주 묻는 질문",
+    titleEn: "FAQ",
     href: "/faq",
-    description: "궁금한 점을 확인해보세요",
+    icon: "question",
   },
+];
+
+// SERVICE 섹션 하단 2개 넓은 카드
+const serviceItemsBottom = [
   {
-    title: "About",
-    subtitle: "라우브필름에 대해서",
+    title: "라우브필름에 대해서 알아보세요.",
+    subtitle: "결혼식 영상에 대한 라우브필름의 철학.",
     href: "/about",
-    description: "라우브필름을 소개합니다",
+    icon: "chart",
   },
   {
-    title: "TIP",
-    subtitle: "영상 활용법",
+    title: "[TIP] 라우브필름 최대로 활용하기.",
+    subtitle: "영상 시청 방법, 커스텀 요청 방법 등등.",
     href: "/faq",
-    description: "영상을 더 잘 활용하는 방법",
+    icon: "lightbulb",
   },
 ];
 
@@ -62,19 +67,75 @@ export default function Home() {
       {/* SERVICE Section */}
       <section className="py-20 px-4 bg-muted">
         <div className="mx-auto max-w-6xl">
-          <h2 className="mb-12 text-center text-2xl font-bold tracking-widest">SERVICE</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {serviceItems.map((item) => (
+          {/* Section Title - Left aligned, Red */}
+          <h2 className="mb-8 text-left text-2xl font-bold tracking-widest text-accent">SERVICE</h2>
+
+          {/* Top 4 Cards - 4 columns on desktop, 2 on mobile */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            {serviceItemsTop.map((item) => (
               <Link
                 key={item.title}
                 href={item.href}
-                className="group rounded-xl bg-background p-6 border border-border transition-all hover:-translate-y-2 hover:shadow-lg hover:shadow-accent/10"
+                className="group rounded-lg bg-background p-5 border border-border transition-all hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10"
               >
-                <h3 className="text-lg font-bold mb-1 group-hover:text-accent transition-colors tracking-wider">
+                <div className="w-10 h-10 mb-4 rounded-full bg-accent/10 flex items-center justify-center">
+                  {item.icon === "dollar" && (
+                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                  {item.icon === "calendar" && (
+                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                  )}
+                  {item.icon === "document" && (
+                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                  )}
+                  {item.icon === "question" && (
+                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                    </svg>
+                  )}
+                </div>
+                <h3 className="text-sm font-bold mb-1 group-hover:text-accent transition-colors">
                   {item.title}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-2">{item.subtitle}</p>
-                <p className="text-xs text-muted-foreground">{item.description}</p>
+                <p className="text-xs text-muted-foreground">{item.titleEn}</p>
+              </Link>
+            ))}
+          </div>
+
+          {/* Bottom 2 Wide Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {serviceItemsBottom.map((item) => (
+              <Link
+                key={item.title}
+                href={item.href}
+                className="group rounded-lg bg-background p-5 border border-border transition-all hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 flex-shrink-0 rounded-full bg-accent/10 flex items-center justify-center">
+                    {item.icon === "chart" && (
+                      <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                      </svg>
+                    )}
+                    {item.icon === "lightbulb" && (
+                      <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold mb-1 group-hover:text-accent transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">{item.subtitle}</p>
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
@@ -84,19 +145,15 @@ export default function Home() {
       {/* COLOR Section */}
       <section className="py-20 px-4">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 text-center text-2xl font-bold tracking-widest">COLOR</h2>
+          <h2 className="mb-4 text-left text-2xl font-bold tracking-widest text-accent">COLOR</h2>
+          <p className="text-left text-muted-foreground leading-relaxed mb-8">
+            특수한 촬영 방식과 자연스러운 색감과 피부보정, 드레스 디테일 보정으로
+            <br className="hidden md:block" />
+            가장 예쁜 모습만을 남겨드리고 있습니다.
+          </p>
           <div className="mb-8">
             <BeforeAfterSlider />
           </div>
-          <p className="text-center text-muted-foreground leading-relaxed">
-            특수한 촬영 방식과 자연스러운 색감 보정으로
-            <br />
-            영화 같은 분위기의 영상을 완성합니다.
-            <br /><br />
-            과하지 않고 자연스러운 색감,
-            <br />
-            그날의 감동을 그대로 담아냅니다.
-          </p>
         </div>
       </section>
 

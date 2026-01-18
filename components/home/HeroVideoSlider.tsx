@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { heroVideos } from "@/src/data/portfolio";
 
 export default function HeroVideoSlider() {
@@ -26,7 +25,7 @@ export default function HeroVideoSlider() {
   const currentVideo = heroVideos[currentIndex];
 
   return (
-    <section className="relative w-full h-screen overflow-hidden">
+    <section className="relative w-full h-screen min-h-[600px] overflow-hidden">
       {/* Video Background */}
       <div className="absolute inset-0">
         <iframe
@@ -34,40 +33,26 @@ export default function HeroVideoSlider() {
           src={`https://www.youtube.com/embed/${currentVideo.youtubeId}?autoplay=1&mute=1&loop=1&playlist=${currentVideo.youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
           title={currentVideo.title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          className="absolute w-[300%] h-[300%] -top-[100%] -left-[100%] pointer-events-none"
+          className="absolute w-[300%] h-[300%] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
           style={{ border: "none" }}
         />
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/50" />
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black/40" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
-        <div className="mb-8">
-          <span className="inline-block px-4 py-1 text-sm tracking-widest border border-white/30 rounded-full mb-6">
-            {currentVideo.camera}
-          </span>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 tracking-tight">
-            {currentVideo.title}
-          </h1>
-          <p className="text-lg md:text-xl text-white/80 tracking-widest">
-            {currentVideo.titleEn}
-          </p>
-        </div>
-
-        <div className="flex gap-4 mt-8">
-          <Link
-            href="/portfolio"
-            className="inline-flex h-12 items-center justify-center rounded bg-accent px-8 text-base font-medium text-white transition-all hover:bg-accent-hover hover:scale-105"
-          >
-            PORTFOLIO
-          </Link>
-          <Link
-            href="/reservation"
-            className="inline-flex h-12 items-center justify-center rounded border border-white/50 px-8 text-base font-medium text-white transition-all hover:bg-white/10 hover:scale-105"
-          >
-            RESERVATION
-          </Link>
+      {/* Content - Left Aligned */}
+      <div className="relative z-10 h-full flex items-center">
+        <div className="container mx-auto px-6 md:px-12 lg:px-16">
+          <div className="max-w-xl">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight drop-shadow-lg">
+              소중한 날의 기억들을
+              <br />
+              영원히 간직하세요
+            </h1>
+            <p className="mt-6 text-sm md:text-base lg:text-lg text-white/80">
+              &apos;기록&apos;이 아닌 &apos;기억&apos;을 남기는 영상을 선사합니다.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -97,7 +82,7 @@ export default function HeroVideoSlider() {
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`w-3 h-3 rounded-full transition-all ${
+            className={`w-2.5 h-2.5 rounded-full transition-all ${
               index === currentIndex
                 ? "bg-white scale-125"
                 : "bg-white/40 hover:bg-white/60"

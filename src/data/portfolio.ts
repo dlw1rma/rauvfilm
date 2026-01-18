@@ -3,11 +3,12 @@
 
 export interface PortfolioItem {
   id: number;
-  title: string;        // 한글 제목 (예: "더링크 호텔")
-  titleEn: string;      // 영문 제목 (예: "The Link Hotel")
-  camera: string;       // 촬영 구성 (예: "2인3캠", "2인2캠")
-  youtubeId: string;    // 유튜브 영상 ID (예: "KfMCApWc5xE")
-  thumbnailUrl?: string; // 커스텀 썸네일 URL (선택사항, 없으면 유튜브 썸네일 사용)
+  title: string;           // 한글 제목 (예: "더링크 호텔")
+  titleEn: string;         // 영문 제목 (예: "The Link Hotel")
+  subtitle: string;        // 서브타이틀 (예: "Cinematic Wedding Film")
+  camera: string;          // 촬영 구성 (예: "2인3캠", "1인2캠")
+  youtubeId: string;       // 유튜브 영상 ID (예: "KfMCApWc5xE")
+  thumbnailUrl?: string;   // 커스텀 썸네일 URL (선택사항)
 }
 
 export const portfolioItems: PortfolioItem[] = [
@@ -15,6 +16,7 @@ export const portfolioItems: PortfolioItem[] = [
     id: 1,
     title: "더링크호텔",
     titleEn: "The Link Hotel",
+    subtitle: "Cinematic Wedding Film",
     camera: "2인3캠",
     youtubeId: "KfMCApWc5xE",
   },
@@ -22,6 +24,7 @@ export const portfolioItems: PortfolioItem[] = [
     id: 2,
     title: "그랜드워커힐",
     titleEn: "Grand Walkerhill Seoul",
+    subtitle: "Cinematic Wedding Film",
     camera: "2인2캠",
     youtubeId: "qg0_FinB6EE",
   },
@@ -29,6 +32,7 @@ export const portfolioItems: PortfolioItem[] = [
     id: 3,
     title: "포시즌스호텔",
     titleEn: "Four Seasons Seoul",
+    subtitle: "Cinematic Wedding Film",
     camera: "2인3캠",
     youtubeId: "YMfYIi9dLJY",
   },
@@ -36,6 +40,7 @@ export const portfolioItems: PortfolioItem[] = [
     id: 4,
     title: "시그니엘서울",
     titleEn: "Signiel Seoul",
+    subtitle: "Cinematic Wedding Film",
     camera: "2인2캠",
     youtubeId: "zXtsGAkyeIo",
   },
@@ -43,29 +48,33 @@ export const portfolioItems: PortfolioItem[] = [
     id: 5,
     title: "반얀트리클럽",
     titleEn: "Banyan Tree Club",
+    subtitle: "Cinematic Wedding Film",
     camera: "2인3캠",
-    youtubeId: "", // 유튜브 ID 추가 필요
+    youtubeId: "",
   },
   {
     id: 6,
     title: "JW메리어트",
     titleEn: "JW Marriott",
+    subtitle: "Cinematic Wedding Film",
     camera: "2인2캠",
-    youtubeId: "", // 유튜브 ID 추가 필요
+    youtubeId: "",
   },
   {
     id: 7,
     title: "파라다이스시티",
     titleEn: "Paradise City",
+    subtitle: "Cinematic Wedding Film",
     camera: "2인3캠",
-    youtubeId: "", // 유튜브 ID 추가 필요
+    youtubeId: "",
   },
   {
     id: 8,
     title: "서울신라호텔",
     titleEn: "The Shilla Seoul",
+    subtitle: "Cinematic Wedding Film",
     camera: "2인2캠",
-    youtubeId: "", // 유튜브 ID 추가 필요
+    youtubeId: "",
   },
 ];
 
