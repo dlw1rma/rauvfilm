@@ -123,7 +123,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         content,
         phone: phone || null,
         email: email || null,
-        weddingDate: weddingDate ? new Date(weddingDate) : null,
+        weddingDate: weddingDate || null,
         location: location || null,
         isPrivate: isPrivate || false,
       },
