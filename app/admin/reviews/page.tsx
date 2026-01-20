@@ -111,18 +111,23 @@ export default function AdminReviewsPage() {
 
     setFetchingThumbnail(true);
     try {
+      console.log("Fetching thumbnail for URL:", formData.sourceUrl);
       const res = await fetch(`/api/reviews/fetch-thumbnail?url=${encodeURIComponent(formData.sourceUrl)}`);
       const data = await res.json();
       
+      console.log("Thumbnail fetch response:", data);
+      
       if (data.thumbnailUrl) {
         setFormData((prev) => ({ ...prev, imageUrl: data.thumbnailUrl }));
-        alert("썸네일을 가져왔습니다.");
+        alert(`썸네일을 가져왔습니다.\n${data.thumbnailUrl}`);
       } else {
-        alert("썸네일을 찾을 수 없습니다. 수동으로 입력해주세요.");
+        const errorMsg = data.error || data.message || "썸네일을 찾을 수 없습니다.";
+        console.error("Thumbnail fetch failed:", errorMsg, data);
+        alert(`${errorMsg}\n수동으로 입력해주세요.`);
       }
     } catch (error) {
       console.error("Failed to fetch thumbnail:", error);
-      alert("썸네일을 가져오는데 실패했습니다.");
+      alert(`썸네일을 가져오는데 실패했습니다.\n${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setFetchingThumbnail(false);
     }
