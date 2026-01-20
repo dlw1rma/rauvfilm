@@ -174,12 +174,11 @@ export default function PortfolioPageClient() {
               </svg>
             </button>
 
-            {/* Video Player - 동적 비율, 화면에 꽉 차게 */}
+            {/* Video Player - 동적 비율, 고정 크기 */}
             <div 
-              className="relative w-full h-full flex items-center justify-center"
+              className="relative max-w-5xl w-full flex items-center justify-center"
               style={{ 
-                maxWidth: "95vw",
-                maxHeight: "95vh"
+                maxHeight: "85vh"
               }}
             >
               <div
@@ -187,7 +186,7 @@ export default function PortfolioPageClient() {
                 style={{ 
                   aspectRatio: videoAspectRatio,
                   maxWidth: "100%",
-                  maxHeight: "95vh"
+                  maxHeight: "85vh"
                 }}
               >
                 <iframe

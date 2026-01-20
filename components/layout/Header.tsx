@@ -54,6 +54,7 @@ export default function Header() {
               height={40}
               className="hidden md:block h-8 w-auto"
               priority
+              style={{ width: "150px", height: "40px" }}
             />
             <Image
               src="/logo-mobile.png"
@@ -62,6 +63,7 @@ export default function Header() {
               height={35}
               className="md:hidden h-7 w-auto"
               priority
+              style={{ width: "120px", height: "35px" }}
             />
           </Link>
 
