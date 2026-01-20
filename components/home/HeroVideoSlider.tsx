@@ -5,15 +5,15 @@ export default function HeroVideoSlider() {
   const videoId = "sfKkrvLg_7g";
 
   return (
-    <section className="relative w-full h-screen min-h-[600px] overflow-hidden">
+    <section className="relative w-full aspect-video min-h-[500px] max-h-[80vh] overflow-hidden bg-black">
       {/* Video Background */}
-      <div className="absolute inset-0 w-full h-full">
+      <div className="absolute inset-0 w-full h-full flex items-center justify-center">
         <iframe
           src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
           title="Hero Video"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           className="absolute inset-0 w-full h-full"
-          style={{ border: "none", width: "100%", height: "100%" }}
+          style={{ border: "none" }}
           allowFullScreen
         />
         {/* Dark Overlay */}
@@ -37,7 +37,7 @@ export default function HeroVideoSlider() {
       </div>
 
       {/* Scroll Indicator */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
         <svg className="w-6 h-6 text-white/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
         </svg>
