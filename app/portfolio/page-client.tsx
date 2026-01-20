@@ -64,21 +64,53 @@ export default function PortfolioPageClient() {
   }, []);
 
   // 히어로 비디오 ID
-  const heroVideoId = "IbiUX6n7eEM";
-  const [heroVideoDimensions, setHeroVideoDimensions] = useState<{ width: number; height: number } | null>(null);
+  const desktopHeroVideoId = "IbiUX6n7eEM";
+  // 모바일용 세로형 영상 ID (필요시 변경)
+  const mobileHeroVideoId = "6GEYb31W9go";
+  
+  const [desktopHeroVideoDimensions, setDesktopHeroVideoDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [mobileHeroVideoDimensions, setMobileHeroVideoDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // 히어로 비디오의 실제 비율 가져오기
-    fetch(`/api/youtube/video-details?videoId=${heroVideoId}`)
+    // 모바일/데스크톱 감지
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    // 데스크톱용 영상 비율 가져오기
+    fetch(`/api/youtube/video-details?videoId=${desktopHeroVideoId}`)
       .then((res) => res.json())
       .then((data) => {
-        setHeroVideoDimensions({ width: data.width, height: data.height });
+        setDesktopHeroVideoDimensions({ width: data.width, height: data.height });
       })
       .catch((error) => {
-        console.error("Error fetching hero video dimensions:", error);
-        setHeroVideoDimensions({ width: 1280, height: 720 });
+        console.error("Error fetching desktop hero video dimensions:", error);
+        setDesktopHeroVideoDimensions({ width: 1280, height: 720 });
       });
-  }, []);
+
+    // 모바일용 영상 비율 가져오기
+    fetch(`/api/youtube/video-details?videoId=${mobileHeroVideoId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setMobileHeroVideoDimensions({ width: data.width, height: data.height });
+      })
+      .catch((error) => {
+        console.error("Error fetching mobile hero video dimensions:", error);
+        setMobileHeroVideoDimensions({ width: 720, height: 1280 });
+      });
+  }, [desktopHeroVideoId, mobileHeroVideoId]);
+
+  // 현재 사용할 영상 정보
+  const currentHeroVideoId = isMobile ? mobileHeroVideoId : desktopHeroVideoId;
+  const currentHeroVideoDimensions = isMobile ? mobileHeroVideoDimensions : desktopHeroVideoDimensions;
 
   if (loading) {
     return (
@@ -96,12 +128,12 @@ export default function PortfolioPageClient() {
     <>
       <div className="min-h-screen">
         {/* Hero Video Section - 배경 비디오 전용 */}
-        <section className="relative w-full h-[70vh] min-h-[600px] overflow-hidden bg-black mb-16 flex items-center justify-center">
+        <section className="relative w-full h-[80vh] min-h-[800px] overflow-hidden bg-black mb-16 flex items-center">
           {/* Video Background - 좌우 밀착(100vw), 수직 중앙 정렬 */}
           <div 
             className="bg-video-full absolute inset-0 overflow-hidden flex items-center justify-center"
-            style={heroVideoDimensions ? {
-              aspectRatio: `${heroVideoDimensions.width} / ${heroVideoDimensions.height}`,
+            style={currentHeroVideoDimensions ? {
+              aspectRatio: `${currentHeroVideoDimensions.width} / ${currentHeroVideoDimensions.height}`,
               width: "100vw",
               left: "50%",
               top: "50%",
@@ -116,25 +148,46 @@ export default function PortfolioPageClient() {
               minHeight: "100%"
             }}
           >
-            <iframe
-              src={`https://www.youtube.com/embed/${heroVideoId}?autoplay=1&mute=1&loop=1&playlist=${heroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
-              title="Portfolio Hero Video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              className="absolute inset-0 w-full h-full"
-              style={{ 
-                border: "none",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)"
-              }}
-              allowFullScreen
-            />
+            {/* 데스크톱용 영상 (768px 이상) */}
+            {!isMobile && (
+              <iframe
+                src={`https://www.youtube.com/embed/${desktopHeroVideoId}?autoplay=1&mute=1&loop=1&playlist=${desktopHeroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+                title="Portfolio Hero Video Desktop"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                className="absolute inset-0 w-full h-full"
+                style={{ 
+                  border: "none",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)"
+                }}
+                allowFullScreen
+              />
+            )}
+            
+            {/* 모바일용 영상 (768px 미만) */}
+            {isMobile && (
+              <iframe
+                src={`https://www.youtube.com/embed/${mobileHeroVideoId}?autoplay=1&mute=1&loop=1&playlist=${mobileHeroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+                title="Portfolio Hero Video Mobile"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                className="absolute inset-0 w-full h-full"
+                style={{ 
+                  border: "none",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)"
+                }}
+                allowFullScreen
+              />
+            )}
+            
             {/* Dark Overlay */}
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-black/40 z-0" />
           </div>
 
           {/* Content - Left Aligned */}
-          <div className="relative z-10 h-full flex items-center">
+          <div className="relative z-10 h-full flex items-center w-full">
             <div className="container mx-auto px-6 md:px-12 lg:px-16">
               <div className="max-w-2xl">
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight drop-shadow-lg mb-6">

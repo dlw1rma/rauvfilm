@@ -3,6 +3,7 @@ import PortfolioSlider from "@/components/home/PortfolioSlider";
 import HeroVideoSlider from "@/components/home/HeroVideoSlider";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import ReviewSection from "@/components/home/ReviewSection";
+import ColorSection from "@/components/home/ColorSection";
 
 // SERVICE 섹션 상단 4개 카드
 const serviceItemsTop = [
@@ -144,38 +145,7 @@ export default function Home() {
       </section>
 
       {/* COLOR Section */}
-      <section className="py-20 px-4">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="mb-4 text-left text-2xl font-bold tracking-widest text-accent">COLOR</h2>
-          <p className="text-left text-muted-foreground leading-relaxed mb-8">
-            특수한 촬영 방식과 자연스러운 색감과 피부보정, 드레스 디테일 보정으로
-            <br className="hidden md:block" />
-            가장 예쁜 모습만을 남겨드리고 있습니다.
-          </p>
-          <div className="mb-8 relative w-full rounded-lg overflow-hidden">
-            {/* PC 버전 영상 - 16:9 비율 */}
-            <div className="hidden md:block relative w-full" style={{ aspectRatio: "16/9" }}>
-              <iframe
-                src="https://www.youtube.com/embed/BEEXhZW2GMo?autoplay=1&mute=1&loop=1&playlist=BEEXhZW2GMo&controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 w-full h-full"
-                style={{ border: "none" }}
-              />
-            </div>
-            {/* 모바일 버전 영상 - 쇼츠 비율 (9:16) */}
-            <div className="md:hidden relative w-full mx-auto" style={{ aspectRatio: "9/16", maxWidth: "400px" }}>
-              <iframe
-                src="https://www.youtube.com/embed/6GEYb31W9go?autoplay=1&mute=1&loop=1&playlist=6GEYb31W9go&controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 w-full h-full"
-                style={{ border: "none" }}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      <ColorSection />
 
       {/* CAMERA Section */}
       <section className="py-20 px-4 bg-muted">
