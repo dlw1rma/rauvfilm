@@ -19,13 +19,21 @@ export default function AdminPortfolioPage() {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string>("");
   const [formData, setFormData] = useState({
     title: "",
     youtubeUrl: "",
     category: "본식DVD",
     featured: false,
+  });
+  const [syncData, setSyncData] = useState({
+    channelHandle: "rauvfilm_Cine",
+    apiKey: "",
+    category: "본식DVD",
   });
 
   useEffect(() => {
@@ -168,19 +176,30 @@ export default function AdminPortfolioPage() {
                 웨딩 영상 포트폴리오를 관리합니다.
               </p>
             </div>
-            <button
-              onClick={() => {
-                setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
-                setEditingId(null);
-                setIsModalOpen(true);
-              }}
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-all hover:bg-accent-hover"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              영상 추가
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsSyncModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium transition-all hover:bg-muted"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                YouTube 동기화
+              </button>
+              <button
+                onClick={() => {
+                  setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
+                  setEditingId(null);
+                  setIsModalOpen(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-all hover:bg-accent-hover"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                영상 추가
+              </button>
+            </div>
           </div>
         </div>
 
@@ -256,6 +275,129 @@ export default function AdminPortfolioPage() {
             </tbody>
           </table>
         </div>
+
+        {/* YouTube 동기화 Modal */}
+        {isSyncModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-xl bg-muted p-6">
+              <h3 className="text-lg font-bold mb-4">YouTube 채널 동기화</h3>
+              <div className="space-y-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    채널 핸들 <span className="text-accent">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={syncData.channelHandle}
+                    onChange={(e) => setSyncData({ ...syncData, channelHandle: e.target.value })}
+                    placeholder="rauvfilm_Cine"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    @ 기호 없이 입력하세요 (예: rauvfilm_Cine)
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    YouTube Data API 키 <span className="text-accent">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={syncData.apiKey}
+                    onChange={(e) => setSyncData({ ...syncData, apiKey: e.target.value })}
+                    placeholder="AIza..."
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    <a
+                      href="https://console.cloud.google.com/apis/credentials"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent hover:underline"
+                    >
+                      Google Cloud Console
+                    </a>
+                    에서 API 키를 발급받으세요
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">카테고리</label>
+                  <select
+                    value={syncData.category}
+                    onChange={(e) => setSyncData({ ...syncData, category: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
+                  >
+                    <option value="본식DVD">본식DVD</option>
+                    <option value="시네마틱">시네마틱</option>
+                    <option value="하이라이트">하이라이트</option>
+                  </select>
+                </div>
+                {syncResult && (
+                  <div className={`rounded-lg p-3 text-sm ${
+                    syncResult.includes("실패") || syncResult.includes("오류")
+                      ? "bg-accent/10 text-accent"
+                      : "bg-green-500/10 text-green-500"
+                  }`}>
+                    {syncResult}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSyncModalOpen(false);
+                    setSyncResult("");
+                  }}
+                  className="flex-1 rounded-lg border border-border py-2 transition-colors hover:bg-background"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!syncData.channelHandle || !syncData.apiKey) {
+                      setSyncResult("채널 핸들과 API 키를 입력해주세요.");
+                      return;
+                    }
+
+                    setSyncing(true);
+                    setSyncResult("");
+
+                    try {
+                      const res = await fetch("/api/admin/portfolio/sync-youtube", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(syncData),
+                      });
+
+                      const data = await res.json();
+
+                      if (res.ok) {
+                        setSyncResult(data.message || "동기화가 완료되었습니다.");
+                        await fetchPortfolios();
+                        setTimeout(() => {
+                          setIsSyncModalOpen(false);
+                          setSyncResult("");
+                        }, 2000);
+                      } else {
+                        setSyncResult(data.error || "동기화에 실패했습니다.");
+                      }
+                    } catch (error) {
+                      setSyncResult("동기화 중 오류가 발생했습니다.");
+                    } finally {
+                      setSyncing(false);
+                    }
+                  }}
+                  disabled={syncing}
+                  className="flex-1 rounded-lg bg-accent py-2 text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {syncing ? "동기화 중..." : "동기화 시작"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal */}
         {isModalOpen && (

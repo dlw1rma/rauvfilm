@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "가격 안내 | 라우브필름",
-  description: "라우브필름 웨딩 영상 촬영 가격 안내입니다. 본식DVD, 시네마틱, 하이라이트 패키지를 확인하세요.",
+  description: "라우브필름 웨딩 영상 촬영 가격 안내입니다. 가성비형, 기본형, 시네마틱형 패키지를 확인하세요.",
   openGraph: {
     title: "가격 안내 | 라우브필름",
     description: "라우브필름 웨딩 영상 촬영 가격 안내입니다.",
@@ -12,50 +12,63 @@ export const metadata: Metadata = {
 
 const pricingPlans = [
   {
-    name: "Basic",
-    subtitle: "본식 DVD",
-    price: "80만원",
-    description: "결혼식 전 과정을 담은 기본 패키지",
+    name: "1인 1캠",
+    subtitle: "가성비형",
+    originalPrice: "340,000",
+    price: "310,000",
+    description: "신부대기실 + 본식 + 원판촬영",
     features: [
-      "본식 전체 촬영 (2시간)",
-      "Full 버전 영상 (60~90분)",
-      "USB 또는 다운로드 제공",
-      "기본 색보정",
-      "촬영 후 3주 내 전달",
+      "4K 화질의 총 2개 영상",
+      "기록영상 (15~30분)",
+      "SNS영상(30초~1분)",
     ],
     popular: false,
   },
   {
-    name: "Premium",
-    subtitle: "시네마틱",
-    price: "150만원",
-    description: "영화처럼 연출된 감성적인 영상",
+    name: "1인 2캠",
+    subtitle: "기본형",
+    originalPrice: "600,000",
+    price: "500,000",
+    description: "신부대기실 + 본식 + 원판촬영",
     features: [
-      "본식 전체 촬영 (2시간)",
-      "시네마틱 영상 (5~10분)",
-      "Full 버전 영상 (60~90분)",
-      "전문 색보정 및 편집",
-      "드론 촬영 (선택)",
-      "촬영 후 4주 내 전달",
+      "4K 화질의 총 2개 영상",
+      "하이라이트 (2분~)",
+      "기록영상(30분~)",
+      "요청 시 인터뷰 촬영",
     ],
     popular: true,
   },
   {
-    name: "Deluxe",
-    subtitle: "올인원",
-    price: "200만원",
-    description: "모든 것을 담은 프리미엄 패키지",
+    name: "2인 3캠",
+    subtitle: "시네마틱형",
+    originalPrice: "950,000",
+    price: "850,000",
+    description: "신부대기실 + 본식 + 원판촬영",
     features: [
-      "본식 전체 촬영 (2시간)",
-      "시네마틱 영상 (5~10분)",
-      "하이라이트 영상 (1~2분)",
-      "Full 버전 영상 (60~90분)",
-      "전문 색보정 및 편집",
-      "드론 촬영 포함",
-      "촬영 후 4주 내 전달",
-      "추가 수정 1회 무료",
+      "4K 화질의 총 5개 영상",
+      "다큐형 하이라이트 (2분~)",
+      "다큐형 기록영상(식전/본식/식후 총 30분~)",
+      "인터뷰 영상 (4팀~)",
     ],
     popular: false,
+  },
+];
+
+const additionalOptions = [
+  {
+    name: "피로연(2부) / 폐백",
+    description: "2부 행사, 폐백, 테이블인사(피로연) 촬영됩니다.",
+    price: "50,000",
+  },
+  {
+    name: "메이크업 촬영",
+    description: "메이크업 샵부터 촬영됩니다.",
+    price: "200,000",
+  },
+  {
+    name: "USB 추가",
+    description: "TV에서 재생하기 쉽게 USB에 담아 전달드립니다",
+    price: "개당 20,000",
   },
 ];
 
@@ -65,11 +78,12 @@ export default function PricingPage() {
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-16 text-center">
-          <h1 className="mb-4 text-4xl font-bold">가격 안내</h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            소중한 순간을 담기 위한 패키지를 선택하세요.
-            <br />
-            모든 패키지는 상담을 통해 맞춤 조정이 가능합니다.
+          <h1 className="mb-4 text-4xl font-bold">PRICE</h1>
+          <div className="mb-4 flex items-center justify-center gap-4 text-sm text-muted-foreground">
+            <span>부가세포함 / 최대할인가</span>
+          </div>
+          <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
+            서울, 청주 외 출장비 발생
           </p>
         </div>
 
@@ -101,8 +115,15 @@ export default function PricingPage() {
               </div>
 
               <div className="mb-6">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                <span className="text-muted-foreground">~</span>
+                <div className="flex items-baseline gap-2">
+                  {plan.originalPrice && (
+                    <span className="text-xl text-muted-foreground line-through">
+                      {plan.originalPrice}
+                    </span>
+                  )}
+                  <span className="text-4xl font-bold">{plan.price}</span>
+                  <span className="text-muted-foreground">원</span>
+                </div>
               </div>
 
               <ul className="mb-8 space-y-3">
@@ -142,19 +163,33 @@ export default function PricingPage() {
           ))}
         </div>
 
+        {/* Additional Options */}
+        <div className="mt-16 rounded-xl border border-border bg-muted p-8">
+          <h2 className="mb-6 text-xl font-bold">OPTIONS</h2>
+          <div className="space-y-4">
+            {additionalOptions.map((option, index) => (
+              <div
+                key={index}
+                className="flex items-start justify-between gap-4 border-b border-border pb-4 last:border-0 last:pb-0"
+              >
+                <div className="flex-1">
+                  <h3 className="mb-1 font-medium">{option.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {option.description}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-accent">{option.price}원</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Additional Info */}
         <div className="mt-16 rounded-xl border border-border bg-muted p-8">
           <h2 className="mb-6 text-xl font-bold">추가 안내사항</h2>
           <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <h3 className="mb-2 font-medium">추가 옵션</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• 드론 촬영 추가: +20만원</li>
-                <li>• 2인 촬영 (멀티캠): +30만원</li>
-                <li>• 원본 영상 제공: +10만원</li>
-                <li>• 빠른 제작 (2주): +20만원</li>
-              </ul>
-            </div>
             <div>
               <h3 className="mb-2 font-medium">예약 및 결제</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
@@ -162,6 +197,15 @@ export default function PricingPage() {
                 <li>• 잔금은 촬영 당일 결제</li>
                 <li>• 예식일 2주 전까지 취소 시 계약금 환불</li>
                 <li>• 우천 시 일정 조율 가능</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="mb-2 font-medium">제작 기간</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• 가성비형: 촬영 후 약 2-3주</li>
+                <li>• 기본형: 촬영 후 약 3-4주</li>
+                <li>• 시네마틱형: 촬영 후 약 4-6주</li>
+                <li>• 성수기에는 조금 더 걸릴 수 있습니다</li>
               </ul>
             </div>
           </div>

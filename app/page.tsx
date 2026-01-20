@@ -151,8 +151,23 @@ export default function Home() {
             <br className="hidden md:block" />
             가장 예쁜 모습만을 남겨드리고 있습니다.
           </p>
-          <div className="mb-8">
-            <BeforeAfterSlider />
+          <div className="mb-8 relative aspect-video w-full rounded-lg overflow-hidden bg-muted">
+            {/* PC 버전 영상 */}
+            <iframe
+              src="https://www.youtube.com/embed/BEEXhZW2GMo?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=BEEXhZW2GMo"
+              title="COLOR"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="hidden md:block absolute inset-0 w-full h-full"
+            />
+            {/* 모바일 버전 영상 */}
+            <iframe
+              src="https://www.youtube.com/embed/6GEYb31W9go?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=6GEYb31W9go"
+              title="COLOR"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="md:hidden absolute inset-0 w-full h-full"
+            />
           </div>
         </div>
       </section>
