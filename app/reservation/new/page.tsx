@@ -528,7 +528,7 @@ export default function NewReservationPage() {
               <div className="border-b border-border pb-4">
                 <h2 className="text-xl font-semibold">4. 본식DVD 예약 고객님 필수 추가 작성 항목</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {formData.productType === "본식DVD" || formData.productType === "기본형" || formData.productType === "가성비형"
+                  {(formData.productType === "본식DVD" || formData.productType === "기본형" || formData.productType === "가성비형")
                     ? "본식DVD 관련 정보를 입력해주세요."
                     : "본식DVD가 아닌 경우 다음 단계로 진행하세요."}
                 </p>

@@ -35,9 +35,10 @@ async function fetchYouTubeChannelVideos(
     let nextPageToken: string | undefined = undefined;
 
     do {
-      const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=50&key=${apiKey}${
-        nextPageToken ? `&pageToken=${nextPageToken}` : ""
-      }`;
+      const baseUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=50&key=${apiKey}`;
+      const playlistUrl = nextPageToken 
+        ? `${baseUrl}&pageToken=${nextPageToken}`
+        : baseUrl;
 
       const playlistResponse = await fetch(playlistUrl);
       if (!playlistResponse.ok) {
