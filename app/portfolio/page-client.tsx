@@ -83,15 +83,20 @@ export default function PortfolioPageClient() {
     <>
       <div className="min-h-screen">
         {/* Hero Video Section */}
-        <section className="relative w-full aspect-video min-h-[500px] max-h-[70vh] overflow-hidden bg-black mb-16">
-          {/* Video Background */}
+        <section className="relative w-full min-h-[500px] max-h-[70vh] overflow-hidden bg-black mb-16">
+          {/* Video Background - 좌우 고정, 위아래는 잘려도 됨 */}
           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
             <iframe
               src={`https://www.youtube.com/embed/${heroVideoId}?autoplay=1&mute=1&loop=1&playlist=${heroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
               title="Portfolio Hero Video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               className="absolute inset-0 w-full h-full"
-              style={{ border: "none" }}
+              style={{ 
+                border: "none",
+                objectFit: "cover",
+                width: "100%",
+                height: "100%"
+              }}
               allowFullScreen
             />
             {/* Dark Overlay */}
@@ -119,7 +124,7 @@ export default function PortfolioPageClient() {
         <div className="py-20 px-4">
           <div className="mx-auto max-w-7xl">
             {/* Video Grid */}
-          {portfolioItems.length === 0 ? (
+            {portfolioItems.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">등록된 포트폴리오가 없습니다.</p>
             </div>
@@ -167,7 +172,7 @@ export default function PortfolioPageClient() {
                 );
               })}
             </div>
-          )}
+            )}
           </div>
         </div>
       </div>
@@ -203,30 +208,27 @@ export default function PortfolioPageClient() {
               </svg>
             </button>
 
-            {/* Video Player - 동적 비율, 고정 크기 */}
+            {/* Video Player - 좌우 고정, 위아래는 잘려도 됨 */}
             <div 
-              className="relative max-w-5xl w-full flex items-center justify-center"
+              className="relative w-full h-full flex items-center justify-center"
               style={{ 
-                maxHeight: "85vh"
+                width: "100%",
+                height: "100%"
               }}
             >
-              <div
-                className="relative w-full"
+              <iframe
+                src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&controls=1&showinfo=0&modestbranding=1`}
+                title={selectedVideo.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
                 style={{ 
-                  aspectRatio: videoAspectRatio,
-                  maxWidth: "100%",
-                  maxHeight: "85vh"
+                  border: "none",
+                  objectFit: "cover",
+                  width: "100%",
+                  height: "100%"
                 }}
-              >
-                <iframe
-                  src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&controls=1&showinfo=0&modestbranding=1`}
-                  title={selectedVideo.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="absolute inset-0 w-full h-full rounded-lg"
-                  style={{ border: "none" }}
-                />
-              </div>
+              />
             </div>
 
             {/* Video Title */}

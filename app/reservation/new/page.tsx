@@ -203,12 +203,20 @@ export default function NewReservationPage() {
   };
 
   // 폼 제출 함수 (마지막 섹션에서만 실행)
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    // 이벤트가 있으면 기본 동작 방지
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     
     // 안전 장치: 현재 섹션이 마지막 섹션이 아니면 제출하지 않음
     if (currentSection !== totalSections) {
+      return;
+    }
+    
+    // 이미 제출 중이면 중복 제출 방지
+    if (isSubmitting) {
       return;
     }
     
@@ -457,13 +465,7 @@ export default function NewReservationPage() {
 
         {/* Form */}
         <form 
-          onSubmit={handleSubmit} 
-          onKeyDown={(e) => {
-            // Enter 키로 인한 자동 제출 방지 (마지막 섹션이 아니거나 등록하기 버튼이 아닌 경우)
-            if (e.key === "Enter" && (currentSection !== totalSections || isSubmitting)) {
-              e.preventDefault();
-            }
-          }}
+          onSubmit={handleSubmit}
           className="space-y-8"
         >
           {/* Section 1: 개인정보 활용 동의 (1번째로 이동) */}
@@ -1270,13 +1272,14 @@ export default function NewReservationPage() {
               </button>
             ) : (
               <button
-                type="submit"
+                type="button"
                 disabled={isSubmitting}
                 onClick={(e) => {
-                  // 안전 장치: 마지막 섹션에서만 제출 허용
-                  if (currentSection !== totalSections) {
-                    e.preventDefault();
-                    return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // 마지막 섹션에서만 제출 허용
+                  if (currentSection === totalSections) {
+                    handleSubmit(e as any);
                   }
                 }}
                 className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"

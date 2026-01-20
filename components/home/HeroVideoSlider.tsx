@@ -5,15 +5,20 @@ export default function HeroVideoSlider() {
   const videoId = "sfKkrvLg_7g";
 
   return (
-    <section className="relative w-full aspect-video min-h-[400px] max-h-[60vh] overflow-hidden bg-black">
-      {/* Video Background */}
+    <section className="relative w-full min-h-[400px] max-h-[60vh] overflow-hidden bg-black">
+      {/* Video Background - 좌우 고정, 위아래는 잘려도 됨 */}
       <div className="absolute inset-0 w-full h-full flex items-center justify-center">
         <iframe
           src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
           title="Hero Video"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           className="absolute inset-0 w-full h-full"
-          style={{ border: "none" }}
+          style={{ 
+            border: "none",
+            objectFit: "cover",
+            width: "100%",
+            height: "100%"
+          }}
           allowFullScreen
         />
         {/* Dark Overlay */}

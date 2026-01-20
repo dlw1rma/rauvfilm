@@ -176,31 +176,27 @@ export default function PortfolioSlider() {
               </svg>
             </button>
 
-            {/* Video Player - 동적 비율, 화면에 꽉 차게 */}
+            {/* Video Player - 좌우 고정, 위아래는 잘려도 됨 */}
             <div 
               className="relative w-full h-full flex items-center justify-center"
               style={{ 
-                maxWidth: "95vw",
-                maxHeight: "95vh"
+                width: "100%",
+                height: "100%"
               }}
             >
-              <div
-                className="relative w-full"
+              <iframe
+                src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&controls=1&showinfo=0&modestbranding=1`}
+                title={selectedVideo.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
                 style={{ 
-                  aspectRatio: videoAspectRatio,
-                  maxWidth: "100%",
-                  maxHeight: "95vh"
+                  border: "none",
+                  objectFit: "cover",
+                  width: "100%",
+                  height: "100%"
                 }}
-              >
-                <iframe
-                  src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&controls=1&showinfo=0&modestbranding=1`}
-                  title={selectedVideo.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="absolute inset-0 w-full h-full rounded-lg"
-                  style={{ border: "none" }}
-                />
-              </div>
+              />
             </div>
 
             {/* Video Title */}
