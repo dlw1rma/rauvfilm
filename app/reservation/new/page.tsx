@@ -48,6 +48,7 @@ export default function NewReservationPage() {
     makeupShop: "",
     dressShop: "",
     deliveryAddress: "",
+    usbOption: false, // USB 추가 옵션
     seonwonpan: false,
     gimbalShoot: false,
     playbackDevice: "",
