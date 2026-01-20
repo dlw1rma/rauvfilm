@@ -118,8 +118,7 @@ export default function PortfolioPageClient() {
 
         <div className="py-20 px-4">
           <div className="mx-auto max-w-7xl">
-
-          {/* Video Grid */}
+            {/* Video Grid */}
           {portfolioItems.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">등록된 포트폴리오가 없습니다.</p>
@@ -169,6 +168,7 @@ export default function PortfolioPageClient() {
               })}
             </div>
           )}
+          </div>
         </div>
       </div>
 

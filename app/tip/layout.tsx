@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "본식영상 활용 팁 | 라우브필름",
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export default function TipLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return <>{children}</>;
 }
