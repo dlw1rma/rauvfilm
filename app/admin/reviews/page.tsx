@@ -111,23 +111,42 @@ export default function AdminReviewsPage() {
 
     setFetchingThumbnail(true);
     try {
-      console.log("Fetching thumbnail for URL:", formData.sourceUrl);
+      console.log("Fetching data for URL:", formData.sourceUrl);
       const res = await fetch(`/api/reviews/fetch-thumbnail?url=${encodeURIComponent(formData.sourceUrl)}`);
       const data = await res.json();
       
-      console.log("Thumbnail fetch response:", data);
+      console.log("Fetch response:", data);
       
+      let updatedFields: string[] = [];
+      
+      // 제목 업데이트
+      if (data.title) {
+        setFormData((prev) => ({ ...prev, title: data.title }));
+        updatedFields.push(`제목: ${data.title}`);
+      }
+      
+      // 내용 업데이트
+      if (data.excerpt) {
+        setFormData((prev) => ({ ...prev, excerpt: data.excerpt }));
+        updatedFields.push(`내용: ${data.excerpt.substring(0, 50)}...`);
+      }
+      
+      // 썸네일 업데이트
       if (data.thumbnailUrl) {
         setFormData((prev) => ({ ...prev, imageUrl: data.thumbnailUrl }));
-        alert(`썸네일을 가져왔습니다.\n${data.thumbnailUrl}`);
+        updatedFields.push(`썸네일: ${data.thumbnailUrl.substring(0, 50)}...`);
+      }
+      
+      if (updatedFields.length > 0) {
+        alert(`다음 정보를 가져왔습니다:\n\n${updatedFields.join("\n")}`);
       } else {
-        const errorMsg = data.error || data.message || "썸네일을 찾을 수 없습니다.";
-        console.error("Thumbnail fetch failed:", errorMsg, data);
+        const errorMsg = data.error || "정보를 찾을 수 없습니다.";
+        console.error("Fetch failed:", errorMsg, data);
         alert(`${errorMsg}\n수동으로 입력해주세요.`);
       }
     } catch (error) {
-      console.error("Failed to fetch thumbnail:", error);
-      alert(`썸네일을 가져오는데 실패했습니다.\n${error instanceof Error ? error.message : String(error)}`);
+      console.error("Failed to fetch data:", error);
+      alert(`정보를 가져오는데 실패했습니다.\n${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setFetchingThumbnail(false);
     }
