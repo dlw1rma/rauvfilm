@@ -2,210 +2,86 @@
 
 import React from "react";
 
+const steps = [
+  {
+    number: 1,
+    icon: "💬",
+    label: "카카오톡 채널로",
+    text: "촬영 가능여부 확인",
+  },
+  {
+    number: 2,
+    icon: "📋",
+    label: "계약 희망 시 카카오톡 채널로",
+    text: "예약방법 안내 받기",
+  },
+  {
+    number: 3,
+    icon: "✉️",
+    label: "안내 따라서 완료 후",
+    text: "확정문자와 계약서 받기",
+  },
+];
+
 export default function ReservationProcessPage() {
   return (
-    <div className="rv-process-wrap">
-      <section className="rv-process-section">
-        <div className="rv-process-container">
-          <h2 className="rv-process-title">예약절차</h2>
-          <p className="rv-process-subtitle">간단한 3단계로 예약이 완료됩니다</p>
-          
-          <div className="rv-process-grid">
-            {/* Step 1 */}
-            <div className="rv-process-step">
-              <span className="rv-step-num">1</span>
-              <div className="rv-step-icon">💬</div>
-              <p className="rv-step-label">카카오톡 채널로</p>
-              <p className="rv-step-text">촬영 가능여부 확인</p>
-            </div>
-            
-            {/* Step 2 */}
-            <div className="rv-process-step">
-              <span className="rv-step-num">2</span>
-              <div className="rv-step-icon">📋</div>
-              <p className="rv-step-label">계약 희망 시 카카오톡 채널로</p>
-              <p className="rv-step-text">예약방법 안내 받기</p>
-            </div>
-            
-            {/* Step 3 */}
-            <div className="rv-process-step">
-              <span className="rv-step-num">3</span>
-              <div className="rv-step-icon">✉️</div>
-              <p className="rv-step-label">안내 따라서 완료 후</p>
-              <p className="rv-step-text">확정문자와 계약서 받기</p>
-            </div>
-          </div>
+    <div className="min-h-screen py-20 px-4 md:py-20">
+      <div className="mx-auto max-w-5xl">
+        {/* Title */}
+        <div className="mb-4 text-center">
+          <h1 className="relative inline-block text-3xl md:text-4xl font-bold text-white pb-4">
+            예약절차
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-15 h-0.5 bg-accent" />
+          </h1>
         </div>
-      </section>
-
-      <style jsx>{`
-        .rv-process-wrap,
-        .rv-process-wrap * {
-          margin: 0 !important;
-          padding: 0 !important;
-          box-sizing: border-box !important;
-          font-family: "Apple SD Gothic Neo", "애플 SD 산돌고딕 Neo", sans-serif !important;
-        }
         
-        .rv-process-wrap {
-          background: transparent !important;
-          color: #e5e7eb !important;
-          line-height: 1.7 !important;
-        }
+        <p className="text-center text-muted-foreground text-base font-medium mb-15">
+          간단한 3단계로 예약이 완료됩니다
+        </p>
         
-        .rv-process-container {
-          max-width: 1000px !important;
-          margin: 0 auto !important;
-          padding: 0 20px !important;
-        }
-        
-        .rv-process-section {
-          padding: 80px 0 !important;
-          background: transparent !important;
-        }
-        
-        .rv-process-title {
-          font-size: 36px !important;
-          font-weight: 700 !important;
-          text-align: center !important;
-          margin-bottom: 16px !important;
-          color: #ffffff !important;
-          position: relative !important;
-          padding-bottom: 16px !important;
-        }
-        
-        .rv-process-title::after {
-          content: '' !important;
-          position: absolute !important;
-          bottom: 0 !important;
-          left: 50% !important;
-          transform: translateX(-50%) !important;
-          width: 60px !important;
-          height: 3px !important;
-          background: #e50914 !important;
-        }
-        
-        .rv-process-subtitle {
-          text-align: center !important;
-          margin-bottom: 60px !important;
-          color: #888888 !important;
-          font-size: 16px !important;
-          font-weight: 500 !important;
-        }
-        
-        /* 스텝 그리드 */
-        .rv-process-grid {
-          display: grid !important;
-          grid-template-columns: repeat(3, 1fr) !important;
-          gap: 24px !important;
-        }
-        
-        .rv-process-step {
-          background: #1a1a1a !important;
-          border-radius: 16px !important;
-          padding: 40px 28px !important;
-          text-align: center !important;
-          border: 1px solid #333333 !important;
-          transition: border-color 0.3s ease, transform 0.3s ease !important;
-          position: relative !important;
-        }
-        
-        .rv-process-step:hover {
-          border-color: #e50914 !important;
-          transform: translateY(-4px) !important;
-        }
-        
-        /* 스텝 번호 */
-        .rv-step-num {
-          position: absolute !important;
-          top: -16px !important;
-          left: 50% !important;
-          transform: translateX(-50%) !important;
-          background: #e50914 !important;
-          color: #ffffff !important;
-          width: 32px !important;
-          height: 32px !important;
-          border-radius: 50% !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          font-size: 14px !important;
-          font-weight: 700 !important;
-        }
-        
-        /* 아이콘 */
-        .rv-step-icon {
-          width: 80px !important;
-          height: 80px !important;
-          margin: 0 auto 24px !important;
-          background: #222222 !important;
-          border-radius: 50% !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          font-size: 36px !important;
-        }
-        
-        /* 작은 레이블 */
-        .rv-step-label {
-          color: #e50914 !important;
-          font-size: 13px !important;
-          font-weight: 600 !important;
-          margin-bottom: 8px !important;
-        }
-        
-        /* 메인 텍스트 */
-        .rv-step-text {
-          color: #ffffff !important;
-          font-size: 18px !important;
-          font-weight: 700 !important;
-          line-height: 1.5 !important;
-        }
-        
-        /* 화살표 (데스크탑) */
-        .rv-process-step::after {
-          content: '→' !important;
-          position: absolute !important;
-          right: -24px !important;
-          top: 50% !important;
-          transform: translateY(-50%) !important;
-          color: #444444 !important;
-          font-size: 24px !important;
-          font-weight: 300 !important;
-        }
-        
-        .rv-process-step:last-child::after {
-          display: none !important;
-        }
-        
-        /* 반응형 */
-        @media screen and (max-width: 768px) {
-          .rv-process-section {
-            padding: 60px 0 !important;
-          }
-          
-          .rv-process-title {
-            font-size: 28px !important;
-          }
-          
-          .rv-process-grid {
-            grid-template-columns: 1fr !important;
-            gap: 40px !important;
-          }
-          
-          .rv-process-step::after {
-            content: '↓' !important;
-            right: 50% !important;
-            top: auto !important;
-            bottom: -32px !important;
-            transform: translateX(50%) !important;
-          }
-          
-          .rv-process-step:last-child::after {
-            display: none !important;
-          }
-        }
-      `}</style>
+        {/* Steps Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 relative">
+          {steps.map((step, index) => (
+            <div key={step.number} className="relative">
+              {/* Step Card */}
+              <div className="relative bg-muted rounded-2xl p-10 text-center border border-border transition-all duration-300 hover:border-accent hover:-translate-y-1">
+                {/* Step Number Badge */}
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-sm font-bold">
+                  {step.number}
+                </div>
+                
+                {/* Icon */}
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#222222] flex items-center justify-center text-4xl">
+                  {step.icon}
+                </div>
+                
+                {/* Label */}
+                <p className="text-accent text-xs font-semibold mb-2">
+                  {step.label}
+                </p>
+                
+                {/* Main Text */}
+                <p className="text-white text-lg font-bold leading-relaxed">
+                  {step.text}
+                </p>
+              </div>
+              
+              {/* Arrow (Desktop) */}
+              {index < steps.length - 1 && (
+                <>
+                  <div className="hidden md:block absolute top-1/2 -right-3 -translate-y-1/2 text-[#444444] text-2xl font-light z-10">
+                    →
+                  </div>
+                  {/* Mobile Arrow */}
+                  <div className="md:hidden absolute -bottom-8 left-1/2 -translate-x-1/2 text-[#444444] text-2xl font-light">
+                    ↓
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
