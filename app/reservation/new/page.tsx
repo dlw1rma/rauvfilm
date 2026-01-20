@@ -145,14 +145,57 @@ export default function NewReservationPage() {
     }));
   };
 
+  // 미작성 필드로 스크롤 이동
+  const scrollToFirstError = (fieldId: string) => {
+    const element = document.getElementById(fieldId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
 
-    // 필수 항목 검증
-    if (!formData.title || !formData.password) {
-      setError("제목과 비밀번호는 필수 항목입니다.");
+    // 필수 항목 검증 및 스크롤 이동
+    if (!formData.privacyAgreed) {
+      setError("개인정보 활용 동의는 필수입니다.");
+      setCurrentSection(1);
+      setTimeout(() => scrollToFirstError("privacyAgreed"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.brideName) {
+      setError("신부님 성함을 입력해주세요.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("brideName"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.bridePhone) {
+      setError("신부님 전화번호를 입력해주세요.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("bridePhone"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.groomName) {
+      setError("신랑님 성함을 입력해주세요.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("groomName"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.groomPhone) {
+      setError("신랑님 전화번호를 입력해주세요.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("groomPhone"), 100);
       setIsSubmitting(false);
       return;
     }
@@ -160,22 +203,101 @@ export default function NewReservationPage() {
     // 계약자 확인
     if (!formData.isBrideContractor && !formData.isGroomContractor) {
       setError("계약자를 선택해주세요. (신부님 또는 신랑님 중 한 명)");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("isBrideContractor"), 100);
       setIsSubmitting(false);
       return;
     }
 
-    // 계약자 이름 설정
-    const contractorName = formData.isBrideContractor ? formData.brideName : formData.groomName;
-    if (!contractorName) {
-      setError("계약자 이름을 입력해주세요.");
+    if (!formData.receiptPhone) {
+      setError("현금 영수증 받으실 전화번호를 입력해주세요.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("receiptPhone"), 100);
       setIsSubmitting(false);
       return;
     }
 
-    if (!formData.privacyAgreed || !formData.termsAgreed || !formData.faqRead) {
-      setError("약관 동의 및 개인정보 활용 동의는 필수입니다.");
+    if (!formData.depositName) {
+      setError("예약금 입금자명을 입력해주세요.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("depositName"), 100);
       setIsSubmitting(false);
       return;
+    }
+
+    if (!formData.productEmail) {
+      setError("상품 받으실 E-mail 주소를 입력해주세요.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("productEmail"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.productType) {
+      setError("상품 종류를 선택해주세요.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("productType"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.foundPath) {
+      setError("라우브필름 알게된 경로를 입력해주세요.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("foundPath"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.termsAgreed) {
+      setError("홈페이지 규정 안내 및 약관동의서 읽음 및 동의는 필수입니다.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("termsAgreed"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.faqRead) {
+      setError("홈페이지 FAQ 읽음 및 숙지 여부는 필수입니다.");
+      setCurrentSection(2);
+      setTimeout(() => scrollToFirstError("faqRead"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 본식 영상 예약 필수 항목 검증
+    if (formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") {
+      if (!formData.weddingDate) {
+        setError("예식 날짜를 선택해주세요.");
+        setCurrentSection(3);
+        setTimeout(() => scrollToFirstError("weddingDate"), 100);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!formData.weddingTime) {
+        setError("예식 시간을 선택해주세요.");
+        setCurrentSection(3);
+        setTimeout(() => scrollToFirstError("weddingTime"), 100);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!formData.venueName) {
+        setError("장소명을 입력해주세요.");
+        setCurrentSection(3);
+        setTimeout(() => scrollToFirstError("venueName"), 100);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (formData.usbOption && !formData.deliveryAddress) {
+        setError("USB 추가 옵션 선택 시 거주지 주소를 입력해주세요.");
+        setCurrentSection(3);
+        setTimeout(() => scrollToFirstError("deliveryAddress"), 100);
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     try {
@@ -581,7 +703,8 @@ export default function NewReservationPage() {
                         required
                         value={formData.weddingDate}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+                        onKeyDown={(e) => e.preventDefault()}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground cursor-pointer"
                         style={{ colorScheme: 'light' }}
                       />
                     </div>
@@ -596,7 +719,8 @@ export default function NewReservationPage() {
                         required
                         value={formData.weddingTime}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+                        onKeyDown={(e) => e.preventDefault()}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground cursor-pointer"
                         style={{ colorScheme: 'light' }}
                       />
                     </div>
@@ -658,7 +782,7 @@ export default function NewReservationPage() {
                         className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                       />
                       <label htmlFor="makeupShoot" className="text-sm">
-                        메이크업샵 촬영 (추가 비용 없음)
+                        메이크업샵 촬영 (20만원)
                       </label>
                     </div>
                     <div className="flex items-center gap-3">
@@ -671,7 +795,7 @@ export default function NewReservationPage() {
                         className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                       />
                       <label htmlFor="paebaekShoot" className="text-sm">
-                        폐백 촬영 (추가 비용 없음)
+                        폐백 촬영 (5만원)
                       </label>
                     </div>
                     <div className="flex items-center gap-3">
@@ -684,7 +808,7 @@ export default function NewReservationPage() {
                         className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                       />
                       <label htmlFor="receptionShoot" className="text-sm">
-                        피로연(2부 예식) 촬영 (추가 비용 없음)
+                        피로연(2부 예식) 촬영 (5만원)
                       </label>
                     </div>
                     <div className="flex items-center gap-3">
@@ -912,7 +1036,7 @@ export default function NewReservationPage() {
                   }}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 >
-                  <option value="">선택해주세요 (선택사항)</option>
+                  <option value="">미진행 (선택사항)</option>
                   <option value="야외스냅">야외스냅</option>
                   <option value="프리웨딩">프리웨딩</option>
                 </select>
@@ -946,7 +1070,8 @@ export default function NewReservationPage() {
                         name="shootDate"
                         value={formData.shootDate}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+                        onKeyDown={(e) => e.preventDefault()}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground cursor-pointer"
                         style={{ colorScheme: 'light' }}
                       />
                     </div>
@@ -960,7 +1085,8 @@ export default function NewReservationPage() {
                         name="shootTime"
                         value={formData.shootTime}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+                        onKeyDown={(e) => e.preventDefault()}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground cursor-pointer"
                         style={{ colorScheme: 'light' }}
                       />
                     </div>
@@ -1026,8 +1152,40 @@ export default function NewReservationPage() {
                 onClick={() => {
                   if (canProceed(currentSection)) {
                     setCurrentSection(currentSection + 1);
+                    setError("");
                   } else {
-                    setError("필수 항목을 모두 입력해주세요.");
+                    // 현재 섹션의 첫 번째 미작성 필드로 스크롤
+                    let firstErrorId = "";
+                    if (currentSection === 1) {
+                      if (!formData.privacyAgreed) firstErrorId = "privacyAgreed";
+                    } else if (currentSection === 2) {
+                      if (!formData.brideName) firstErrorId = "brideName";
+                      else if (!formData.bridePhone) firstErrorId = "bridePhone";
+                      else if (!formData.groomName) firstErrorId = "groomName";
+                      else if (!formData.groomPhone) firstErrorId = "groomPhone";
+                      else if (!formData.isBrideContractor && !formData.isGroomContractor) firstErrorId = "isBrideContractor";
+                      else if (!formData.receiptPhone) firstErrorId = "receiptPhone";
+                      else if (!formData.depositName) firstErrorId = "depositName";
+                      else if (!formData.productEmail) firstErrorId = "productEmail";
+                      else if (!formData.productType) firstErrorId = "productType";
+                      else if (!formData.foundPath) firstErrorId = "foundPath";
+                      else if (!formData.termsAgreed) firstErrorId = "termsAgreed";
+                      else if (!formData.faqRead) firstErrorId = "faqRead";
+                    } else if (currentSection === 3) {
+                      if (formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") {
+                        if (!formData.weddingDate) firstErrorId = "weddingDate";
+                        else if (!formData.weddingTime) firstErrorId = "weddingTime";
+                        else if (!formData.venueName) firstErrorId = "venueName";
+                        else if (formData.usbOption && !formData.deliveryAddress) firstErrorId = "deliveryAddress";
+                      }
+                    }
+                    
+                    if (firstErrorId) {
+                      setError("필수 항목을 모두 입력해주세요.");
+                      setTimeout(() => scrollToFirstError(firstErrorId), 100);
+                    } else {
+                      setError("필수 항목을 모두 입력해주세요.");
+                    }
                   }
                 }}
                 className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover"
