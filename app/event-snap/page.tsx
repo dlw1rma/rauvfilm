@@ -95,18 +95,6 @@ export default function EventSnapPage() {
           ))}
         </div>
 
-        {/* CTA */}
-        <div className="mt-16 text-center">
-          <p className="mb-6 text-muted-foreground">
-            원하시는 장소가 없으신가요? 다른 장소도 가능합니다.
-          </p>
-          <a
-            href="/reservation"
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-accent px-8 text-base font-medium text-white transition-all hover:bg-accent-hover hover:-translate-y-1"
-          >
-            상담 문의하기
-          </a>
-        </div>
       </div>
     </div>
   );

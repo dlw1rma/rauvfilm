@@ -89,20 +89,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4">
-        <div className="mx-auto max-w-4xl text-center">
-          <p className="text-muted-foreground mb-6">
-            라우브필름과 함께 특별한 순간을 남겨보세요
-          </p>
-          <a
-            href="/reservation"
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-accent px-8 text-base font-medium text-white transition-all hover:bg-accent-hover hover:-translate-y-1"
-          >
-            예약 문의하기
-          </a>
-        </div>
-      </section>
     </div>
   );
 }

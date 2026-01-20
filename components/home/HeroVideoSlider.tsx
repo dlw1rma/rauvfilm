@@ -7,13 +7,13 @@ export default function HeroVideoSlider() {
   return (
     <section className="relative w-full h-screen min-h-[600px] overflow-hidden">
       {/* Video Background */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 w-full h-full">
         <iframe
           src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
           title="Hero Video"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           className="absolute inset-0 w-full h-full"
-          style={{ border: "none" }}
+          style={{ border: "none", width: "100%", height: "100%" }}
           allowFullScreen
         />
         {/* Dark Overlay */}

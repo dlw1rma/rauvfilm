@@ -328,43 +328,6 @@ export default function NewReservationPage() {
                 </div>
               </div>
 
-              <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">기본 정보</h2>
-              </div>
-              
-              <div>
-                <label htmlFor="title" className="mb-2 block text-sm font-medium">
-                  제목 <span className="text-accent">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  required
-                  value="본식DVD 예약합니다"
-                  readOnly
-                  className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-muted-foreground cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="mb-2 block text-sm font-medium">
-                  비밀번호 <span className="text-accent">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="password"
-                  name="password"
-                  required
-                  value={formData.password}
-                  readOnly
-                  className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-muted-foreground cursor-not-allowed"
-                  placeholder="계약자 전화번호로 자동 설정됩니다"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  계약자 전화번호로 자동 설정됩니다 (하이픈 제외)
-                </p>
-              </div>
             </div>
           )}
 

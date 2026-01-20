@@ -76,34 +76,34 @@ export default function Home() {
               <Link
                 key={item.title}
                 href={item.href}
-                className="group rounded-lg bg-background p-5 border border-border transition-all hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10"
+                className="group rounded-lg bg-background p-6 md:p-8 border border-border transition-all hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10"
               >
-                <div className="w-10 h-10 mb-4 rounded-full bg-accent/10 flex items-center justify-center">
+                <div className="w-12 h-12 md:w-14 md:h-14 mb-4 rounded-full bg-accent/10 flex items-center justify-center">
                   {item.icon === "dollar" && (
-                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <svg className="w-6 h-6 md:w-7 md:h-7 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   )}
                   {item.icon === "calendar" && (
-                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <svg className="w-6 h-6 md:w-7 md:h-7 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                     </svg>
                   )}
                   {item.icon === "document" && (
-                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <svg className="w-6 h-6 md:w-7 md:h-7 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
                   )}
                   {item.icon === "question" && (
-                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <svg className="w-6 h-6 md:w-7 md:h-7 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
                     </svg>
                   )}
                 </div>
-                <h3 className="text-sm font-bold mb-1 group-hover:text-accent transition-colors">
+                <h3 className="text-base md:text-lg font-bold mb-1 group-hover:text-accent transition-colors">
                   {item.title}
                 </h3>
-                <p className="text-xs text-muted-foreground">{item.titleEn}</p>
+                <p className="text-sm md:text-base text-muted-foreground">{item.titleEn}</p>
               </Link>
             ))}
           </div>
@@ -151,11 +151,11 @@ export default function Home() {
             <br className="hidden md:block" />
             가장 예쁜 모습만을 남겨드리고 있습니다.
           </p>
-          <div className="mb-8 relative w-full rounded-lg overflow-hidden bg-muted">
+          <div className="mb-8 relative w-full rounded-lg overflow-hidden">
             {/* PC 버전 영상 - 16:9 비율 */}
             <div className="hidden md:block relative w-full" style={{ aspectRatio: "16/9" }}>
               <iframe
-                src="https://www.youtube.com/embed/BEEXhZW2GMo?controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1"
+                src="https://www.youtube.com/embed/BEEXhZW2GMo?autoplay=1&mute=1&loop=1&playlist=BEEXhZW2GMo&controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="absolute inset-0 w-full h-full"
@@ -165,7 +165,7 @@ export default function Home() {
             {/* 모바일 버전 영상 - 쇼츠 비율 (9:16) */}
             <div className="md:hidden relative w-full mx-auto" style={{ aspectRatio: "9/16", maxWidth: "400px" }}>
               <iframe
-                src="https://www.youtube.com/embed/6GEYb31W9go?controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1"
+                src="https://www.youtube.com/embed/6GEYb31W9go?autoplay=1&mute=1&loop=1&playlist=6GEYb31W9go&controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="absolute inset-0 w-full h-full"
