@@ -25,7 +25,10 @@
 /* 웹 폰트 최적화 */
 @font-face {
   font-family: 'Apple SD Gothic Neo';
+  font-style: normal;
+  font-weight: 400;
   font-display: swap;
+  src: local('Apple SD Gothic Neo');
 }
 
 body {

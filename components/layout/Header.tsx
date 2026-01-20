@@ -52,18 +52,18 @@ export default function Header() {
               alt="라우브필름"
               width={120}
               height={32}
-              className="hidden md:block h-7 w-auto"
+              className="hidden md:block"
               priority
-              style={{ width: "120px", height: "32px" }}
+              style={{ width: "120px", height: "32px", objectFit: "contain" }}
             />
             <Image
               src="/logo-mobile.png"
               alt="라우브필름"
               width={100}
               height={30}
-              className="md:hidden h-6 w-auto"
+              className="md:hidden"
               priority
-              style={{ width: "100px", height: "30px" }}
+              style={{ width: "100px", height: "30px", objectFit: "contain" }}
             />
           </Link>
 
