@@ -580,7 +580,8 @@ export default function NewReservationPage() {
                         required
                         value={formData.weddingDate}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+                        style={{ colorScheme: 'light' }}
                       />
                     </div>
                     <div>
@@ -594,7 +595,8 @@ export default function NewReservationPage() {
                         required
                         value={formData.weddingTime}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+                        style={{ colorScheme: 'light' }}
                       />
                     </div>
                   </div>
@@ -655,7 +657,7 @@ export default function NewReservationPage() {
                         className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                       />
                       <label htmlFor="makeupShoot" className="text-sm">
-                        메이크업샵 촬영
+                        메이크업샵 촬영 (추가 비용 없음)
                       </label>
                     </div>
                     <div className="flex items-center gap-3">
@@ -668,7 +670,7 @@ export default function NewReservationPage() {
                         className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                       />
                       <label htmlFor="paebaekShoot" className="text-sm">
-                        폐백 촬영
+                        폐백 촬영 (추가 비용 없음)
                       </label>
                     </div>
                     <div className="flex items-center gap-3">
@@ -681,7 +683,7 @@ export default function NewReservationPage() {
                         className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                       />
                       <label htmlFor="receptionShoot" className="text-sm">
-                        피로연(2부 예식) 촬영
+                        피로연(2부 예식) 촬영 (추가 비용 없음)
                       </label>
                     </div>
                     <div className="flex items-center gap-3">
@@ -755,19 +757,37 @@ export default function NewReservationPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label htmlFor="deliveryAddress" className="mb-2 block text-sm font-medium">
-                      (USB 추가 옵션)상품받으실 거주지 주소
-                    </label>
-                    <textarea
-                      id="deliveryAddress"
-                      name="deliveryAddress"
-                      rows={3}
-                      value={formData.deliveryAddress}
-                      onChange={handleChange}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                      placeholder="USB 추가 옵션 선택 시 상세 주소까지 입력해주세요"
-                    />
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="usbOption"
+                        name="usbOption"
+                        checked={formData.usbOption}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="usbOption" className="text-sm font-medium">
+                        USB 추가 (개당 2만원)
+                      </label>
+                    </div>
+                    {formData.usbOption && (
+                      <div>
+                        <label htmlFor="deliveryAddress" className="mb-2 block text-sm font-medium">
+                          (USB)상품받으실 거주지 주소 <span className="text-accent">*</span>
+                        </label>
+                        <textarea
+                          id="deliveryAddress"
+                          name="deliveryAddress"
+                          required={formData.usbOption}
+                          rows={3}
+                          value={formData.deliveryAddress}
+                          onChange={handleChange}
+                          className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                          placeholder="USB 추가 옵션 선택 시 상세 주소까지 입력해주세요"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -813,7 +833,7 @@ export default function NewReservationPage() {
                       className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                     />
                     <label htmlFor="discountNewYear" className="text-sm">
-                      신년할인
+                      2026년 신년할인 (5만원)
                     </label>
                   </div>
                   <div className="flex items-center gap-3">
@@ -839,7 +859,7 @@ export default function NewReservationPage() {
                       className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                     />
                     <label htmlFor="discountCouple" className="text-sm">
-                      짝궁할인
+                      짝궁할인 (소개 받는 분 1만원, 소개 하는 분 무제한)
                     </label>
                   </div>
                   <div className="flex items-center gap-3">
@@ -875,7 +895,20 @@ export default function NewReservationPage() {
                   id="eventType"
                   name="eventType"
                   value={formData.eventType}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const newValue = e.target.value as EventType;
+                    setFormData((prev) => ({
+                      ...prev,
+                      eventType: newValue,
+                      // 이벤트 촬영을 선택 해제하면 관련 필드도 초기화
+                      ...(newValue === "" && {
+                        shootLocation: "",
+                        shootDate: "",
+                        shootTime: "",
+                        shootConcept: "",
+                      }),
+                    }));
+                  }}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value="">선택해주세요 (선택사항)</option>
@@ -912,7 +945,8 @@ export default function NewReservationPage() {
                         name="shootDate"
                         value={formData.shootDate}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+                        style={{ colorScheme: 'light' }}
                       />
                     </div>
                     <div>
@@ -925,7 +959,8 @@ export default function NewReservationPage() {
                         name="shootTime"
                         value={formData.shootTime}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+                        style={{ colorScheme: 'light' }}
                       />
                     </div>
                   </div>

@@ -189,6 +189,8 @@ export default function ReservationDetailPage() {
               이 글은 작성자와 관리자만 열람할 수 있습니다.
               <br />
               비밀번호를 입력하여 내용을 확인하세요.
+              <br />
+              <span className="text-sm font-medium text-accent">비밀번호는 예약자 전화번호입니다.</span>
             </p>
             <div className="flex flex-col items-center gap-2">
               <p className="text-sm text-muted-foreground">
@@ -207,16 +209,19 @@ export default function ReservationDetailPage() {
           {showPasswordModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
               <div className="w-full max-w-sm rounded-xl bg-muted p-6">
-                <h3 className="mb-4 text-lg font-bold">비밀번호 확인</h3>
-                <form onSubmit={handlePasswordSubmit}>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="비밀번호를 입력하세요"
-                    className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                    autoFocus
-                  />
+              <h3 className="mb-4 text-lg font-bold">비밀번호 확인</h3>
+              <p className="mb-3 text-sm text-muted-foreground">
+                비밀번호는 예약자 전화번호입니다.
+              </p>
+              <form onSubmit={handlePasswordSubmit}>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="예약자 전화번호를 입력하세요"
+                  className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  autoFocus
+                />
                   {actionError && (
                     <p className="mb-4 text-sm text-accent">{actionError}</p>
                   )}
@@ -377,12 +382,15 @@ export default function ReservationDetailPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-sm rounded-xl bg-muted p-6">
               <h3 className="mb-4 text-lg font-bold">비밀번호 확인</h3>
+              <p className="mb-3 text-sm text-muted-foreground">
+                비밀번호는 예약자 전화번호입니다.
+              </p>
               <form onSubmit={handlePasswordSubmit}>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="비밀번호를 입력하세요"
+                  placeholder="예약자 전화번호를 입력하세요"
                   className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   autoFocus
                 />
