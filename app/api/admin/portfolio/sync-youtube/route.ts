@@ -47,19 +47,54 @@ async function fetchYouTubeChannelVideos(
 
       const playlistData = await playlistResponse.json();
 
+      // 영상 ID 목록 수집
+      const videoIds: string[] = [];
       for (const item of playlistData.items) {
-        const videoId = item.snippet.resourceId.videoId;
-        const title = item.snippet.title;
-        const description = item.snippet.description;
-        const publishedAt = item.snippet.publishedAt;
+        videoIds.push(item.snippet.resourceId.videoId);
+      }
 
-        videos.push({
-          videoId,
-          title,
-          description,
-          publishedAt,
-          youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
-        });
+      // 영상 상세 정보 가져오기 (duration 포함)
+      if (videoIds.length > 0) {
+        const videoIdsString = videoIds.join(",");
+        const videoDetailsResponse = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoIdsString}&key=${apiKey}`
+        );
+
+        if (videoDetailsResponse.ok) {
+          const videoDetailsData = await videoDetailsResponse.json();
+          
+          for (const videoDetail of videoDetailsData.items || []) {
+            const videoId = videoDetail.id;
+            const title = videoDetail.snippet.title;
+            const description = videoDetail.snippet.description;
+            const publishedAt = videoDetail.snippet.publishedAt;
+            
+            // Duration 파싱 (ISO 8601 형식: PT1M30S -> 90초)
+            const duration = videoDetail.contentDetails?.duration || "";
+            const durationMatch = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+            let durationInSeconds = 0;
+            if (durationMatch) {
+              const hours = parseInt(durationMatch[1] || "0", 10);
+              const minutes = parseInt(durationMatch[2] || "0", 10);
+              const seconds = parseInt(durationMatch[3] || "0", 10);
+              durationInSeconds = hours * 3600 + minutes * 60 + seconds;
+            }
+
+            // 쇼츠 영상 제외 (60초 이하)
+            if (durationInSeconds > 0 && durationInSeconds <= 60) {
+              continue;
+            }
+
+            videos.push({
+              videoId,
+              title,
+              description,
+              publishedAt,
+              youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
+              duration: durationInSeconds,
+            });
+          }
+        }
       }
 
       nextPageToken = playlistData.nextPageToken;

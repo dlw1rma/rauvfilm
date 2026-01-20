@@ -212,7 +212,8 @@ export default function NewReservationPage() {
   const totalSections = 6;
   const canProceed = (section: number) => {
     if (section === 1) {
-      return formData.title && formData.password && formData.privacyAgreed;
+      // 1번 탭은 개인정보 활용 동의만 체크
+      return formData.privacyAgreed;
     }
     if (section === 2) {
       const hasNames = formData.brideName && formData.groomName;

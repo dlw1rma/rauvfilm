@@ -7,14 +7,57 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 interface Reservation {
   id: number;
   title: string;
-  content: string;
+  content: string | null;
   author: string;
-  phone: string | null;
-  email: string | null;
-  weddingDate: string | null;
-  location: string | null;
   isPrivate: boolean;
   createdAt: string;
+  // 필수 작성항목(공통)
+  brideName: string | null;
+  bridePhone: string | null;
+  groomName: string | null;
+  groomPhone: string | null;
+  receiptPhone: string | null;
+  depositName: string | null;
+  productEmail: string | null;
+  productType: string | null;
+  partnerCode: string | null;
+  foundPath: string | null;
+  termsAgreed: boolean | null;
+  faqRead: boolean | null;
+  privacyAgreed: boolean | null;
+  // 본식 영상 예약
+  weddingDate: string | null;
+  weddingTime: string | null;
+  venueName: string | null;
+  venueFloor: string | null;
+  guestCount: number | null;
+  makeupShoot: boolean | null;
+  paebaekShoot: boolean | null;
+  receptionShoot: boolean | null;
+  mainSnapCompany: string | null;
+  makeupShop: string | null;
+  dressShop: string | null;
+  deliveryAddress: string | null;
+  seonwonpan: boolean | null;
+  gimbalShoot: boolean | null;
+  playbackDevice: string | null;
+  // 이벤트 예약
+  eventType: string | null;
+  shootLocation: string | null;
+  shootDate: string | null;
+  shootTime: string | null;
+  shootConcept: string | null;
+  // 할인사항
+  discountCouple: boolean | null;
+  discountReview: boolean | null;
+  discountNewYear: boolean | null;
+  discountReview1: boolean | null;
+  discountReview2: boolean | null;
+  discountReview3: boolean | null;
+  discountSnap: boolean | null;
+  discountPreWedding: boolean | null;
+  // 특이사항
+  specialNotes: string | null;
   reply: {
     id: number;
     content: string;
@@ -27,6 +70,7 @@ export default function AdminReservationsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,6 +79,12 @@ export default function AdminReservationsPage() {
       fetchReservations();
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (selectedId) {
+      fetchReservationDetail(selectedId);
+    }
+  }, [selectedId]);
 
   const fetchReservations = async () => {
     try {
@@ -48,7 +98,17 @@ export default function AdminReservationsPage() {
     }
   };
 
-  const selectedReservation = reservations.find((r) => r.id === selectedId);
+  const fetchReservationDetail = async (id: number) => {
+    try {
+      const res = await fetch(`/api/admin/reservations/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedReservation(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch reservation detail:", error);
+    }
+  };
 
   const handleReply = async () => {
     if (!selectedId || !replyContent.trim()) return;
@@ -63,6 +123,7 @@ export default function AdminReservationsPage() {
 
       if (res.ok) {
         await fetchReservations();
+        await fetchReservationDetail(selectedId);
         setReplyContent("");
         alert("답변이 등록되었습니다.");
       } else {
@@ -90,12 +151,130 @@ export default function AdminReservationsPage() {
       if (res.ok) {
         await fetchReservations();
         setSelectedId(null);
+        setSelectedReservation(null);
         alert("삭제되었습니다.");
       }
     } catch (error) {
       console.error("Delete error:", error);
       alert("삭제에 실패했습니다.");
     }
+  };
+
+  const downloadAsTxt = () => {
+    if (!selectedReservation) return;
+
+    let txt = "=".repeat(60) + "\n";
+    txt += "예약 문의 상세 정보\n";
+    txt += "=".repeat(60) + "\n\n";
+
+    // 기본 정보
+    txt += "[기본 정보]\n";
+    txt += `제목: ${selectedReservation.title}\n`;
+    txt += `작성자(계약자): ${selectedReservation.author}\n`;
+    txt += `작성일: ${new Date(selectedReservation.createdAt).toLocaleString("ko-KR")}\n`;
+    txt += `비밀글: ${selectedReservation.isPrivate ? "예" : "아니오"}\n`;
+    if (selectedReservation.content) {
+      txt += `문의 내용: ${selectedReservation.content}\n`;
+    }
+    txt += "\n";
+
+    // 필수 작성항목(공통)
+    txt += "[필수 작성항목(공통)]\n";
+    txt += `신부님 성함: ${selectedReservation.brideName || "-"}\n`;
+    txt += `신부님 전화번호: ${selectedReservation.bridePhone || "-"}\n`;
+    txt += `신랑님 성함: ${selectedReservation.groomName || "-"}\n`;
+    txt += `신랑님 전화번호: ${selectedReservation.groomPhone || "-"}\n`;
+    txt += `현금 영수증 받으실 전화번호: ${selectedReservation.receiptPhone || "-"}\n`;
+    txt += `예약금 입금자명: ${selectedReservation.depositName || "-"}\n`;
+    txt += `상품 받으실 E-mail 주소: ${selectedReservation.productEmail || "-"}\n`;
+    txt += `상품 종류: ${selectedReservation.productType || "-"}\n`;
+    txt += `짝궁 코드: ${selectedReservation.partnerCode || "-"}\n`;
+    txt += `라우브필름 알게된 경로: ${selectedReservation.foundPath || "-"}\n`;
+    txt += `약관 동의: ${selectedReservation.termsAgreed ? "동의" : "미동의"}\n`;
+    txt += `FAQ 읽음: ${selectedReservation.faqRead ? "읽음" : "미읽음"}\n`;
+    txt += `개인정보 활용 동의: ${selectedReservation.privacyAgreed ? "동의" : "미동의"}\n`;
+    txt += "\n";
+
+    // 본식 영상 예약 정보
+    if (selectedReservation.productType === "가성비형" || 
+        selectedReservation.productType === "기본형" || 
+        selectedReservation.productType === "시네마틱형") {
+      txt += "[본식 영상 예약 정보]\n";
+      txt += `예식 날짜: ${selectedReservation.weddingDate || "-"}\n`;
+      txt += `예식 시간: ${selectedReservation.weddingTime || "-"}\n`;
+      txt += `장소명: ${selectedReservation.venueName || "-"}\n`;
+      txt += `층/홀이름: ${selectedReservation.venueFloor || "-"}\n`;
+      txt += `초대인원: ${selectedReservation.guestCount || "-"}\n`;
+      txt += `메이크업샵 촬영: ${selectedReservation.makeupShoot ? "예" : "아니오"}\n`;
+      txt += `폐백 촬영: ${selectedReservation.paebaekShoot ? "예" : "아니오"}\n`;
+      txt += `피로연(2부 예식) 촬영: ${selectedReservation.receptionShoot ? "예" : "아니오"}\n`;
+      txt += `선원판 진행 여부: ${selectedReservation.seonwonpan ? "예" : "아니오"}\n`;
+      txt += `짐벌(커스텀) 촬영: ${selectedReservation.gimbalShoot ? "예" : "아니오"}\n`;
+      txt += `메인스냅 촬영 업체명: ${selectedReservation.mainSnapCompany || "-"}\n`;
+      txt += `메이크업샵 상호명: ${selectedReservation.makeupShop || "-"}\n`;
+      txt += `드레스샵 상호명: ${selectedReservation.dressShop || "-"}\n`;
+      txt += `(USB)상품받으실 거주지 주소: ${selectedReservation.deliveryAddress || "-"}\n`;
+      txt += `본식 영상 주 재생매체: ${selectedReservation.playbackDevice || "-"}\n`;
+      txt += "\n";
+    }
+
+    // 이벤트 예약 정보
+    if (selectedReservation.eventType) {
+      txt += "[이벤트 예약 정보]\n";
+      txt += `이벤트 촬영: ${selectedReservation.eventType}\n`;
+      txt += `희망 촬영 장소: ${selectedReservation.shootLocation || "-"}\n`;
+      txt += `촬영 날짜: ${selectedReservation.shootDate || "-"}\n`;
+      txt += `촬영 시간: ${selectedReservation.shootTime || "-"}\n`;
+      txt += `원하시는 컨셉: ${selectedReservation.shootConcept || "-"}\n`;
+      txt += "\n";
+    }
+
+    // 할인사항
+    const discounts: string[] = [];
+    if (selectedReservation.discountCouple) discounts.push("짝궁할인");
+    if (selectedReservation.discountReview) discounts.push("블로그와 카페 촬영후기");
+    if (selectedReservation.discountNewYear) discounts.push("26년 신년할인");
+    if (selectedReservation.discountReview1) discounts.push("예약후기 작성 이벤트 1건");
+    if (selectedReservation.discountReview2) discounts.push("예약후기 작성 이벤트 2건");
+    if (selectedReservation.discountReview3) discounts.push("예약후기 작성 이벤트 3건");
+    if (selectedReservation.discountSnap) discounts.push("서울 야외촬영 스냅촬영");
+    if (selectedReservation.discountPreWedding) discounts.push("서울 야외촬영 프리웨딩 식전영상");
+    
+    if (discounts.length > 0) {
+      txt += "[할인사항]\n";
+      discounts.forEach(discount => {
+        txt += `- ${discount}\n`;
+      });
+      txt += "\n";
+    }
+
+    // 특이사항
+    if (selectedReservation.specialNotes) {
+      txt += "[특이사항 및 요구사항]\n";
+      txt += `${selectedReservation.specialNotes}\n`;
+      txt += "\n";
+    }
+
+    // 답변
+    if (selectedReservation.reply) {
+      txt += "[관리자 답변]\n";
+      txt += `${selectedReservation.reply.content}\n`;
+      txt += `답변일: ${new Date(selectedReservation.reply.createdAt).toLocaleString("ko-KR")}\n`;
+      txt += "\n";
+    }
+
+    txt += "=".repeat(60) + "\n";
+
+    // 파일 다운로드
+    const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `예약문의_${selectedReservation.id}_${selectedReservation.author}_${new Date(selectedReservation.createdAt).toISOString().split("T")[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   if (authLoading || loading) {
@@ -112,7 +291,7 @@ export default function AdminReservationsPage() {
 
   return (
     <div className="min-h-screen py-10 px-4">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-6">
           <Link
@@ -130,9 +309,9 @@ export default function AdminReservationsPage() {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* List */}
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="lg:col-span-1 rounded-xl border border-border overflow-hidden">
             <div className="bg-muted px-4 py-3 border-b border-border flex items-center justify-between">
               <h2 className="font-medium">예약 목록</h2>
               <span className="text-sm text-muted-foreground">
@@ -173,12 +352,20 @@ export default function AdminReservationsPage() {
           </div>
 
           {/* Detail */}
-          <div className="rounded-xl border border-border overflow-hidden">
-            <div className="bg-muted px-4 py-3 border-b border-border">
+          <div className="lg:col-span-2 rounded-xl border border-border overflow-hidden">
+            <div className="bg-muted px-4 py-3 border-b border-border flex items-center justify-between">
               <h2 className="font-medium">상세 정보</h2>
+              {selectedReservation && (
+                <button
+                  onClick={downloadAsTxt}
+                  className="text-sm text-accent hover:text-accent-hover transition-colors font-medium"
+                >
+                  TXT 다운로드
+                </button>
+              )}
             </div>
             {selectedReservation ? (
-              <div className="p-4">
+              <div className="p-4 max-h-[600px] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg">{selectedReservation.title}</h3>
                   <button
@@ -189,37 +376,204 @@ export default function AdminReservationsPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">작성자</p>
-                    <p className="font-medium">{selectedReservation.author}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">연락처</p>
-                    <p className="font-medium">{selectedReservation.phone || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">예식일</p>
-                    <p className="font-medium">
-                      {selectedReservation.weddingDate?.split("T")[0] || "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">예식장</p>
-                    <p className="font-medium">{selectedReservation.location || "-"}</p>
-                  </div>
-                </div>
-
+                {/* 기본 정보 */}
                 <div className="mb-6">
-                  <p className="text-muted-foreground text-sm mb-2">문의 내용</p>
-                  <div className="rounded-lg bg-background p-4 text-sm whitespace-pre-wrap">
-                    {selectedReservation.content}
+                  <h4 className="font-semibold mb-3 text-accent">기본 정보</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">작성자(계약자)</p>
+                      <p className="font-medium">{selectedReservation.author}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">작성일</p>
+                      <p className="font-medium">
+                        {new Date(selectedReservation.createdAt).toLocaleString("ko-KR")}
+                      </p>
+                    </div>
+                    {selectedReservation.content && (
+                      <div className="col-span-2">
+                        <p className="text-muted-foreground">문의 내용</p>
+                        <p className="font-medium whitespace-pre-wrap">{selectedReservation.content}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
+                {/* 필수 작성항목(공통) */}
+                <div className="mb-6">
+                  <h4 className="font-semibold mb-3 text-accent">필수 작성항목(공통)</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">신부님 성함</p>
+                      <p className="font-medium">{selectedReservation.brideName || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">신부님 전화번호</p>
+                      <p className="font-medium">{selectedReservation.bridePhone || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">신랑님 성함</p>
+                      <p className="font-medium">{selectedReservation.groomName || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">신랑님 전화번호</p>
+                      <p className="font-medium">{selectedReservation.groomPhone || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">현금 영수증 전화번호</p>
+                      <p className="font-medium">{selectedReservation.receiptPhone || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">예약금 입금자명</p>
+                      <p className="font-medium">{selectedReservation.depositName || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">상품 받을 E-mail</p>
+                      <p className="font-medium">{selectedReservation.productEmail || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">상품 종류</p>
+                      <p className="font-medium">{selectedReservation.productType || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">짝궁 코드</p>
+                      <p className="font-medium">{selectedReservation.partnerCode || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">알게된 경로</p>
+                      <p className="font-medium">{selectedReservation.foundPath || "-"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 본식 영상 예약 정보 */}
+                {(selectedReservation.productType === "가성비형" || 
+                  selectedReservation.productType === "기본형" || 
+                  selectedReservation.productType === "시네마틱형") && (
+                  <div className="mb-6">
+                    <h4 className="font-semibold mb-3 text-accent">본식 영상 예약 정보</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">예식 날짜</p>
+                        <p className="font-medium">{selectedReservation.weddingDate || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">예식 시간</p>
+                        <p className="font-medium">{selectedReservation.weddingTime || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">장소명</p>
+                        <p className="font-medium">{selectedReservation.venueName || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">층/홀이름</p>
+                        <p className="font-medium">{selectedReservation.venueFloor || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">초대인원</p>
+                        <p className="font-medium">{selectedReservation.guestCount || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">주 재생매체</p>
+                        <p className="font-medium">{selectedReservation.playbackDevice || "-"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-muted-foreground mb-1">추가 촬영</p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedReservation.makeupShoot && <span className="px-2 py-1 bg-muted rounded text-xs">메이크업샵</span>}
+                          {selectedReservation.paebaekShoot && <span className="px-2 py-1 bg-muted rounded text-xs">폐백</span>}
+                          {selectedReservation.receptionShoot && <span className="px-2 py-1 bg-muted rounded text-xs">피로연(2부)</span>}
+                          {selectedReservation.seonwonpan && <span className="px-2 py-1 bg-muted rounded text-xs">선원판</span>}
+                          {selectedReservation.gimbalShoot && <span className="px-2 py-1 bg-muted rounded text-xs">짐벌(커스텀)</span>}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">메인스냅 업체</p>
+                        <p className="font-medium">{selectedReservation.mainSnapCompany || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">메이크업샵</p>
+                        <p className="font-medium">{selectedReservation.makeupShop || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">드레스샵</p>
+                        <p className="font-medium">{selectedReservation.dressShop || "-"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-muted-foreground">배송 주소</p>
+                        <p className="font-medium">{selectedReservation.deliveryAddress || "-"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 이벤트 예약 정보 */}
+                {selectedReservation.eventType && (
+                  <div className="mb-6">
+                    <h4 className="font-semibold mb-3 text-accent">이벤트 예약 정보</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">이벤트 촬영</p>
+                        <p className="font-medium">{selectedReservation.eventType}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">희망 촬영 장소</p>
+                        <p className="font-medium">{selectedReservation.shootLocation || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">촬영 날짜</p>
+                        <p className="font-medium">{selectedReservation.shootDate || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">촬영 시간</p>
+                        <p className="font-medium">{selectedReservation.shootTime || "-"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-muted-foreground">원하시는 컨셉</p>
+                        <p className="font-medium whitespace-pre-wrap">{selectedReservation.shootConcept || "-"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 할인사항 */}
+                {(selectedReservation.discountCouple || 
+                  selectedReservation.discountReview || 
+                  selectedReservation.discountNewYear ||
+                  selectedReservation.discountReview1 ||
+                  selectedReservation.discountReview2 ||
+                  selectedReservation.discountReview3 ||
+                  selectedReservation.discountSnap ||
+                  selectedReservation.discountPreWedding) && (
+                  <div className="mb-6">
+                    <h4 className="font-semibold mb-3 text-accent">할인사항</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedReservation.discountCouple && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">짝궁할인</span>}
+                      {selectedReservation.discountReview && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">블로그와 카페 촬영후기</span>}
+                      {selectedReservation.discountNewYear && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">26년 신년할인</span>}
+                      {selectedReservation.discountReview1 && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">예약후기 1건</span>}
+                      {selectedReservation.discountReview2 && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">예약후기 2건</span>}
+                      {selectedReservation.discountReview3 && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">예약후기 3건</span>}
+                      {selectedReservation.discountSnap && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">서울 야외촬영 스냅</span>}
+                      {selectedReservation.discountPreWedding && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">서울 야외촬영 프리웨딩</span>}
+                    </div>
+                  </div>
+                )}
+
+                {/* 특이사항 */}
+                {selectedReservation.specialNotes && (
+                  <div className="mb-6">
+                    <h4 className="font-semibold mb-3 text-accent">특이사항 및 요구사항</h4>
+                    <div className="rounded-lg bg-background p-4 text-sm whitespace-pre-wrap">
+                      {selectedReservation.specialNotes}
+                    </div>
+                  </div>
+                )}
+
+                {/* 답변 */}
                 {!selectedReservation.reply ? (
                   <div>
-                    <p className="text-muted-foreground text-sm mb-2">답변 작성</p>
+                    <h4 className="font-semibold mb-3 text-accent">답변 작성</h4>
                     <textarea
                       value={replyContent}
                       onChange={(e) => setReplyContent(e.target.value)}
@@ -237,12 +591,12 @@ export default function AdminReservationsPage() {
                   </div>
                 ) : (
                   <div className="rounded-lg bg-accent/5 border border-accent/20 p-4">
-                    <p className="text-sm font-medium text-accent mb-2">답변 완료</p>
+                    <h4 className="text-sm font-medium text-accent mb-2">답변 완료</h4>
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                       {selectedReservation.reply.content}
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      {selectedReservation.reply.createdAt.split("T")[0]}
+                      {new Date(selectedReservation.reply.createdAt).toLocaleString("ko-KR")}
                     </p>
                   </div>
                 )}
