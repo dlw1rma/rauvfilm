@@ -158,9 +158,10 @@ export default function NewReservationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    // 현재 섹션이 마지막 섹션이 아니면 제출하지 않음
-    if (currentSection < totalSections) {
+    // 현재 섹션이 마지막 섹션(6번)이 아니면 제출하지 않음
+    if (currentSection !== totalSections) {
       return;
     }
     
@@ -712,6 +713,12 @@ export default function NewReservationPage() {
                         value={formData.weddingDate}
                         onChange={handleChange}
                         onKeyDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          // 입력 필드 클릭 시 달력 열기
+                          if (e.currentTarget.showPicker) {
+                            e.currentTarget.showPicker();
+                          }
+                        }}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground cursor-pointer"
                         style={{ colorScheme: 'light' }}
                       />
@@ -728,6 +735,12 @@ export default function NewReservationPage() {
                         value={formData.weddingTime}
                         onChange={handleChange}
                         onKeyDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          // 입력 필드 클릭 시 시간 선택기 열기
+                          if (e.currentTarget.showPicker) {
+                            e.currentTarget.showPicker();
+                          }
+                        }}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground cursor-pointer"
                         style={{ colorScheme: 'light' }}
                       />
@@ -1079,6 +1092,12 @@ export default function NewReservationPage() {
                         value={formData.shootDate}
                         onChange={handleChange}
                         onKeyDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          // 입력 필드 클릭 시 달력 열기
+                          if (e.currentTarget.showPicker) {
+                            e.currentTarget.showPicker();
+                          }
+                        }}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground cursor-pointer"
                         style={{ colorScheme: 'light' }}
                       />
@@ -1094,6 +1113,12 @@ export default function NewReservationPage() {
                         value={formData.shootTime}
                         onChange={handleChange}
                         onKeyDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          // 입력 필드 클릭 시 시간 선택기 열기
+                          if (e.currentTarget.showPicker) {
+                            e.currentTarget.showPicker();
+                          }
+                        }}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground cursor-pointer"
                         style={{ colorScheme: 'light' }}
                       />
