@@ -79,17 +79,30 @@ function extractTextFromHTML(html: string, maxLength: number = 200): string {
   return truncateText(text, maxLength);
 }
 
-// 네이버 블로그 포스트 ID 추출
+// 네이버 블로그 포스트 ID 추출 (다양한 형식 지원)
 function extractNaverBlogPostId(url: string): { blogId: string; postId: string } | null {
-  // https://blog.naver.com/{blogId}/{postId} 형식
-  const match = url.match(/blog\.naver\.com\/([^\/]+)\/(\d+)/);
+  // 형식 1: https://blog.naver.com/{blogId}/{postId}
+  let match = url.match(/blog\.naver\.com\/([^\/\?]+)\/(\d+)/);
   if (match) {
     return { blogId: match[1], postId: match[2] };
   }
+  
+  // 형식 2: PostView.naver?blogId=...&logNo=...
+  match = url.match(/blogId=([^&]+).*logNo=(\d+)/);
+  if (match) {
+    return { blogId: match[1], postId: match[2] };
+  }
+  
+  // 형식 3: blog.naver.com/{blogId}?Redirect=Log&logNo={postId}
+  match = url.match(/blog\.naver\.com\/([^\/\?]+).*logNo=(\d+)/);
+  if (match) {
+    return { blogId: match[1], postId: match[2] };
+  }
+  
   return null;
 }
 
-// 네이버 블로그 실제 포스트 페이지 URL 생성
+// 네이버 블로그 실제 포스트 페이지 URL 생성 (PostView.naver 형식)
 function getNaverBlogPostUrl(blogId: string, postId: string): string {
   return `https://blog.naver.com/PostView.naver?blogId=${blogId}&logNo=${postId}`;
 }
@@ -193,19 +206,38 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching data from URL:", targetUrl);
 
-    // 먼저 서드파티 API 시도 (가장 정확함)
-    const apiData = await fetchDataFromAPI(targetUrl);
-    if (apiData && (apiData.title || apiData.thumbnailUrl)) {
-      console.log("Using API data:", apiData);
-      return NextResponse.json(apiData);
+    // 네이버 블로그인 경우 PostView.naver 형식으로 자동 변환
+    let finalUrl = targetUrl;
+    if (targetUrl.includes("blog.naver.com")) {
+      const blogInfo = extractNaverBlogPostId(targetUrl);
+      if (blogInfo) {
+        finalUrl = getNaverBlogPostUrl(blogInfo.blogId, blogInfo.postId);
+        console.log("✅ 네이버 블로그 URL 변환:", targetUrl, "->", finalUrl);
+      } else {
+        console.log("⚠️ 네이버 블로그 URL 형식을 파싱할 수 없습니다:", targetUrl);
+      }
     }
 
-    // 네이버 블로그인 경우 특별 처리
+    // 변환된 URL로 linkpreview.net API에 요청 (가장 정확함)
+    console.log("📡 linkpreview.net API 호출 중...");
+    const apiData = await fetchDataFromAPI(finalUrl);
+    if (apiData && (apiData.title || apiData.thumbnailUrl || apiData.excerpt)) {
+      console.log("✅ linkpreview.net API에서 데이터 가져옴:", {
+        title: apiData.title,
+        thumbnail: apiData.thumbnailUrl ? "있음" : "없음",
+        excerpt: apiData.excerpt ? `${apiData.excerpt.substring(0, 50)}...` : "없음",
+      });
+      return NextResponse.json(apiData);
+    } else {
+      console.log("⚠️ linkpreview.net API에서 데이터를 가져오지 못함, 직접 파싱 시도");
+    }
+
+    // API 실패 시 직접 파싱 시도
     if (targetUrl.includes("blog.naver.com")) {
       const blogInfo = extractNaverBlogPostId(targetUrl);
       if (blogInfo) {
         const postUrl = getNaverBlogPostUrl(blogInfo.blogId, blogInfo.postId);
-        console.log("Trying Naver blog post URL:", postUrl);
+        console.log("Trying direct parsing for Naver blog post URL:", postUrl);
         
         try {
           const response = await fetch(postUrl, {
