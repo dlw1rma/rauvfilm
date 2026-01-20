@@ -15,14 +15,61 @@ model Reservation {
   id          Int       @id @default(autoincrement())
   title       String
   content     String    @db.Text
-  author      String
+  author      String    // 계약자(글쓴이) 성함
   password    String    // bcrypt 해시
-  phone       String?
-  email       String?
-  weddingDate DateTime?
-  location    String?
   isPrivate   Boolean   @default(false)
   viewCount   Int       @default(0)
+  
+  // 필수 작성항목(공통)
+  brideName       String?  // 신부님 성함
+  bridePhone      String?  // 신부님 전화번호
+  groomName       String?  // 신랑님 성함
+  groomPhone      String?  // 신랑님 전화번호
+  receiptPhone    String?  // 현금 영수증 받으실 전화번호
+  depositName     String?  // 예약금 입금자명
+  productEmail    String?  // 상품 받으실 E-mail 주소
+  productType     String?  // 상품 종류 (가성비형, 기본형, 야외스냅, 프리웨딩)
+  partnerCode     String?  // 짝궁 코드
+  foundPath       String?  // 라우브필름 알게된 경로
+  termsAgreed     Boolean? @default(false) // 홈페이지 규정 안내 및 약관동의서 읽음 및 동의
+  faqRead         Boolean? @default(false) // 홈페이지 FAQ 읽음 및 숙지 여부
+  
+  // 개인정보 활용 동의
+  privacyAgreed   Boolean? @default(false) // 개인정보 수집 이용 동의
+  
+  // 본식DVD 예약 고객님 필수 추가 작성 항목
+  weddingDate     DateTime? // 예식 날짜
+  weddingTime     String?   // 예식 시간
+  venueName       String?   // 장소명
+  venueFloor      String?   // 층/홀이름
+  guestCount      Int?      // 초대인원
+  makeupShoot     Boolean?  // 메이크업샵 촬영 O/X
+  paebaekShoot    Boolean?  // 폐백 촬영 O/X
+  receptionShoot  Boolean?  // 피로연(2부 예식) 촬영 O/X
+  mainSnapCompany String?   // 메인스냅 촬영 업체명
+  makeupShop      String?   // 메이크업샵 상호명
+  dressShop       String?   // 드레스샵 상호명
+  deliveryAddress String?   @db.Text // (USB)상품받으실 거주지 주소
+  seonwonpan      Boolean?  // 선원판 진행 여부 O/X
+  gimbalShoot     Boolean?  // 짐벌(커스텀) 촬영 O/X
+  
+  // 본식DVD 주 재생매체
+  playbackDevice  String?   // (핸드폰, LED TV/ OLED TV, 빔프로젝터)
+  
+  // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
+  shootDate       DateTime? // 촬영 날짜
+  shootTimePlace  String?   @db.Text // 시간 및 장소
+  shootConcept    String?   @db.Text // 원하시는 컨셉
+  
+  // 할인사항 및 특이사항 작성 항목
+  specialNotes    String?   @db.Text // 특이사항 및 요구사항
+  discountInfo    String?   @db.Text // 할인 사항
+  
+  // 기존 필드 (하위 호환성)
+  phone       String?  // 기존 필드 (deprecated)
+  email       String?  // 기존 필드 (deprecated)
+  location    String?  // 기존 필드 (deprecated)
+  
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   reply       Reply?

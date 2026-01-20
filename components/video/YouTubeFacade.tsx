@@ -10,8 +10,11 @@ interface YouTubeFacadeProps {
   className?: string;
 }
 
-function getYouTubeThumbnail(videoId: string) {
-  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+function getYouTubeThumbnail(videoId: string, quality: "maxres" | "hq" = "maxres") {
+  if (quality === "maxres") {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  }
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 }
 
 export default function YouTubeFacade({
@@ -20,6 +23,7 @@ export default function YouTubeFacade({
   className,
 }: YouTubeFacadeProps) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
 
   if (isLoaded) {
     return (
@@ -35,6 +39,10 @@ export default function YouTubeFacade({
     );
   }
 
+  const thumbnailUrl = thumbnailError
+    ? getYouTubeThumbnail(videoId, "hq")
+    : getYouTubeThumbnail(videoId, "maxres");
+
   return (
     <button
       onClick={() => setIsLoaded(true)}
@@ -45,11 +53,17 @@ export default function YouTubeFacade({
       aria-label={`${title} 영상 재생`}
     >
       <Image
-        src={getYouTubeThumbnail(videoId)}
+        src={thumbnailUrl}
         alt={title}
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         className="object-cover transition-transform duration-300 group-hover:scale-105"
+        onError={() => {
+          if (!thumbnailError) {
+            setThumbnailError(true);
+          }
+        }}
+        unoptimized
       />
       {/* Play Button Overlay */}
       <div className="absolute inset-0 flex items-center justify-center bg-black/30 transition-colors group-hover:bg-black/40">

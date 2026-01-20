@@ -67,17 +67,66 @@ export async function POST(request: NextRequest) {
       content,
       author,
       password,
-      phone,
-      email,
-      weddingDate,
-      location,
       isPrivate,
+      // 필수 작성항목(공통)
+      brideName,
+      bridePhone,
+      groomName,
+      groomPhone,
+      receiptPhone,
+      depositName,
+      productEmail,
+      productType,
+      partnerCode,
+      foundPath,
+      termsAgreed,
+      faqRead,
+      // 개인정보 활용 동의
+      privacyAgreed,
+      // 본식DVD 예약 고객님 필수 추가 작성 항목
+      weddingDate,
+      weddingTime,
+      venueName,
+      venueFloor,
+      guestCount,
+      makeupShoot,
+      paebaekShoot,
+      receptionShoot,
+      mainSnapCompany,
+      makeupShop,
+      dressShop,
+      deliveryAddress,
+      seonwonpan,
+      gimbalShoot,
+      // 본식DVD 주 재생매체
+      playbackDevice,
+      // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
+      shootDate,
+      shootTimePlace,
+      shootConcept,
+      // 할인사항 및 특이사항 작성 항목
+      specialNotes,
+      discountInfo,
     } = body;
 
     // 유효성 검사
-    if (!title || !content || !author || !password) {
+    if (!title || !author || !password) {
       return NextResponse.json(
-        { error: "필수 항목을 입력해주세요." },
+        { error: "제목, 계약자 성함, 비밀번호는 필수 항목입니다." },
+        { status: 400 }
+      );
+    }
+
+    if (!brideName || !bridePhone || !groomName || !groomPhone) {
+      return NextResponse.json(
+        { error: "신부님/신랑님 성함 및 전화번호는 필수 항목입니다." },
+        { status: 400 }
+      );
+    }
+
+    if (!termsAgreed || !faqRead || !privacyAgreed) {
+      return NextResponse.json(
+        { error: "약관 동의 및 개인정보 활용 동의는 필수입니다." },
         { status: 400 }
       );
     }
@@ -88,14 +137,49 @@ export async function POST(request: NextRequest) {
     const reservation = await prisma.reservation.create({
       data: {
         title,
-        content,
+        content: content || "",
         author,
         password: hashedPassword,
-        phone: phone || null,
-        email: email || null,
-        weddingDate: weddingDate ? new Date(weddingDate) : null,
-        location: location || null,
         isPrivate: isPrivate || false,
+        // 필수 작성항목(공통)
+        brideName: brideName || null,
+        bridePhone: bridePhone || null,
+        groomName: groomName || null,
+        groomPhone: groomPhone || null,
+        receiptPhone: receiptPhone || null,
+        depositName: depositName || null,
+        productEmail: productEmail || null,
+        productType: productType || null,
+        partnerCode: partnerCode || null,
+        foundPath: foundPath || null,
+        termsAgreed: termsAgreed || false,
+        faqRead: faqRead || false,
+        // 개인정보 활용 동의
+        privacyAgreed: privacyAgreed || false,
+        // 본식DVD 예약 고객님 필수 추가 작성 항목
+        weddingDate: weddingDate ? new Date(weddingDate) : null,
+        weddingTime: weddingTime || null,
+        venueName: venueName || null,
+        venueFloor: venueFloor || null,
+        guestCount: guestCount ? parseInt(guestCount) : null,
+        makeupShoot: makeupShoot || false,
+        paebaekShoot: paebaekShoot || false,
+        receptionShoot: receptionShoot || false,
+        mainSnapCompany: mainSnapCompany || null,
+        makeupShop: makeupShop || null,
+        dressShop: dressShop || null,
+        deliveryAddress: deliveryAddress || null,
+        seonwonpan: seonwonpan || false,
+        gimbalShoot: gimbalShoot || false,
+        // 본식DVD 주 재생매체
+        playbackDevice: playbackDevice || null,
+        // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
+        shootDate: shootDate ? new Date(shootDate) : null,
+        shootTimePlace: shootTimePlace || null,
+        shootConcept: shootConcept || null,
+        // 할인사항 및 특이사항 작성 항목
+        specialNotes: specialNotes || null,
+        discountInfo: discountInfo || null,
       },
     });
 
