@@ -60,14 +60,10 @@ export default function NewReservationPage() {
     shootConcept: "",
     
     // 할인사항 (체크박스)
+    discountNewYear: true, // 신년할인 (항상 체크)
+    discountReview: false, // 블로그와 카페 촬영후기 (총 2만원 페이백)
     discountCouple: false, // 짝궁할인
-    discountReview: false, // 블로그와 카페 촬영후기
-    discountNewYear: false, // 26년 신년할인
-    discountReview1: false, // 예약후기 작성 이벤트 1건
-    discountReview2: false, // 예약후기 작성 이벤트 2건
-    discountReview3: false, // 예약후기 작성 이벤트 3건
-    discountSnap: false, // 서울 야외촬영 스냅촬영
-    discountPreWedding: false, // 서울 야외촬영 프리웨딩 식전영상
+    discountReviewBlog: false, // 블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)
     
     // 특이사항
     specialNotes: "",
@@ -578,14 +574,13 @@ export default function NewReservationPage() {
                         예식 날짜 <span className="text-accent">*</span>
                       </label>
                       <input
-                        type="text"
+                        type="date"
                         id="weddingDate"
                         name="weddingDate"
                         required
                         value={formData.weddingDate}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                        placeholder="예: 2024-05-15 또는 2024년 5월 15일"
                       />
                     </div>
                     <div>
@@ -593,14 +588,13 @@ export default function NewReservationPage() {
                         예식 시간 <span className="text-accent">*</span>
                       </label>
                       <input
-                        type="text"
+                        type="time"
                         id="weddingTime"
                         name="weddingTime"
                         required
                         value={formData.weddingTime}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                        placeholder="예: 14:00 또는 오후 2시"
                       />
                     </div>
                   </div>
@@ -763,17 +757,16 @@ export default function NewReservationPage() {
 
                   <div>
                     <label htmlFor="deliveryAddress" className="mb-2 block text-sm font-medium">
-                      (USB)상품받으실 거주지 주소 <span className="text-accent">*</span>
+                      (USB 추가 옵션)상품받으실 거주지 주소
                     </label>
                     <textarea
                       id="deliveryAddress"
                       name="deliveryAddress"
-                      required
                       rows={3}
                       value={formData.deliveryAddress}
                       onChange={handleChange}
                       className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                      placeholder="상세 주소까지 입력해주세요"
+                      placeholder="USB 추가 옵션 선택 시 상세 주소까지 입력해주세요"
                     />
                   </div>
 
@@ -807,135 +800,60 @@ export default function NewReservationPage() {
                 <h2 className="text-xl font-semibold">4. 할인사항</h2>
               </div>
 
-              <div className="space-y-4">
-                <div className="rounded-lg border border-border bg-muted p-4">
-                  <h3 className="mb-3 text-sm font-medium">할인 이벤트</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="discountCouple"
-                        name="discountCouple"
-                        checked={formData.discountCouple}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="discountCouple" className="text-sm">
-                        짝궁할인 (1만원 할인)
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="discountReview"
-                        name="discountReview"
-                        checked={formData.discountReview}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="discountReview" className="text-sm">
-                        블로그와 카페 촬영후기 (총 2만원 페이백)
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="discountNewYear"
-                        name="discountNewYear"
-                        checked={formData.discountNewYear}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="discountNewYear" className="text-sm">
-                        26년 신년할인 (5만원 할인) *1인 1캠 미적용, 제휴상품 미적용
-                      </label>
-                    </div>
+              <div className="rounded-lg border border-border bg-muted p-4">
+                <h3 className="mb-3 text-sm font-medium">할인 이벤트</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="discountNewYear"
+                      name="discountNewYear"
+                      checked={formData.discountNewYear}
+                      onChange={handleChange}
+                      className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                    />
+                    <label htmlFor="discountNewYear" className="text-sm">
+                      신년할인
+                    </label>
                   </div>
-                </div>
-
-                <div className="rounded-lg border border-border bg-muted p-4">
-                  <h3 className="mb-3 text-sm font-medium">예약후기 작성 이벤트</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="discountReview1"
-                        name="discountReview1"
-                        checked={formData.discountReview1}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="discountReview1" className="text-sm">
-                        1건 작성 (1만원 할인) - 가성비형은 원본전체 전달
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="discountReview2"
-                        name="discountReview2"
-                        checked={formData.discountReview2}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="discountReview2" className="text-sm">
-                        2건 작성 (2만원 할인) + SNS영상
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="discountReview3"
-                        name="discountReview3"
-                        checked={formData.discountReview3}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="discountReview3" className="text-sm">
-                        3건 작성 (2만원 할인) + SNS영상 + 원본영상 전체
-                      </label>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      *내용 중복 불가 | [가성비형]은 1건만 인정
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="discountReview"
+                      name="discountReview"
+                      checked={formData.discountReview}
+                      onChange={handleChange}
+                      className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                    />
+                    <label htmlFor="discountReview" className="text-sm">
+                      블로그와 카페 촬영후기 (총 2만원 페이백)
+                    </label>
                   </div>
-                </div>
-
-                <div className="rounded-lg border border-border bg-muted p-4">
-                  <h3 className="mb-3 text-sm font-medium">서울 야외촬영</h3>
-                  <p className="mb-3 text-xs text-muted-foreground">
-                    서울지역 1~2시간 촬영 | 스냅작가가 있을 경우만 프리웨딩 가능
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="discountSnap"
-                        name="discountSnap"
-                        checked={formData.discountSnap}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="discountSnap" className="text-sm">
-                        스냅촬영 (5만원) - 원본 전체 + 신부님 셀렉 10장 보정
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="discountPreWedding"
-                        name="discountPreWedding"
-                        checked={formData.discountPreWedding}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="discountPreWedding" className="text-sm">
-                        프리웨딩 식전영상 (10만원) - 영상촬영 기반 1~2분 하이라이트
-                      </label>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      촬영 장소: 노을공원, 창경궁, 동작대교, 잠수교, 올림픽공원, 서울숲 중 한 곳
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="discountCouple"
+                      name="discountCouple"
+                      checked={formData.discountCouple}
+                      onChange={handleChange}
+                      className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                    />
+                    <label htmlFor="discountCouple" className="text-sm">
+                      짝궁할인
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="discountReviewBlog"
+                      name="discountReviewBlog"
+                      checked={formData.discountReviewBlog}
+                      onChange={handleChange}
+                      className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                    />
+                    <label htmlFor="discountReviewBlog" className="text-sm">
+                      블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)
+                    </label>
                   </div>
                 </div>
               </div>
@@ -951,17 +869,16 @@ export default function NewReservationPage() {
 
               <div>
                 <label htmlFor="eventType" className="mb-2 block text-sm font-medium">
-                  이벤트 촬영 <span className="text-accent">*</span>
+                  이벤트 촬영
                 </label>
                 <select
                   id="eventType"
                   name="eventType"
-                  required
                   value={formData.eventType}
                   onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 >
-                  <option value="">선택해주세요</option>
+                  <option value="">선택해주세요 (선택사항)</option>
                   <option value="야외스냅">야외스냅</option>
                   <option value="프리웨딩">프리웨딩</option>
                 </select>
@@ -971,13 +888,12 @@ export default function NewReservationPage() {
                 <>
                   <div>
                     <label htmlFor="shootLocation" className="mb-2 block text-sm font-medium">
-                      희망 촬영 장소 <span className="text-accent">*</span>
+                      희망 촬영 장소
                     </label>
                     <input
                       type="text"
                       id="shootLocation"
                       name="shootLocation"
-                      required
                       value={formData.shootLocation}
                       onChange={handleChange}
                       className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
@@ -988,44 +904,39 @@ export default function NewReservationPage() {
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
                       <label htmlFor="shootDate" className="mb-2 block text-sm font-medium">
-                        촬영 날짜 <span className="text-accent">*</span>
+                        촬영 날짜
                       </label>
                       <input
-                        type="text"
+                        type="date"
                         id="shootDate"
                         name="shootDate"
-                        required
                         value={formData.shootDate}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                        placeholder="예: 2024-05-15 또는 2024년 5월 15일"
                       />
                     </div>
                     <div>
                       <label htmlFor="shootTime" className="mb-2 block text-sm font-medium">
-                        촬영 시간 <span className="text-accent">*</span>
+                        촬영 시간
                       </label>
                       <input
-                        type="text"
+                        type="time"
                         id="shootTime"
                         name="shootTime"
-                        required
                         value={formData.shootTime}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                        placeholder="예: 오전 10시 또는 10:00"
                       />
                     </div>
                   </div>
 
                   <div>
                     <label htmlFor="shootConcept" className="mb-2 block text-sm font-medium">
-                      원하시는 컨셉 <span className="text-accent">*</span>
+                      원하시는 컨셉
                     </label>
                     <textarea
                       id="shootConcept"
                       name="shootConcept"
-                      required
                       rows={4}
                       value={formData.shootConcept}
                       onChange={handleChange}

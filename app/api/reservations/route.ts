@@ -110,11 +110,7 @@ export async function POST(request: NextRequest) {
       discountCouple,
       discountReview,
       discountNewYear,
-      discountReview1,
-      discountReview2,
-      discountReview3,
-      discountSnap,
-      discountPreWedding,
+      discountReviewBlog,
       // 특이사항
       specialNotes,
     } = body;
@@ -192,12 +188,8 @@ export async function POST(request: NextRequest) {
         // 할인사항 (체크박스)
         discountCouple: discountCouple || false,
         discountReview: discountReview || false,
-        discountNewYear: discountNewYear || false,
-        discountReview1: discountReview1 || false,
-        discountReview2: discountReview2 || false,
-        discountReview3: discountReview3 || false,
-        discountSnap: discountSnap || false,
-        discountPreWedding: discountPreWedding || false,
+        discountNewYear: discountNewYear !== undefined ? discountNewYear : true, // 기본값 true (항상 체크)
+        discountReviewBlog: discountReviewBlog || false,
         // 특이사항
         specialNotes: specialNotes || null,
       },

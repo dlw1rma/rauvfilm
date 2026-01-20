@@ -65,13 +65,9 @@ model Reservation {
   
   // 할인사항 (체크박스)
   discountCouple      Boolean? @default(false) // 짝궁할인
-  discountReview      Boolean? @default(false) // 블로그와 카페 촬영후기
-  discountNewYear     Boolean? @default(false) // 26년 신년할인
-  discountReview1     Boolean? @default(false) // 예약후기 작성 이벤트 1건
-  discountReview2     Boolean? @default(false) // 예약후기 작성 이벤트 2건
-  discountReview3     Boolean? @default(false) // 예약후기 작성 이벤트 3건
-  discountSnap        Boolean? @default(false) // 서울 야외촬영 스냅촬영
-  discountPreWedding  Boolean? @default(false) // 서울 야외촬영 프리웨딩 식전영상
+  discountReview      Boolean? @default(false) // 블로그와 카페 촬영후기 (총 2만원 페이백)
+  discountNewYear     Boolean? @default(true)  // 신년할인 (항상 체크)
+  discountReviewBlog  Boolean? @default(false) // 블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)
   
   // 특이사항
   specialNotes    String?   @db.Text // 특이사항 및 요구사항

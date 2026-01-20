@@ -51,11 +51,7 @@ interface Reservation {
   discountCouple: boolean | null;
   discountReview: boolean | null;
   discountNewYear: boolean | null;
-  discountReview1: boolean | null;
-  discountReview2: boolean | null;
-  discountReview3: boolean | null;
-  discountSnap: boolean | null;
-  discountPreWedding: boolean | null;
+  discountReviewBlog: boolean | null;
   // 특이사항
   specialNotes: string | null;
   reply: {
@@ -231,14 +227,10 @@ export default function AdminReservationsPage() {
 
     // 할인사항
     const discounts: string[] = [];
+    if (selectedReservation.discountNewYear) discounts.push("신년할인");
+    if (selectedReservation.discountReview) discounts.push("블로그와 카페 촬영후기 (총 2만원 페이백)");
     if (selectedReservation.discountCouple) discounts.push("짝궁할인");
-    if (selectedReservation.discountReview) discounts.push("블로그와 카페 촬영후기");
-    if (selectedReservation.discountNewYear) discounts.push("26년 신년할인");
-    if (selectedReservation.discountReview1) discounts.push("예약후기 작성 이벤트 1건");
-    if (selectedReservation.discountReview2) discounts.push("예약후기 작성 이벤트 2건");
-    if (selectedReservation.discountReview3) discounts.push("예약후기 작성 이벤트 3건");
-    if (selectedReservation.discountSnap) discounts.push("서울 야외촬영 스냅촬영");
-    if (selectedReservation.discountPreWedding) discounts.push("서울 야외촬영 프리웨딩 식전영상");
+    if (selectedReservation.discountReviewBlog) discounts.push("블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)");
     
     if (discounts.length > 0) {
       txt += "[할인사항]\n";
@@ -540,22 +532,14 @@ export default function AdminReservationsPage() {
                 {(selectedReservation.discountCouple || 
                   selectedReservation.discountReview || 
                   selectedReservation.discountNewYear ||
-                  selectedReservation.discountReview1 ||
-                  selectedReservation.discountReview2 ||
-                  selectedReservation.discountReview3 ||
-                  selectedReservation.discountSnap ||
-                  selectedReservation.discountPreWedding) && (
+                  selectedReservation.discountReviewBlog) && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-accent">할인사항</h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedReservation.discountCouple && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">짝궁할인</span>}
+                      {selectedReservation.discountNewYear && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">신년할인</span>}
                       {selectedReservation.discountReview && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">블로그와 카페 촬영후기</span>}
-                      {selectedReservation.discountNewYear && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">26년 신년할인</span>}
-                      {selectedReservation.discountReview1 && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">예약후기 1건</span>}
-                      {selectedReservation.discountReview2 && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">예약후기 2건</span>}
-                      {selectedReservation.discountReview3 && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">예약후기 3건</span>}
-                      {selectedReservation.discountSnap && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">서울 야외촬영 스냅</span>}
-                      {selectedReservation.discountPreWedding && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">서울 야외촬영 프리웨딩</span>}
+                      {selectedReservation.discountCouple && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">짝궁할인</span>}
+                      {selectedReservation.discountReviewBlog && <span className="px-3 py-1 bg-accent/10 text-accent rounded text-sm">블로그와 카페 예약후기</span>}
                     </div>
                   </div>
                 )}
