@@ -176,9 +176,9 @@ export async function POST(request: NextRequest) {
         makeupShop: makeupShop || null,
         dressShop: dressShop || null,
         deliveryAddress: deliveryAddress || null,
+        usbOption: usbOption || false,
         seonwonpan: seonwonpan || false,
         gimbalShoot: gimbalShoot || false,
-        // USB 옵션은 deliveryAddress가 있으면 true로 간주
         // 본식DVD 주 재생매체
         playbackDevice: playbackDevice || null,
         // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목

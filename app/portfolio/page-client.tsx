@@ -96,20 +96,24 @@ export default function PortfolioPageClient() {
     <>
       <div className="min-h-screen">
         {/* Hero Video Section - 배경 비디오 전용 */}
-        <section className="relative w-full min-h-[500px] max-h-[70vh] overflow-hidden bg-black mb-16">
-          {/* Video Background - 좌우 밀착(100vw), 위아래는 잘려도 됨 */}
+        <section className="relative w-full min-h-[600px] max-h-[70vh] overflow-hidden bg-black mb-16">
+          {/* Video Background - 좌우 밀착(100vw), 수직 중앙 정렬 */}
           <div 
-            className="bg-video-full absolute inset-0"
+            className="bg-video-full absolute inset-0 overflow-hidden"
             style={heroVideoDimensions ? {
               aspectRatio: `${heroVideoDimensions.width} / ${heroVideoDimensions.height}`,
               width: "100vw",
               left: "50%",
-              transform: "translateX(-50%)",
-              height: "auto"
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              height: "auto",
+              minHeight: "100%"
             } : {
               width: "100vw",
               left: "50%",
-              transform: "translateX(-50%)"
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              minHeight: "100%"
             }}
           >
             <iframe
