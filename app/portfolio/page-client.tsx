@@ -41,6 +41,7 @@ export default function PortfolioPageClient() {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetch("/api/portfolio")
@@ -113,6 +114,16 @@ export default function PortfolioPageClient() {
   // 현재 사용할 영상 정보
   const currentHeroVideoId = isMobile ? mobileHeroVideoId : desktopHeroVideoId;
   const currentHeroVideoDimensions = isMobile ? mobileHeroVideoDimensions : desktopHeroVideoDimensions;
+
+  // 검색 필터링
+  const filteredItems = portfolioItems.filter((item) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      item.title.toLowerCase().includes(query) ||
+      item.category.toLowerCase().includes(query)
+    );
+  });
 
   if (loading) {
     return (
@@ -208,14 +219,78 @@ export default function PortfolioPageClient() {
 
         <div className="py-20 px-4">
           <div className="mx-auto max-w-7xl">
+            {/* Search Bar */}
+            <div className="mb-8">
+              <div className="relative max-w-md mx-auto">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-muted-foreground"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="제목 또는 카테고리로 검색..."
+                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="검색어 지우기"
+                  >
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth="2"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {searchQuery && (
+                <p className="mt-3 text-center text-sm text-muted-foreground">
+                  {filteredItems.length}개의 결과를 찾았습니다
+                </p>
+              )}
+            </div>
+
             {/* Video Grid */}
             {portfolioItems.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">등록된 포트폴리오가 없습니다.</p>
             </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">검색 결과가 없습니다.</p>
+              <button
+                onClick={() => setSearchQuery("")}
+                className="mt-4 text-sm text-accent hover:text-accent-hover transition-colors"
+              >
+                검색어 지우기
+              </button>
+            </div>
           ) : (
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {portfolioItems.map((item) => {
+              {filteredItems.map((item) => {
                 // DB에 저장된 썸네일이 있으면 우선 사용, 없으면 YouTube 썸네일 사용
                 const thumbnailUrl = item.thumbnailUrl || getYoutubeThumbnail(item.videoId, 'maxres');
                 

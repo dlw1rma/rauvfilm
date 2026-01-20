@@ -114,6 +114,15 @@ export async function POST(request: NextRequest) {
       discountReviewBlog,
       // 특이사항
       specialNotes,
+      // 커스텀 촬영 요청 필드
+      customShootingRequest,
+      customStyle,
+      customEditStyle,
+      customMusic,
+      customLength,
+      customEffect,
+      customContent,
+      customSpecialRequest,
     } = body;
 
     // 유효성 검사
@@ -194,6 +203,15 @@ export async function POST(request: NextRequest) {
         discountReviewBlog: discountReviewBlog || false,
         // 특이사항
         specialNotes: specialNotes || null,
+        // 커스텀 촬영 요청 필드
+        customShootingRequest: customShootingRequest || false,
+        customStyle: Array.isArray(customStyle) ? customStyle.join(", ") : customStyle || null,
+        customEditStyle: Array.isArray(customEditStyle) ? customEditStyle.join(", ") : customEditStyle || null,
+        customMusic: Array.isArray(customMusic) ? customMusic.join(", ") : customMusic || null,
+        customLength: Array.isArray(customLength) ? customLength.join(", ") : customLength || null,
+        customEffect: Array.isArray(customEffect) ? customEffect.join(", ") : customEffect || null,
+        customContent: Array.isArray(customContent) ? customContent.join(", ") : customContent || null,
+        customSpecialRequest: customSpecialRequest || null,
       },
     });
 

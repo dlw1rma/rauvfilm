@@ -382,6 +382,13 @@ export default function NewReservationPage() {
         body: JSON.stringify({
           ...formData,
           author: contractorName, // 계약자 이름으로 설정
+          // 배열 필드를 문자열로 변환
+          customStyle: Array.isArray(formData.customStyle) ? formData.customStyle.join(", ") : formData.customStyle,
+          customEditStyle: Array.isArray(formData.customEditStyle) ? formData.customEditStyle.join(", ") : formData.customEditStyle,
+          customMusic: Array.isArray(formData.customMusic) ? formData.customMusic.join(", ") : formData.customMusic,
+          customLength: Array.isArray(formData.customLength) ? formData.customLength.join(", ") : formData.customLength,
+          customEffect: Array.isArray(formData.customEffect) ? formData.customEffect.join(", ") : formData.customEffect,
+          customContent: Array.isArray(formData.customContent) ? formData.customContent.join(", ") : formData.customContent,
         }),
       });
 

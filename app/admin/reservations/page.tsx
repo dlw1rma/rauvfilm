@@ -54,6 +54,15 @@ interface Reservation {
   discountReviewBlog: boolean | null;
   // 특이사항
   specialNotes: string | null;
+  // 커스텀 촬영 요청 필드
+  customShootingRequest: boolean | null;
+  customStyle: string | null;
+  customEditStyle: string | null;
+  customMusic: string | null;
+  customLength: string | null;
+  customEffect: string | null;
+  customContent: string | null;
+  customSpecialRequest: string | null;
   reply: {
     id: number;
     content: string;
@@ -244,6 +253,20 @@ export default function AdminReservationsPage() {
     if (selectedReservation.specialNotes) {
       txt += "[특이사항 및 요구사항]\n";
       txt += `${selectedReservation.specialNotes}\n`;
+      txt += "\n";
+    }
+
+    // 커스텀 촬영 요청
+    if (selectedReservation.customShootingRequest) {
+      txt += "[커스텀 촬영 요청]\n";
+      txt += `요청 여부: 예\n`;
+      if (selectedReservation.customStyle) txt += `영상 스타일: ${selectedReservation.customStyle}\n`;
+      if (selectedReservation.customEditStyle) txt += `편집 스타일: ${selectedReservation.customEditStyle}\n`;
+      if (selectedReservation.customMusic) txt += `음악 장르: ${selectedReservation.customMusic}\n`;
+      if (selectedReservation.customLength) txt += `영상 진행형식: ${selectedReservation.customLength}\n`;
+      if (selectedReservation.customEffect) txt += `추가효과: ${selectedReservation.customEffect}\n`;
+      if (selectedReservation.customContent) txt += `추가 옵션: ${selectedReservation.customContent}\n`;
+      if (selectedReservation.customSpecialRequest) txt += `특별 요청사항: ${selectedReservation.customSpecialRequest}\n`;
       txt += "\n";
     }
 
@@ -550,6 +573,61 @@ export default function AdminReservationsPage() {
                     <h4 className="font-semibold mb-3 text-accent">특이사항 및 요구사항</h4>
                     <div className="rounded-lg bg-background p-4 text-sm whitespace-pre-wrap">
                       {selectedReservation.specialNotes}
+                    </div>
+                  </div>
+                )}
+
+                {/* 커스텀 촬영 요청 */}
+                {selectedReservation.customShootingRequest && (
+                  <div className="mb-6">
+                    <h4 className="font-semibold mb-3 text-accent">커스텀 촬영 요청</h4>
+                    <div className="rounded-lg bg-background p-4 space-y-3 text-sm">
+                      <div>
+                        <p className="text-muted-foreground mb-1">요청 여부</p>
+                        <p className="font-medium text-accent">예</p>
+                      </div>
+                      {selectedReservation.customStyle && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">영상 스타일</p>
+                          <p className="font-medium">{selectedReservation.customStyle}</p>
+                        </div>
+                      )}
+                      {selectedReservation.customEditStyle && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">편집 스타일</p>
+                          <p className="font-medium">{selectedReservation.customEditStyle}</p>
+                        </div>
+                      )}
+                      {selectedReservation.customMusic && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">음악 장르</p>
+                          <p className="font-medium">{selectedReservation.customMusic}</p>
+                        </div>
+                      )}
+                      {selectedReservation.customLength && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">영상 진행형식</p>
+                          <p className="font-medium">{selectedReservation.customLength}</p>
+                        </div>
+                      )}
+                      {selectedReservation.customEffect && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">추가효과</p>
+                          <p className="font-medium">{selectedReservation.customEffect}</p>
+                        </div>
+                      )}
+                      {selectedReservation.customContent && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">추가 옵션</p>
+                          <p className="font-medium">{selectedReservation.customContent}</p>
+                        </div>
+                      )}
+                      {selectedReservation.customSpecialRequest && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">특별 요청사항</p>
+                          <p className="font-medium whitespace-pre-wrap">{selectedReservation.customSpecialRequest}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

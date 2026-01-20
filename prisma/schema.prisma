@@ -73,6 +73,16 @@ model Reservation {
   // 특이사항
   specialNotes    String?   @db.Text // 특이사항 및 요구사항
   
+  // 커스텀 촬영 요청 필드
+  customShootingRequest Boolean? @default(false)
+  customStyle           String?  // 영상 스타일 (배열을 문자열로 저장)
+  customEditStyle       String?  // 편집 스타일 (배열을 문자열로 저장)
+  customMusic           String?  // 음악 장르 (배열을 문자열로 저장)
+  customLength          String?  // 영상 진행형식 (배열을 문자열로 저장)
+  customEffect          String?  @db.Text // 추가효과 (배열을 문자열로 저장)
+  customContent         String?  @db.Text // 추가 옵션 (배열을 문자열로 저장)
+  customSpecialRequest  String?  @db.Text // 특별 요청사항
+  
   // 기존 필드 (하위 호환성)
   phone       String?  // 기존 필드 (deprecated)
   email       String?  // 기존 필드 (deprecated)
