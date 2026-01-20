@@ -22,13 +22,20 @@ export default function HeroVideoSlider() {
 
   return (
     <section className="relative w-full min-h-[400px] max-h-[60vh] overflow-hidden bg-black">
-      {/* Video Background - 좌우 밀착(Width-Fixed), 위아래는 잘려도 됨 */}
+      {/* Video Background - 배경 비디오 전용 (좌우 밀착 100vw) */}
       <div 
-        className="absolute inset-0 w-full h-full"
+        className="bg-video-full absolute inset-0"
         style={videoDimensions ? {
           aspectRatio: `${videoDimensions.width} / ${videoDimensions.height}`,
-          width: "100%"
-        } : {}}
+          width: "100vw",
+          left: "50%",
+          transform: "translateX(-50%)",
+          height: "auto"
+        } : {
+          width: "100vw",
+          left: "50%",
+          transform: "translateX(-50%)"
+        }}
       >
         <iframe
           src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}

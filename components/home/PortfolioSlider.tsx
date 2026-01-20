@@ -38,7 +38,7 @@ function getYoutubeThumbnail(youtubeId: string, quality: 'default' | 'hq' | 'mq'
 export default function PortfolioSlider() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [portfolios, setPortfolios] = useState<PortfolioItem[]>([]);
-  const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string; width: number; height: number } | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string } | null>(null);
 
   useEffect(() => {
     // DB에서 포트폴리오 데이터 가져오기
@@ -104,36 +104,12 @@ export default function PortfolioSlider() {
             <div
               key={`${item.id}-${index}`}
               className="flex-shrink-0 w-[280px] md:w-[320px] lg:w-[360px] group cursor-pointer"
-              onClick={async () => {
-                // YouTube Data API v3로 실제 영상 비율 가져오기
-                try {
-                  const response = await fetch(`/api/youtube/video-details?videoId=${videoId}`);
-                  if (response.ok) {
-                    const data = await response.json();
-                    setSelectedVideo({ 
-                      videoId, 
-                      title: item.title,
-                      width: data.width,
-                      height: data.height
-                    });
-                  } else {
-                    // 실패 시 기본값 사용
-                    setSelectedVideo({ 
-                      videoId, 
-                      title: item.title,
-                      width: 1280,
-                      height: 720
-                    });
-                  }
-                } catch (error) {
-                  console.error("Error fetching video aspect ratio:", error);
-                  setSelectedVideo({ 
-                    videoId, 
-                    title: item.title,
-                    width: 1280,
-                    height: 720
-                  });
-                }
+              onClick={() => {
+                // 모달 플레이어는 기본 비율 사용 (API 호출 없음)
+                setSelectedVideo({ 
+                  videoId, 
+                  title: item.title
+                });
               }}
             >
               {/* Card with Thumbnail */}
@@ -189,12 +165,12 @@ export default function PortfolioSlider() {
               </svg>
             </button>
 
-            {/* Video Player - 좌우 밀착(Width-Fixed), 위아래는 잘려도 됨 */}
+            {/* Video Player - 모달 플레이어 (기본 비율 유지) */}
             <div 
-              className="relative w-full"
+              className="relative max-w-5xl w-full"
               style={{ 
-                aspectRatio: `${selectedVideo.width} / ${selectedVideo.height}`,
-                maxWidth: "100%"
+                aspectRatio: "16 / 9",
+                maxHeight: "85vh"
               }}
             >
               <iframe
@@ -202,7 +178,7 @@ export default function PortfolioSlider() {
                 title={selectedVideo.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className="absolute inset-0 w-full h-full"
+                className="absolute inset-0 w-full h-full rounded-lg"
                 style={{ 
                   border: "none"
                 }}
