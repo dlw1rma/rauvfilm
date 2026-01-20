@@ -143,6 +143,13 @@ export default function AdminReviewsPage() {
         hasAnyData = true;
       }
       
+      // 작성자 업데이트
+      if (data.author && data.author.trim()) {
+        setFormData((prev) => ({ ...prev, author: data.author.trim() }));
+        updatedFields.push(`작성자: ${data.author}`);
+        hasAnyData = true;
+      }
+      
       // 썸네일 업데이트
       if (data.thumbnailUrl && data.thumbnailUrl.trim()) {
         setFormData((prev) => ({ ...prev, imageUrl: data.thumbnailUrl.trim() }));

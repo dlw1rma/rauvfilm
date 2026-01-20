@@ -76,19 +76,48 @@ export default function PortfolioPageClient() {
     );
   }
 
+  // 히어로 비디오 ID
+  const heroVideoId = "IbiUX6n7eEM";
+
   return (
     <>
-      <div className="min-h-screen py-20 px-4">
-        <div className="mx-auto max-w-7xl">
-          {/* Header */}
-          <div className="mb-12 text-center">
-            <h1 className="mb-4 text-4xl font-bold">포트폴리오</h1>
-            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-              라우브필름이 제작한 웨딩 영상들을 감상해보세요.
-              <br />
-              각 영상을 클릭하면 재생됩니다.
-            </p>
+      <div className="min-h-screen">
+        {/* Hero Video Section */}
+        <section className="relative w-full aspect-video min-h-[500px] max-h-[70vh] overflow-hidden bg-black mb-16">
+          {/* Video Background */}
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+            <iframe
+              src={`https://www.youtube.com/embed/${heroVideoId}?autoplay=1&mute=1&loop=1&playlist=${heroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+              title="Portfolio Hero Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              className="absolute inset-0 w-full h-full"
+              style={{ border: "none" }}
+              allowFullScreen
+            />
+            {/* Dark Overlay */}
+            <div className="absolute inset-0 bg-black/40" />
           </div>
+
+          {/* Content - Left Aligned */}
+          <div className="relative z-10 h-full flex items-center">
+            <div className="container mx-auto px-6 md:px-12 lg:px-16">
+              <div className="max-w-2xl">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight drop-shadow-lg mb-6">
+                  PORTFOLIO
+                </h1>
+                <div className="space-y-2 text-white/90 text-sm md:text-base lg:text-lg leading-relaxed drop-shadow-md">
+                  <p>상품 종류, 커스텀 여부를 잘 확인해주세요!</p>
+                  <p>대표와 장 촬영만이</p>
+                  <p>짐벌(움직임이 있는) 커스텀 촬영으로 진행 가능하며</p>
+                  <p>이외 촬영은 움직임이 없이 촬영됩니다.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="py-20 px-4">
+          <div className="mx-auto max-w-7xl">
 
           {/* Video Grid */}
           {portfolioItems.length === 0 ? (

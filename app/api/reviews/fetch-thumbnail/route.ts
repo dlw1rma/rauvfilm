@@ -9,6 +9,7 @@ interface ParsedData {
   thumbnailUrl: string | null;
   title: string | null;
   excerpt: string | null;
+  author: string | null;
 }
 
 // 서드파티 API 사용 (제목, 내용, 썸네일 모두 가져오기)
@@ -40,18 +41,19 @@ async function fetchDataFromAPI(url: string): Promise<ParsedData | null> {
       return null;
     }
     
-    const data = await response.json();
-    console.log("LinkPreview API response data:", JSON.stringify(data, null, 2));
-    
-    if (data.title || data.image || data.description) {
-      const result = {
-        thumbnailUrl: data.image || null,
-        title: data.title || null,
-        excerpt: data.description ? truncateText(data.description, 200) : null,
-      };
-      console.log("Returning API data:", result);
-      return result;
-    }
+      const data = await response.json();
+      console.log("LinkPreview API response data:", JSON.stringify(data, null, 2));
+      
+      if (data.title || data.image || data.description) {
+        const result = {
+          thumbnailUrl: data.image || null,
+          title: data.title || null,
+          excerpt: data.description ? truncateText(data.description, 200) : null,
+          author: data.author || null, // linkpreview API가 author를 지원하는 경우
+        };
+        console.log("Returning API data:", result);
+        return result;
+      }
     
     console.log("LinkPreview API returned no useful data");
   } catch (error) {
@@ -107,12 +109,26 @@ function getNaverBlogPostUrl(blogId: string, postId: string): string {
   return `https://blog.naver.com/PostView.naver?blogId=${blogId}&logNo=${postId}`;
 }
 
+// 네이버 카페 URL을 모바일 주소로 변환 (쿼리 스트링 제거)
+function convertNaverCafeToMobile(url: string): string | null {
+  // cafe.naver.com/{카페ID}/{게시글번호} 형식 추출
+  const cafeMatch = url.match(/cafe\.naver\.com\/([\w-]+)\/(\d+)/);
+  if (cafeMatch) {
+    const cafeId = cafeMatch[1];
+    const articleId = cafeMatch[2];
+    // 모바일 주소로 변환 (쿼리 스트링 완전 제거)
+    return `https://m.cafe.naver.com/${cafeId}/${articleId}`;
+  }
+  return null;
+}
+
 // HTML에서 메타 데이터 추출
 function extractMetaData(html: string): ParsedData {
   const result: ParsedData = {
     thumbnailUrl: null,
     title: null,
     excerpt: null,
+    author: null,
   };
 
   // 1. Open Graph 제목
@@ -163,6 +179,29 @@ function extractMetaData(html: string): ParsedData {
     }
   }
 
+  // 7. 작성자 추출
+  // Open Graph 작성자
+  const ogAuthorMatch = html.match(/<meta\s+property=["']og:article:author["']\s+content=["']([^"']+)["']/i);
+  if (ogAuthorMatch && ogAuthorMatch[1]) {
+    result.author = ogAuthorMatch[1].trim();
+  }
+  
+  // 일반 메타 작성자
+  if (!result.author) {
+    const authorMatch = html.match(/<meta\s+name=["']author["']\s+content=["']([^"']+)["']/i);
+    if (authorMatch && authorMatch[1]) {
+      result.author = authorMatch[1].trim();
+    }
+  }
+  
+  // article:author 메타
+  if (!result.author) {
+    const articleAuthorMatch = html.match(/<meta\s+property=["']article:author["']\s+content=["']([^"']+)["']/i);
+    if (articleAuthorMatch && articleAuthorMatch[1]) {
+      result.author = articleAuthorMatch[1].trim();
+    }
+  }
+
   return result;
 }
 
@@ -206,9 +245,19 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching data from URL:", targetUrl);
 
-    // 네이버 블로그인 경우 PostView.naver 형식으로 자동 변환
+    // 네이버 카페인 경우 모바일 주소로 변환 (쿼리 스트링 제거)
     let finalUrl = targetUrl;
-    if (targetUrl.includes("blog.naver.com")) {
+    if (targetUrl.includes("cafe.naver.com")) {
+      const mobileUrl = convertNaverCafeToMobile(targetUrl);
+      if (mobileUrl) {
+        finalUrl = mobileUrl;
+        console.log("✅ 네이버 카페 URL 변환 (모바일):", targetUrl, "->", finalUrl);
+      } else {
+        console.log("⚠️ 네이버 카페 URL 형식을 파싱할 수 없습니다:", targetUrl);
+      }
+    }
+    // 네이버 블로그인 경우 PostView.naver 형식으로 자동 변환
+    else if (targetUrl.includes("blog.naver.com")) {
       const blogInfo = extractNaverBlogPostId(targetUrl);
       if (blogInfo) {
         finalUrl = getNaverBlogPostUrl(blogInfo.blogId, blogInfo.postId);
@@ -224,6 +273,7 @@ export async function GET(request: NextRequest) {
     if (apiData && (apiData.title || apiData.thumbnailUrl || apiData.excerpt)) {
       console.log("✅ linkpreview.net API에서 데이터 가져옴:", {
         title: apiData.title,
+        author: apiData.author,
         thumbnail: apiData.thumbnailUrl ? "있음" : "없음",
         excerpt: apiData.excerpt ? `${apiData.excerpt.substring(0, 50)}...` : "없음",
       });
@@ -233,7 +283,112 @@ export async function GET(request: NextRequest) {
     }
 
     // API 실패 시 직접 파싱 시도
-    if (targetUrl.includes("blog.naver.com")) {
+    // 네이버 카페 직접 파싱
+    if (targetUrl.includes("cafe.naver.com")) {
+      const mobileUrl = convertNaverCafeToMobile(targetUrl);
+      if (mobileUrl) {
+        console.log("Trying direct parsing for Naver cafe mobile URL:", mobileUrl);
+        
+        try {
+          const response = await fetch(mobileUrl, {
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+              "Referer": "https://m.naver.com/",
+            },
+            redirect: "follow",
+          });
+
+          if (response.ok) {
+            const html = await response.text();
+            console.log("Cafe mobile page HTML length:", html.length);
+
+            const metaData = extractMetaData(html);
+            
+            // 네이버 카페 이미지 찾기
+            if (!metaData.thumbnailUrl) {
+              const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+              if (ogImageMatch && ogImageMatch[1]) {
+                const imgUrl = ogImageMatch[1].trim();
+                if (imgUrl && (imgUrl.startsWith("http://") || imgUrl.startsWith("https://"))) {
+                  metaData.thumbnailUrl = imgUrl;
+                }
+              }
+            }
+            
+            if (!metaData.thumbnailUrl) {
+              metaData.thumbnailUrl = findNaverImages(html);
+            }
+
+            // 네이버 카페 제목 찾기
+            if (!metaData.title) {
+              const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+              if (ogTitleMatch && ogTitleMatch[1]) {
+                metaData.title = ogTitleMatch[1].trim();
+              }
+              
+              if (!metaData.title) {
+                const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+                if (titleMatch && titleMatch[1]) {
+                  let title = titleMatch[1].trim();
+                  // "게시글 제목 - 카페명" 형식 처리
+                  if (title.includes(" - ")) {
+                    const parts = title.split(" - ");
+                    title = parts[0].trim();
+                  }
+                  metaData.title = title;
+                }
+              }
+            }
+
+            // 네이버 카페 본문에서 내용 추출
+            if (!metaData.excerpt) {
+              const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i);
+              if (ogDescMatch && ogDescMatch[1]) {
+                metaData.excerpt = truncateText(ogDescMatch[1], 200);
+              }
+              
+              // 본문 영역 찾기
+              if (!metaData.excerpt) {
+                const contentMatch = html.match(/<div[^>]*class=["'][^"']*article_body[^"']*["'][^>]*>([\s\S]{100,5000})<\/div>/i);
+                if (contentMatch && contentMatch[1]) {
+                  const extracted = extractTextFromHTML(contentMatch[1], 200);
+                  if (extracted.length > 30) {
+                    metaData.excerpt = extracted;
+                  }
+                }
+              }
+            }
+
+            // 네이버 카페 작성자 찾기
+            if (!metaData.author) {
+              const nicknameMatch = html.match(/<span[^>]*class=["'][^"']*nickname[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+              if (nicknameMatch && nicknameMatch[1]) {
+                metaData.author = extractTextFromHTML(nicknameMatch[1], 50).trim();
+              }
+              
+              if (!metaData.author) {
+                const writerMatch = html.match(/<span[^>]*class=["'][^"']*writer[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+                if (writerMatch && writerMatch[1]) {
+                  metaData.author = extractTextFromHTML(writerMatch[1], 50).trim();
+                }
+              }
+            }
+
+            if (metaData.title || metaData.thumbnailUrl || metaData.excerpt || metaData.author) {
+              console.log("Found Naver cafe data:", metaData);
+              return NextResponse.json(metaData);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching cafe mobile page:", error);
+        }
+      }
+    }
+    // 네이버 블로그 직접 파싱
+    else if (targetUrl.includes("blog.naver.com")) {
       const blogInfo = extractNaverBlogPostId(targetUrl);
       if (blogInfo) {
         const postUrl = getNaverBlogPostUrl(blogInfo.blogId, blogInfo.postId);
@@ -330,6 +485,45 @@ export async function GET(request: NextRequest) {
               }
             }
 
+            // 네이버 블로그 작성자 찾기
+            if (!metaData.author) {
+              // 1. se-nickname 클래스 (네이버 블로그 에디터)
+              const seNicknameMatch = html.match(/<span[^>]*class=["'][^"']*se-nickname[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+              if (seNicknameMatch && seNicknameMatch[1]) {
+                metaData.author = extractTextFromHTML(seNicknameMatch[1], 50).trim();
+              }
+              
+              // 2. nickname 클래스
+              if (!metaData.author) {
+                const nicknameMatch = html.match(/<span[^>]*class=["'][^"']*nickname[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+                if (nicknameMatch && nicknameMatch[1]) {
+                  metaData.author = extractTextFromHTML(nicknameMatch[1], 50).trim();
+                }
+              }
+              
+              // 3. writer 클래스
+              if (!metaData.author) {
+                const writerMatch = html.match(/<span[^>]*class=["'][^"']*writer[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+                if (writerMatch && writerMatch[1]) {
+                  metaData.author = extractTextFromHTML(writerMatch[1], 50).trim();
+                }
+              }
+              
+              // 4. author 클래스
+              if (!metaData.author) {
+                const authorMatch = html.match(/<span[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+                if (authorMatch && authorMatch[1]) {
+                  metaData.author = extractTextFromHTML(authorMatch[1], 50).trim();
+                }
+              }
+              
+              // 5. 블로그 ID에서 추출 (마지막 수단)
+              if (!metaData.author && blogInfo) {
+                // 블로그 ID를 작성자로 사용 (일부 경우)
+                metaData.author = blogInfo.blogId;
+              }
+            }
+
             // 네이버 블로그 본문에서 내용 추출 (여러 패턴 시도)
             if (!metaData.excerpt) {
               // 1. og:description에서 찾기
@@ -412,6 +606,7 @@ export async function GET(request: NextRequest) {
         thumbnailUrl: null,
         title: null,
         excerpt: null,
+        author: null,
         error: `페이지를 가져올 수 없습니다: ${response.statusText}`,
       });
     }
@@ -424,6 +619,42 @@ export async function GET(request: NextRequest) {
     // 네이버 블로그/카페 이미지 찾기
     if ((targetUrl.includes("blog.naver.com") || targetUrl.includes("cafe.naver.com")) && !metaData.thumbnailUrl) {
       metaData.thumbnailUrl = findNaverImages(html);
+    }
+
+    // 네이버 카페 작성자 찾기
+    if (targetUrl.includes("cafe.naver.com") && !metaData.author) {
+      // 1. 닉네임 클래스 (네이버 카페)
+      const nicknameMatch = html.match(/<span[^>]*class=["'][^"']*nickname[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+      if (nicknameMatch && nicknameMatch[1]) {
+        metaData.author = extractTextFromHTML(nicknameMatch[1], 50).trim();
+      }
+      
+      // 2. writer 클래스
+      if (!metaData.author) {
+        const writerMatch = html.match(/<span[^>]*class=["'][^"']*writer[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+        if (writerMatch && writerMatch[1]) {
+          metaData.author = extractTextFromHTML(writerMatch[1], 50).trim();
+        }
+      }
+      
+      // 3. author 클래스
+      if (!metaData.author) {
+        const authorMatch = html.match(/<span[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+        if (authorMatch && authorMatch[1]) {
+          metaData.author = extractTextFromHTML(authorMatch[1], 50).trim();
+        }
+      }
+      
+      // 4. 작성자 정보가 포함된 div 찾기
+      if (!metaData.author) {
+        const authorDivMatch = html.match(/<div[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]{10,200})<\/div>/i);
+        if (authorDivMatch && authorDivMatch[1]) {
+          const extracted = extractTextFromHTML(authorDivMatch[1], 50);
+          if (extracted.length > 2) {
+            metaData.author = extracted.trim();
+          }
+        }
+      }
     }
 
     // 본문에서 내용 추출 (excerpt가 없는 경우)
@@ -476,6 +707,7 @@ export async function GET(request: NextRequest) {
       thumbnailUrl: null,
       title: null,
       excerpt: null,
+      author: null,
       message: "페이지에서 정보를 찾을 수 없습니다. 수동으로 입력해주세요.",
     });
   } catch (error) {
@@ -497,6 +729,7 @@ export async function GET(request: NextRequest) {
         thumbnailUrl: null,
         title: null,
         excerpt: null,
+        author: null,
         error: "데이터를 가져오는데 실패했습니다.",
         details: error instanceof Error ? error.message : String(error)
       },
