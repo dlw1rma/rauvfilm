@@ -96,10 +96,10 @@ export default function PortfolioPageClient() {
     <>
       <div className="min-h-screen">
         {/* Hero Video Section - 배경 비디오 전용 */}
-        <section className="relative w-full min-h-[600px] max-h-[70vh] overflow-hidden bg-black mb-16">
+        <section className="relative w-full h-[70vh] min-h-[600px] overflow-hidden bg-black mb-16 flex items-center justify-center">
           {/* Video Background - 좌우 밀착(100vw), 수직 중앙 정렬 */}
           <div 
-            className="bg-video-full absolute inset-0 overflow-hidden"
+            className="bg-video-full absolute inset-0 overflow-hidden flex items-center justify-center"
             style={heroVideoDimensions ? {
               aspectRatio: `${heroVideoDimensions.width} / ${heroVideoDimensions.height}`,
               width: "100vw",
@@ -122,7 +122,10 @@ export default function PortfolioPageClient() {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               className="absolute inset-0 w-full h-full"
               style={{ 
-                border: "none"
+                border: "none",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)"
               }}
               allowFullScreen
             />

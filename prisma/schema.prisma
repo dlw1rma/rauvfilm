@@ -49,6 +49,7 @@ model Reservation {
   mainSnapCompany String?   // 메인스냅 촬영 업체명
   makeupShop      String?   // 메이크업샵 상호명
   dressShop       String?   // 드레스샵 상호명
+  usbOption       Boolean?  @default(false) // USB 추가 옵션
   deliveryAddress String?   @db.Text // (USB)상품받으실 거주지 주소
   seonwonpan      Boolean?  // 선원판 진행 여부 O/X
   gimbalShoot     Boolean?  // 짐벌(커스텀) 촬영 O/X

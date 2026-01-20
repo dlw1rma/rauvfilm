@@ -21,10 +21,10 @@ export default function HeroVideoSlider() {
   }, []);
 
   return (
-    <section className="relative w-full min-h-[500px] max-h-[60vh] overflow-hidden bg-black">
+    <section className="relative w-full h-[70vh] min-h-[500px] overflow-hidden bg-black flex items-center justify-center">
       {/* Video Background - 배경 비디오 전용 (좌우 밀착 100vw, 수직 중앙 정렬) */}
       <div 
-        className="bg-video-full absolute inset-0 overflow-hidden"
+        className="bg-video-full absolute inset-0 overflow-hidden flex items-center justify-center"
         style={videoDimensions ? {
           aspectRatio: `${videoDimensions.width} / ${videoDimensions.height}`,
           width: "100vw",
@@ -47,7 +47,10 @@ export default function HeroVideoSlider() {
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           className="absolute inset-0 w-full h-full"
           style={{ 
-            border: "none"
+            border: "none",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)"
           }}
           allowFullScreen
         />
