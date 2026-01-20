@@ -156,11 +156,58 @@ export default function NewReservationPage() {
     }
   };
 
+  // 다음 섹션으로 이동하는 함수 (제출 로직 없음)
+  const handleNext = () => {
+    // 마지막 섹션이면 다음으로 이동하지 않음
+    if (currentSection >= totalSections) {
+      return;
+    }
+
+    if (canProceed(currentSection)) {
+      setCurrentSection(currentSection + 1);
+      setError("");
+    } else {
+      // 현재 섹션의 첫 번째 미작성 필드로 스크롤
+      let firstErrorId = "";
+      if (currentSection === 1) {
+        if (!formData.privacyAgreed) firstErrorId = "privacyAgreed";
+      } else if (currentSection === 2) {
+        if (!formData.brideName) firstErrorId = "brideName";
+        else if (!formData.bridePhone) firstErrorId = "bridePhone";
+        else if (!formData.groomName) firstErrorId = "groomName";
+        else if (!formData.groomPhone) firstErrorId = "groomPhone";
+        else if (!formData.isBrideContractor && !formData.isGroomContractor) firstErrorId = "isBrideContractor";
+        else if (!formData.receiptPhone) firstErrorId = "receiptPhone";
+        else if (!formData.depositName) firstErrorId = "depositName";
+        else if (!formData.productEmail) firstErrorId = "productEmail";
+        else if (!formData.productType) firstErrorId = "productType";
+        else if (!formData.foundPath) firstErrorId = "foundPath";
+        else if (!formData.termsAgreed) firstErrorId = "termsAgreed";
+        else if (!formData.faqRead) firstErrorId = "faqRead";
+      } else if (currentSection === 3) {
+        if (formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") {
+          if (!formData.weddingDate) firstErrorId = "weddingDate";
+          else if (!formData.weddingTime) firstErrorId = "weddingTime";
+          else if (!formData.venueName) firstErrorId = "venueName";
+          else if (formData.usbOption && !formData.deliveryAddress) firstErrorId = "deliveryAddress";
+        }
+      }
+      
+      if (firstErrorId) {
+        setError("필수 항목을 모두 입력해주세요.");
+        setTimeout(() => scrollToFirstError(firstErrorId), 100);
+      } else {
+        setError("필수 항목을 모두 입력해주세요.");
+      }
+    }
+  };
+
+  // 폼 제출 함수 (마지막 섹션에서만 실행)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // 현재 섹션이 마지막 섹션(6번)이 아니면 제출하지 않음
+    // 안전 장치: 현재 섹션이 마지막 섹션이 아니면 제출하지 않음
     if (currentSection !== totalSections) {
       return;
     }
@@ -409,7 +456,16 @@ export default function NewReservationPage() {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form 
+          onSubmit={handleSubmit} 
+          onKeyDown={(e) => {
+            // Enter 키로 인한 자동 제출 방지 (마지막 섹션이 아니거나 등록하기 버튼이 아닌 경우)
+            if (e.key === "Enter" && (currentSection !== totalSections || isSubmitting)) {
+              e.preventDefault();
+            }
+          }}
+          className="space-y-8"
+        >
           {/* Section 1: 개인정보 활용 동의 (1번째로 이동) */}
           {currentSection === 1 && (
             <div className="space-y-6">
@@ -1207,45 +1263,7 @@ export default function NewReservationPage() {
             {currentSection < totalSections ? (
               <button
                 type="button"
-                onClick={() => {
-                  if (canProceed(currentSection)) {
-                    setCurrentSection(currentSection + 1);
-                    setError("");
-                  } else {
-                    // 현재 섹션의 첫 번째 미작성 필드로 스크롤
-                    let firstErrorId = "";
-                    if (currentSection === 1) {
-                      if (!formData.privacyAgreed) firstErrorId = "privacyAgreed";
-                    } else if (currentSection === 2) {
-                      if (!formData.brideName) firstErrorId = "brideName";
-                      else if (!formData.bridePhone) firstErrorId = "bridePhone";
-                      else if (!formData.groomName) firstErrorId = "groomName";
-                      else if (!formData.groomPhone) firstErrorId = "groomPhone";
-                      else if (!formData.isBrideContractor && !formData.isGroomContractor) firstErrorId = "isBrideContractor";
-                      else if (!formData.receiptPhone) firstErrorId = "receiptPhone";
-                      else if (!formData.depositName) firstErrorId = "depositName";
-                      else if (!formData.productEmail) firstErrorId = "productEmail";
-                      else if (!formData.productType) firstErrorId = "productType";
-                      else if (!formData.foundPath) firstErrorId = "foundPath";
-                      else if (!formData.termsAgreed) firstErrorId = "termsAgreed";
-                      else if (!formData.faqRead) firstErrorId = "faqRead";
-                    } else if (currentSection === 3) {
-                      if (formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") {
-                        if (!formData.weddingDate) firstErrorId = "weddingDate";
-                        else if (!formData.weddingTime) firstErrorId = "weddingTime";
-                        else if (!formData.venueName) firstErrorId = "venueName";
-                        else if (formData.usbOption && !formData.deliveryAddress) firstErrorId = "deliveryAddress";
-                      }
-                    }
-                    
-                    if (firstErrorId) {
-                      setError("필수 항목을 모두 입력해주세요.");
-                      setTimeout(() => scrollToFirstError(firstErrorId), 100);
-                    } else {
-                      setError("필수 항목을 모두 입력해주세요.");
-                    }
-                  }
-                }}
+                onClick={handleNext}
                 className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover"
               >
                 다음
@@ -1254,6 +1272,13 @@ export default function NewReservationPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
+                onClick={(e) => {
+                  // 안전 장치: 마지막 섹션에서만 제출 허용
+                  if (currentSection !== totalSections) {
+                    e.preventDefault();
+                    return;
+                  }
+                }}
                 className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "등록 중..." : "등록하기"}
