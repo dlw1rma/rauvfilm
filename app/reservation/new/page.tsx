@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-type ProductType = "가성비형" | "기본형" | "야외스냅" | "프리웨딩" | "";
+type ProductType = "본식DVD" | "가성비형" | "기본형" | "야외스냅" | "프리웨딩" | "";
 
 export default function NewReservationPage() {
   const router = useRouter();
@@ -401,6 +401,7 @@ export default function NewReservationPage() {
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value="">선택해주세요</option>
+                  <option value="본식DVD">본식DVD</option>
                   <option value="가성비형">가성비형</option>
                   <option value="기본형">기본형</option>
                   <option value="야외스냅">야외스냅</option>
