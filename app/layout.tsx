@@ -6,7 +6,7 @@ import KakaoChannelButton from "@/components/KakaoChannelButton";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://rauvfilm.co.kr"),
-  title: "라우브필름",
+  title: "라우브필름 (Rauvfilm)",
   description: "'기록'이 아닌 '기억'을 남기는 본식DVD를 영상프로덕션 출신 대표의 전문 색보정을 진행합니다. 본식DVD, 웨딩DVD",
   keywords: "본식DVD 가격, 가성비 본식DVD, 본식 DVD 추천, 라우브필름 가격, 라우브필름 후기, 결혼식DVD, 웨딩DVD, 본식DVD사기, 본식영상, 웨딩영상, 식전영상, 르랑필름, 스냅스타, 결혼식영상",
   authors: [{ name: "라우브필름" }],
@@ -21,22 +21,15 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     url: "https://rauvfilm.co.kr",
     siteName: "라우브필름",
-    title: "라우브필름 | 웨딩 영상 촬영 전문",
-    description: "특별한 순간을 영원히 간직하세요. 라우브필름은 감동적인 웨딩 영상을 제작합니다.",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "라우브필름 - 웨딩 영상 촬영 전문",
-      },
-    ],
+    title: "라우브필름",
+    description: "'기록'이 아닌 '기억'을 남기는 본식DVD를 영상프로덕션 출신 대표의 전문 색보정을 진행합니다. 본식DVD, 웨딩DVD",
+    // Next.js가 app/opengraph-image.jpg를 자동으로 인식합니다
   },
   twitter: {
     card: "summary_large_image",
-    title: "라우브필름 | 웨딩 영상 촬영 전문",
-    description: "특별한 순간을 영원히 간직하세요. 라우브필름은 감동적인 웨딩 영상을 제작합니다.",
-    images: ["/og-image.jpg"],
+    title: "라우브필름",
+    description: "'기록'이 아닌 '기억'을 남기는 본식DVD를 영상프로덕션 출신 대표의 전문 색보정을 진행합니다. 본식DVD, 웨딩DVD",
+    // Next.js가 app/opengraph-image.jpg를 자동으로 인식합니다
   },
   robots: {
     index: true,
