@@ -35,7 +35,16 @@ export default function ReviewSection() {
     fetch("/api/reviews")
       .then((res) => res.json())
       .then((data) => {
+        console.log("Reviews data received:", data);
         if (data.reviews) {
+          // 이미지 URL이 있는 리뷰만 로그 출력
+          data.reviews.forEach((review: Review) => {
+            if (review.imageUrl) {
+              console.log(`Review ${review.id} imageUrl:`, review.imageUrl);
+            } else {
+              console.log(`Review ${review.id} has no imageUrl`);
+            }
+          });
           // 최대 8개만 표시
           setReviews(data.reviews.slice(0, 8));
         }
@@ -75,7 +84,13 @@ export default function ReviewSection() {
       <div className="mx-auto max-w-6xl">
         <h2 className="mb-12 text-center text-2xl font-bold tracking-widest">REVIEW</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {reviews.map((review) => (
+          {reviews.map((review) => {
+            // 이미지 URL 검증
+            const hasValidImageUrl = review.imageUrl && 
+              review.imageUrl.trim() !== "" && 
+              (review.imageUrl.startsWith("http://") || review.imageUrl.startsWith("https://"));
+            
+            return (
             <a
               key={review.id}
               href={review.sourceUrl}
@@ -83,31 +98,49 @@ export default function ReviewSection() {
               rel="noopener noreferrer"
               className="group aspect-square bg-muted rounded-lg overflow-hidden hover:-translate-y-1 transition-transform cursor-pointer relative"
             >
-              {review.imageUrl && !review.imageError ? (
+              {hasValidImageUrl && !review.imageError ? (
                 <img
-                  src={review.imageUrl}
+                  src={review.imageUrl!}
                   alt={review.title}
                   className="w-full h-full object-cover"
-                  crossOrigin="anonymous"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
                   onError={(e) => {
-                    console.error("Image load error for review", review.id, review.imageUrl);
+                    const target = e.target as HTMLImageElement;
+                    console.error("❌ Image load error for review", review.id);
+                    console.error("   URL:", review.imageUrl);
+                    console.error("   Natural width:", target.naturalWidth);
+                    console.error("   Natural height:", target.naturalHeight);
                     setReviews((prev) =>
                       prev.map((r) => (r.id === review.id ? { ...r, imageError: true } : r))
                     );
                   }}
-                  onLoad={() => {
-                    console.log("Image loaded successfully for review", review.id);
+                  onLoad={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    console.log("✅ Image loaded successfully for review", review.id);
+                    console.log("   URL:", review.imageUrl);
+                    console.log("   Natural width:", target.naturalWidth);
+                    console.log("   Natural height:", target.naturalHeight);
                   }}
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                  <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted">
+                  <svg className="w-10 h-10 mb-2" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
                     />
                   </svg>
+                  {review.imageUrl && (
+                    <p className="text-xs text-center px-2">이미지 로드 실패</p>
+                  )}
+                  {!review.imageUrl && (
+                    <p className="text-xs text-center px-2">이미지 없음</p>
+                  )}
+                  {review.imageUrl && !hasValidImageUrl && (
+                    <p className="text-xs text-center px-2">유효하지 않은 URL</p>
+                  )}
                 </div>
               )}
               {/* Hover Overlay */}
@@ -119,7 +152,8 @@ export default function ReviewSection() {
                 )}
               </div>
             </a>
-          ))}
+            );
+          })}
           {/* 빈 슬롯 채우기 (8개 미만인 경우) */}
           {reviews.length < 8 &&
             Array.from({ length: 8 - reviews.length }).map((_, i) => (
