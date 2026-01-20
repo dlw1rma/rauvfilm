@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 // GET: 포트폴리오 목록 조회
 export async function GET(request: NextRequest) {
   try {
+    const prisma = getPrisma();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const featured = searchParams.get("featured");
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
 // POST: 포트폴리오 등록
 export async function POST(request: NextRequest) {
   try {
+    const prisma = getPrisma();
     const body = await request.json();
     const { title, youtubeUrl, category, featured, description } = body;
 
