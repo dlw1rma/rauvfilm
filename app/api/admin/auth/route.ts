@@ -1,35 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-
-// 환경변수에서 관리자 비밀번호 가져오기 (없으면 기본값 사용)
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin1234";
-const SESSION_SECRET = process.env.SESSION_SECRET || "rauvfilm-admin-secret-key";
-
-// 간단한 세션 토큰 생성 (실제 프로덕션에서는 JWT나 더 안전한 방식 사용)
-function generateSessionToken(): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 15);
-  return `${timestamp}-${random}-${SESSION_SECRET.substring(0, 8)}`;
-}
-
-// 세션 토큰 검증
-function validateSessionToken(token: string): boolean {
-  if (!token) return false;
-  // 토큰이 올바른 형식인지 확인
-  const parts = token.split("-");
-  if (parts.length < 3) return false;
-  // SECRET 부분 확인
-  if (parts[2] !== SESSION_SECRET.substring(0, 8)) return false;
-  // 타임스탬프 확인 (24시간 유효)
-  const timestamp = parseInt(parts[0], 36);
-  const now = Date.now();
-  const twentyFourHours = 24 * 60 * 60 * 1000;
-  return now - timestamp < twentyFourHours;
-}
+import {
+  generateSessionToken,
+  validateSessionToken,
+  verifyPassword,
+} from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 // POST: 로그인
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting 적용 (15분에 5회 제한)
+    const rateLimitResponse = rateLimit(request, 5, 15 * 60 * 1000);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const body = await request.json();
     const { password } = body;
 
@@ -40,7 +26,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password !== ADMIN_PASSWORD) {
+    // 비밀번호 검증 (bcrypt)
+    const isValid = await verifyPassword(password);
+    if (!isValid) {
       return NextResponse.json(
         { error: "비밀번호가 올바르지 않습니다." },
         { status: 401 }

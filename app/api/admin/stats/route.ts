@@ -1,8 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
+import { requireAdminAuth } from "@/lib/auth";
 
 // 관리자 대시보드 통계 조회
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // 인증 확인
+  const authResponse = await requireAdminAuth(request);
+  if (authResponse) {
+    return authResponse;
+  }
+
   try {
     const prisma = getPrisma();
     const [

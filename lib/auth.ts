@@ -81,10 +81,38 @@ export async function verifyPassword(password: string): Promise<boolean> {
     console.error(
       "❌ 보안 오류: ADMIN_PASSWORD_HASH 환경변수가 설정되지 않았습니다. 로그인이 차단됩니다."
     );
+    console.error("현재 환경변수 상태:", {
+      hasHash: !!process.env.ADMIN_PASSWORD_HASH,
+      hashLength: process.env.ADMIN_PASSWORD_HASH?.length || 0,
+      hashPrefix: process.env.ADMIN_PASSWORD_HASH?.substring(0, 10) || "없음",
+    });
     return false;
   }
 
-  return bcrypt.compare(password, ADMIN_PASSWORD_HASH).catch(() => false);
+  // 디버깅: 환경변수 로드 확인
+  console.log("🔐 비밀번호 검증 시도:", {
+    hashLength: ADMIN_PASSWORD_HASH.length,
+    hashPrefix: ADMIN_PASSWORD_HASH.substring(0, 20),
+    hashSuffix: ADMIN_PASSWORD_HASH.substring(ADMIN_PASSWORD_HASH.length - 10),
+    passwordLength: password.length,
+    passwordPrefix: password.substring(0, 3) + "***",
+  });
+
+  // 해시값 앞뒤 공백 제거 (환경변수 설정 시 공백이 포함될 수 있음)
+  const trimmedHash = ADMIN_PASSWORD_HASH.trim();
+
+  const result = await bcrypt.compare(password, trimmedHash).catch((err) => {
+    console.error("❌ bcrypt 비교 오류:", err);
+    return false;
+  });
+  
+  if (!result) {
+    console.warn("❌ 비밀번호 검증 실패 - 해시와 일치하지 않음");
+  } else {
+    console.log("✅ 비밀번호 검증 성공");
+  }
+
+  return result;
 }
 
 // 비밀번호 해시 생성 헬퍼 (초기 설정용)
