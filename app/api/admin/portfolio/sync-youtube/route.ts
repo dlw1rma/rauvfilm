@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
           title: video.title,
           youtubeUrl: video.youtubeUrl,
           description: video.description || null,
-          category: category || "본식DVD",
+          category: category || "가성비형",
           featured: false,
           order: currentOrder++,
           isVisible: true,

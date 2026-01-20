@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         youtubeUrl,
-        category: category || "본식DVD",
+        category: category || "가성비형",
         featured: featured || false,
         description: description || null,
         order: (maxOrder?.order || 0) + 1,

@@ -27,13 +27,13 @@ export default function AdminPortfolioPage() {
   const [formData, setFormData] = useState({
     title: "",
     youtubeUrl: "",
-    category: "본식DVD",
+    category: "가성비형",
     featured: false,
   });
   const [syncData, setSyncData] = useState({
     channelHandle: "rauvfilm_Cine",
     apiKey: "",
-    category: "본식DVD",
+    category: "가성비형",
   });
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function AdminPortfolioPage() {
           await fetchPortfolios();
           setIsModalOpen(false);
           setEditingId(null);
-          setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
+          setFormData({ title: "", youtubeUrl: "", category: "가성비형", featured: false });
         }
       } else {
         // 추가
@@ -84,7 +84,7 @@ export default function AdminPortfolioPage() {
         if (res.ok) {
           await fetchPortfolios();
           setIsModalOpen(false);
-          setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
+          setFormData({ title: "", youtubeUrl: "", category: "가성비형", featured: false });
         }
       }
     } catch (error) {
@@ -188,7 +188,7 @@ export default function AdminPortfolioPage() {
               </button>
               <button
                 onClick={() => {
-                  setFormData({ title: "", youtubeUrl: "", category: "본식DVD", featured: false });
+                  setFormData({ title: "", youtubeUrl: "", category: "가성비형", featured: false });
                   setEditingId(null);
                   setIsModalOpen(true);
                 }}
@@ -327,9 +327,9 @@ export default function AdminPortfolioPage() {
                     onChange={(e) => setSyncData({ ...syncData, category: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
                   >
-                    <option value="본식DVD">본식DVD</option>
-                    <option value="시네마틱">시네마틱</option>
-                    <option value="하이라이트">하이라이트</option>
+                    <option value="가성비형">가성비형</option>
+                    <option value="기본형">기본형</option>
+                    <option value="시네마틱형">시네마틱형</option>
                   </select>
                 </div>
                 {syncResult && (
@@ -435,9 +435,9 @@ export default function AdminPortfolioPage() {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
                   >
-                    <option value="본식DVD">본식DVD</option>
-                    <option value="시네마틱">시네마틱</option>
-                    <option value="하이라이트">하이라이트</option>
+                    <option value="가성비형">가성비형</option>
+                    <option value="기본형">기본형</option>
+                    <option value="시네마틱형">시네마틱형</option>
                   </select>
                 </div>
                 <div className="flex items-center gap-2">

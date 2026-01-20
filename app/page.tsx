@@ -12,6 +12,12 @@ const serviceItemsTop = [
     icon: "dollar",
   },
   {
+    title: "진행중인 이벤트",
+    titleEn: "Events",
+    href: "/events",
+    icon: "gift",
+  },
+  {
     title: "예약 절차",
     titleEn: "Reservation process",
     href: "/reservation",
@@ -70,8 +76,8 @@ export default function Home() {
           {/* Section Title - Left aligned, Red */}
           <h2 className="mb-8 text-left text-2xl font-bold tracking-widest text-accent">SERVICE</h2>
 
-          {/* Top 4 Cards - 4 columns on desktop, 2 on mobile */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          {/* Top 5 Cards - 5 columns on desktop, 2 on mobile */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
             {serviceItemsTop.map((item) => (
               <Link
                 key={item.title}

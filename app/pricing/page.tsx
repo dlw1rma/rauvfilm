@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import YouTubeFacade from "@/components/video/YouTubeFacade";
 
 export const metadata: Metadata = {
   title: "가격 안내 | 라우브필름",
@@ -17,10 +18,18 @@ const pricingPlans = [
     originalPrice: "340,000",
     price: "310,000",
     description: "신부대기실 + 본식 + 원판촬영",
+    videoUrl: "https://www.youtube.com/watch?v=BEEXhZW2GMo", // 예시 URL, 실제 영상으로 교체 필요
     features: [
-      "4K 화질의 총 2개 영상",
-      "기록영상 (15~30분)",
-      "SNS영상(30초~1분)",
+      "카메라가 친터마다 움직임 없이 꼭 촬영",
+      "촬영범위: 신부대기실-본식-원판촬영",
+      "화질: 4K UHD 초고화질",
+      "편집: 기록영상(15-30분), SNS영상(30초~1분)",
+      "보정기법: 색감, 피부보정",
+      "제공: 클라우드 링크를 메일로 제공",
+    ],
+    recommendations: [
+      "가성비와 시네마틱 영상을 모두 원하는 분",
+      "기본적인 웨딩 영상이 필요한 분",
     ],
     popular: false,
   },
@@ -30,12 +39,21 @@ const pricingPlans = [
     originalPrice: "600,000",
     price: "500,000",
     description: "신부대기실 + 본식 + 원판촬영",
+    videoUrl: "https://www.youtube.com/watch?v=BEEXhZW2GMo", // 예시 URL, 실제 영상으로 교체 필요
     features: [
-      "4K 화질의 총 2개 영상",
-      "하이라이트 (2분~)",
-      "기록영상(30분~)",
+      "촬영범위: 신부대기실-본식-원판촬영",
+      "화질: 4K UHD 초고화질",
+      "편집: 하이라이트(2분) + 기록영상(30분~)",
+      "보정기법: 색감, 피부보정",
+      "제공: 클라우드 링크를 메일로 제공",
       "요청 시 인터뷰 촬영",
     ],
+    recommendations: [
+      "색감, 피부보정으로 예쁜 영화의 한 장면을 원하는 분",
+      "다양한 구도에서 촬영된 영상을 원하는 신랑신부님",
+      "대표작가와 수석실장만 요청시 \"짐벌로 촬영됩니다\"",
+    ],
+    gimbalNote: "*짐벌: 카메라의 움직임이 있는 촬영장비",
     popular: true,
   },
   {
@@ -44,13 +62,25 @@ const pricingPlans = [
     originalPrice: "950,000",
     price: "850,000",
     description: "신부대기실 + 본식 + 원판촬영",
+    videoUrl: "https://www.youtube.com/watch?v=BEEXhZW2GMo", // 예시 URL, 실제 영상으로 교체 필요
     features: [
-      "4K 화질의 총 5개 영상",
-      "다큐형 하이라이트 (2분~)",
-      "다큐형 기록영상(식전/본식/식후 총 30분~)",
-      "인터뷰 영상 (4팀~)",
+      "촬영범위: 신부대기실-본식-원판촬영",
+      "화질: 4K UHD 초고화질",
+      "편집 (총 5개 영상)",
+      "  1. 다큐형 하이라이트(4분)",
+      "  2. 다큐형 기록영상(식전/본식/식후 총 30분~)",
+      "  3. 인터뷰 영상(4팀~)",
+      "보정기법: 색감, 피부보정",
+      "제공: 클라우드 링크를 메일로 제공",
     ],
+    recommendations: [
+      "색감, 피부보정으로 예쁜 영화의 한 장면을 원하는 분",
+      "다양한 구도에서 촬영된 영상을 원하는 신랑신부님",
+      "대표작가와 수석실장이 동반하며, \"짐벌촬영이 포함됩니다\"",
+    ],
+    gimbalNote: "*짐벌: 카메라의 움직임이 있는 촬영장비",
     popular: false,
+    isNew: true,
   },
 ];
 
@@ -72,18 +102,30 @@ const additionalOptions = [
   },
 ];
 
+function extractVideoId(url: string): string {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return url;
+}
+
 export default function PricingPage() {
   return (
     <div className="min-h-screen py-20 px-4">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-16 text-center">
-          <h1 className="mb-4 text-4xl font-bold">PRICE</h1>
+          <h1 className="mb-4 text-4xl font-bold">본식 영상 상품</h1>
           <div className="mb-4 flex items-center justify-center gap-4 text-sm text-muted-foreground">
             <span>부가세포함 / 최대할인가</span>
           </div>
           <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
-            서울, 청주 외 출장비 발생
+            *서울, 청주 이외 지역은 출장비가 발생합니다. (불영자 1명 기준)
           </p>
         </div>
 
@@ -99,9 +141,16 @@ export default function PricingPage() {
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <div className="absolute -top-4 right-4">
                   <span className="rounded-full bg-accent px-4 py-1 text-sm font-medium text-white">
                     인기
+                  </span>
+                </div>
+              )}
+              {plan.isNew && (
+                <div className="absolute -top-4 right-4">
+                  <span className="rounded-full bg-accent px-4 py-1 text-sm font-medium text-white">
+                    NEW
                   </span>
                 </div>
               )}
@@ -124,7 +173,41 @@ export default function PricingPage() {
                   <span className="text-4xl font-bold">{plan.price}</span>
                   <span className="text-muted-foreground">원</span>
                 </div>
+                {plan.originalPrice && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {plan.subtitle === "가성비형" && "할인이벤트 적용시"}
+                    {plan.subtitle === "기본형" && "모든 할인이벤트 적용시"}
+                    {plan.subtitle === "시네마틱형" && "제대할인 적용시"}
+                  </p>
+                )}
               </div>
+
+              {/* Video Preview */}
+              {plan.videoUrl && (
+                <div className="mb-6">
+                  <YouTubeFacade
+                    videoId={extractVideoId(plan.videoUrl)}
+                    title={`${plan.name} 영상`}
+                  />
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {plan.recommendations && plan.recommendations.length > 0 && (
+                <div className="mb-6 rounded-lg border border-accent/30 bg-accent/5 p-4">
+                  <h4 className="mb-2 text-sm font-medium text-accent">이런 분께 추천</h4>
+                  <ul className="space-y-1">
+                    {plan.recommendations.map((rec, index) => (
+                      <li key={index} className="text-xs text-muted-foreground">
+                        • {rec}
+                      </li>
+                    ))}
+                  </ul>
+                  {plan.gimbalNote && (
+                    <p className="mt-2 text-xs text-muted-foreground">{plan.gimbalNote}</p>
+                  )}
+                </div>
+              )}
 
               <ul className="mb-8 space-y-3">
                 {plan.features.map((feature, index) => (
@@ -142,7 +225,7 @@ export default function PricingPage() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-muted-foreground whitespace-pre-line">
                       {feature}
                     </span>
                   </li>
@@ -183,31 +266,6 @@ export default function PricingPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Additional Info */}
-        <div className="mt-16 rounded-xl border border-border bg-muted p-8">
-          <h2 className="mb-6 text-xl font-bold">추가 안내사항</h2>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <h3 className="mb-2 font-medium">예약 및 결제</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• 계약금 30% 선입금</li>
-                <li>• 잔금은 촬영 당일 결제</li>
-                <li>• 예식일 2주 전까지 취소 시 계약금 환불</li>
-                <li>• 우천 시 일정 조율 가능</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-2 font-medium">제작 기간</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• 가성비형: 촬영 후 약 2-3주</li>
-                <li>• 기본형: 촬영 후 약 3-4주</li>
-                <li>• 시네마틱형: 촬영 후 약 4-6주</li>
-                <li>• 성수기에는 조금 더 걸릴 수 있습니다</li>
-              </ul>
-            </div>
           </div>
         </div>
 

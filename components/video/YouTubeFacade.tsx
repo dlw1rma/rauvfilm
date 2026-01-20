@@ -67,9 +67,9 @@ export default function YouTubeFacade({
       />
       {/* Play Button Overlay */}
       <div className="absolute inset-0 flex items-center justify-center bg-black/30 transition-colors group-hover:bg-black/40">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent transition-transform group-hover:scale-110">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent transition-transform group-hover:scale-110">
           <svg
-            className="ml-1 h-8 w-8 text-white"
+            className="ml-0.5 h-5 w-5 text-white"
             fill="currentColor"
             viewBox="0 0 24 24"
           >

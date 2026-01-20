@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-type ProductType = "본식DVD" | "가성비형" | "기본형" | "야외스냅" | "프리웨딩" | "";
+type ProductType = "가성비형" | "기본형" | "시네마틱형" | "야외스냅" | "프리웨딩" | "";
 
 export default function NewReservationPage() {
   const router = useRouter();
@@ -195,81 +195,81 @@ export default function NewReservationPage() {
                 <h2 className="text-xl font-semibold">1. 기본 정보</h2>
               </div>
               
-              <div>
-                <label htmlFor="title" className="mb-2 block text-sm font-medium">
-                  제목 <span className="text-accent">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  required
-                  value={formData.title}
-                  onChange={handleChange}
+          <div>
+            <label htmlFor="title" className="mb-2 block text-sm font-medium">
+              제목 <span className="text-accent">*</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              required
+              value={formData.title}
+              onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  placeholder="예: 2024년 5월 본식DVD 예약 문의"
-                />
-              </div>
+                  placeholder="예: 2024년 5월 가성비형 예약 문의"
+            />
+          </div>
 
-              <div>
-                <label htmlFor="author" className="mb-2 block text-sm font-medium">
+            <div>
+              <label htmlFor="author" className="mb-2 block text-sm font-medium">
                   계약자(글쓴이) 성함 <span className="text-accent">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="author"
-                  name="author"
-                  required
-                  value={formData.author}
-                  onChange={handleChange}
+              </label>
+              <input
+                type="text"
+                id="author"
+                name="author"
+                required
+                value={formData.author}
+                onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                />
-              </div>
+              />
+            </div>
 
-              <div>
-                <label htmlFor="password" className="mb-2 block text-sm font-medium">
-                  비밀번호 <span className="text-accent">*</span>
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
+            <div>
+              <label htmlFor="password" className="mb-2 block text-sm font-medium">
+                비밀번호 <span className="text-accent">*</span>
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  placeholder="글 수정/삭제 시 필요"
-                />
-              </div>
+                placeholder="글 수정/삭제 시 필요"
+              />
+          </div>
 
-              <div>
-                <label htmlFor="content" className="mb-2 block text-sm font-medium">
+          <div>
+            <label htmlFor="content" className="mb-2 block text-sm font-medium">
                   문의 내용
-                </label>
-                <textarea
-                  id="content"
-                  name="content"
+            </label>
+            <textarea
+              id="content"
+              name="content"
                   rows={4}
-                  value={formData.content}
-                  onChange={handleChange}
+              value={formData.content}
+              onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
                   placeholder="추가 문의사항이 있으시면 작성해주세요."
-                />
-              </div>
+            />
+          </div>
 
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="isPrivate"
-                  name="isPrivate"
-                  checked={formData.isPrivate}
-                  onChange={handleChange}
-                  className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                />
-                <label htmlFor="isPrivate" className="text-sm">
-                  비밀글로 작성 (작성자와 관리자만 열람 가능)
-                </label>
-              </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="isPrivate"
+              name="isPrivate"
+              checked={formData.isPrivate}
+              onChange={handleChange}
+              className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+            />
+            <label htmlFor="isPrivate" className="text-sm">
+              비밀글로 작성 (작성자와 관리자만 열람 가능)
+            </label>
+          </div>
             </div>
           )}
 
@@ -401,9 +401,9 @@ export default function NewReservationPage() {
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value="">선택해주세요</option>
-                  <option value="본식DVD">본식DVD</option>
                   <option value="가성비형">가성비형</option>
                   <option value="기본형">기본형</option>
+                  <option value="시네마틱형">시네마틱형</option>
                   <option value="야외스냅">야외스냅</option>
                   <option value="프리웨딩">프리웨딩</option>
                 </select>
@@ -526,15 +526,15 @@ export default function NewReservationPage() {
           {currentSection === 4 && (
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">4. 본식DVD 예약 고객님 필수 추가 작성 항목</h2>
+                <h2 className="text-xl font-semibold">4. 본식 영상 예약 고객님 필수 추가 작성 항목</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {(formData.productType === "본식DVD" || formData.productType === "기본형" || formData.productType === "가성비형")
-                    ? "본식DVD 관련 정보를 입력해주세요."
-                    : "본식DVD가 아닌 경우 다음 단계로 진행하세요."}
+                  {(formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형")
+                    ? "본식 영상 관련 정보를 입력해주세요."
+                    : "본식 영상이 아닌 경우 다음 단계로 진행하세요."}
                 </p>
               </div>
 
-              {(formData.productType === "본식DVD" || formData.productType === "기본형" || formData.productType === "가성비형") && (
+              {(formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") && (
                 <>
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
@@ -741,7 +741,7 @@ export default function NewReservationPage() {
 
                   <div>
                     <label htmlFor="playbackDevice" className="mb-2 block text-sm font-medium">
-                      본식DVD 주 재생매체
+                      본식 영상 주 재생매체
                     </label>
                     <select
                       id="playbackDevice"
@@ -879,8 +879,8 @@ export default function NewReservationPage() {
               <button
                 type="button"
                 onClick={() => setCurrentSection(currentSection - 1)}
-                className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
-              >
+              className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
+            >
                 이전
               </button>
             )}
@@ -899,13 +899,13 @@ export default function NewReservationPage() {
                 다음
               </button>
             ) : (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? "등록 중..." : "등록하기"}
-              </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "등록 중..." : "등록하기"}
+            </button>
             )}
           </div>
         </form>
