@@ -5,11 +5,11 @@ export default function HeroVideoSlider() {
   const videoId = "sfKkrvLg_7g";
 
   return (
-    <section className="relative w-full aspect-video min-h-[500px] max-h-[80vh] overflow-hidden bg-black">
+    <section className="relative w-full aspect-video min-h-[400px] max-h-[60vh] overflow-hidden bg-black">
       {/* Video Background */}
       <div className="absolute inset-0 w-full h-full flex items-center justify-center">
         <iframe
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
           title="Hero Video"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           className="absolute inset-0 w-full h-full"
@@ -24,12 +24,12 @@ export default function HeroVideoSlider() {
       <div className="relative z-10 h-full flex items-center">
         <div className="container mx-auto px-6 md:px-12 lg:px-16">
           <div className="max-w-xl">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight drop-shadow-lg">
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight drop-shadow-lg">
               소중한 날의 기억들을
               <br />
               영원히 간직하세요
             </h1>
-            <p className="mt-6 text-sm md:text-base lg:text-lg text-white/80">
+            <p className="mt-4 text-xs md:text-sm lg:text-base text-white/80">
               &apos;기록&apos;이 아닌 &apos;기억&apos;을 남기는 영상을 선사합니다.
             </p>
           </div>
