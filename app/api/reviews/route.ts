@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   try {
     const prisma = getPrisma();
     const body = await request.json();
-    const { title, excerpt, sourceUrl, sourceType, author } = body;
+    const { title, excerpt, sourceUrl, sourceType, author, imageUrl } = body;
 
     if (!title || !sourceUrl) {
       return NextResponse.json(
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
         sourceUrl,
         sourceType: sourceType || "naver_blog",
         author: author || null,
+        imageUrl: imageUrl || null,
         order: (maxOrder?.order || 0) + 1,
         isVisible: true,
       },

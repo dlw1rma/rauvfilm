@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const reviewId = parseInt(id);
     const body = await request.json();
-    const { title, excerpt, sourceUrl, sourceType, author, isVisible, order } = body;
+    const { title, excerpt, sourceUrl, sourceType, author, isVisible, order, imageUrl } = body;
 
     const review = await prisma.review.update({
       where: { id: reviewId },
@@ -52,6 +52,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(author !== undefined && { author }),
         ...(typeof isVisible === "boolean" && { isVisible }),
         ...(typeof order === "number" && { order }),
+        ...(imageUrl !== undefined && { imageUrl }),
       },
     });
 

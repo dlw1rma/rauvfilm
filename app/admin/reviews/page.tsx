@@ -11,6 +11,7 @@ interface Review {
   sourceUrl: string;
   sourceType: string;
   author: string | null;
+  imageUrl: string | null;
   isVisible: boolean;
   order: number;
 }
@@ -28,7 +29,9 @@ export default function AdminReviewsPage() {
     sourceUrl: "",
     sourceType: "naver_blog",
     author: "",
+    imageUrl: "",
   });
+  const [fetchingThumbnail, setFetchingThumbnail] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -64,7 +67,7 @@ export default function AdminReviewsPage() {
           await fetchReviews();
           setIsModalOpen(false);
           setEditingId(null);
-          setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "" });
+          setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "", imageUrl: "" });
         }
       } else {
         const res = await fetch("/api/reviews", {
@@ -76,7 +79,7 @@ export default function AdminReviewsPage() {
         if (res.ok) {
           await fetchReviews();
           setIsModalOpen(false);
-          setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "" });
+          setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "", imageUrl: "" });
         }
       }
     } catch (error) {
@@ -180,7 +183,7 @@ export default function AdminReviewsPage() {
             </div>
             <button
               onClick={() => {
-                setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "" });
+                setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "", imageUrl: "" });
                 setEditingId(null);
                 setIsModalOpen(true);
               }}
@@ -274,14 +277,46 @@ export default function AdminReviewsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">원본 URL</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={formData.sourceUrl}
+                      onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
+                      required
+                      placeholder="https://blog.naver.com/..."
+                      className="flex-1 rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleFetchThumbnail}
+                      disabled={fetchingThumbnail || !formData.sourceUrl}
+                      className="rounded-lg border border-accent px-4 py-2 text-sm text-accent transition-colors hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      {fetchingThumbnail ? "가져오는 중..." : "썸네일 가져오기"}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">썸네일 이미지 URL</label>
                   <input
                     type="url"
-                    value={formData.sourceUrl}
-                    onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
-                    required
-                    placeholder="https://blog.naver.com/..."
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    placeholder="https://..."
                     className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
                   />
+                  {formData.imageUrl && (
+                    <div className="mt-2">
+                      <img
+                        src={formData.imageUrl}
+                        alt="썸네일 미리보기"
+                        className="w-full h-32 object-cover rounded-lg border border-border"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">출처 유형</label>

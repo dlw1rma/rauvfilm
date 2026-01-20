@@ -50,20 +50,20 @@ export default function Header() {
             <Image
               src="/logo.png"
               alt="라우브필름"
-              width={150}
-              height={40}
-              className="hidden md:block h-8 w-auto"
+              width={120}
+              height={32}
+              className="hidden md:block h-7 w-auto"
               priority
-              style={{ width: "150px", height: "40px" }}
+              style={{ width: "120px", height: "32px" }}
             />
             <Image
               src="/logo-mobile.png"
               alt="라우브필름"
-              width={120}
-              height={35}
-              className="md:hidden h-7 w-auto"
+              width={100}
+              height={30}
+              className="md:hidden h-6 w-auto"
               priority
-              style={{ width: "120px", height: "35px" }}
+              style={{ width: "100px", height: "30px" }}
             />
           </Link>
 

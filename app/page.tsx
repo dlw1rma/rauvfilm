@@ -2,6 +2,7 @@ import Link from "next/link";
 import PortfolioSlider from "@/components/home/PortfolioSlider";
 import HeroVideoSlider from "@/components/home/HeroVideoSlider";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
+import ReviewSection from "@/components/home/ReviewSection";
 
 // SERVICE 섹션 상단 4개 카드
 const serviceItemsTop = [
@@ -14,7 +15,7 @@ const serviceItemsTop = [
   {
     title: "예약 절차",
     titleEn: "Reservation process",
-    href: "/reservation",
+    href: "/reservation-process",
     icon: "calendar",
   },
   {
@@ -42,7 +43,7 @@ const serviceItemsBottom = [
   {
     title: "[TIP] 라우브필름 최대로 활용하기.",
     subtitle: "영상 시청 방법, 커스텀 요청 방법 등등.",
-    href: "/faq",
+    href: "/tip",
     icon: "lightbulb",
   },
 ];
@@ -248,36 +249,7 @@ export default function Home() {
       </section>
 
       {/* REVIEW Section */}
-      <section className="py-20 px-4">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="mb-12 text-center text-2xl font-bold tracking-widest">REVIEW</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div
-                key={i}
-                className="aspect-square bg-muted rounded-lg flex items-center justify-center hover:-translate-y-1 transition-transform cursor-pointer"
-              >
-                <svg className="w-10 h-10 text-muted-foreground" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                </svg>
-              </div>
-            ))}
-          </div>
-          <div className="text-center">
-            <a
-              href="https://search.naver.com/search.naver?query=라우브필름+후기"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center text-accent hover:underline"
-            >
-              +REVIEW 더 보기
-              <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </section>
+      <ReviewSection />
 
       {/* NOTICE Section */}
       <section className="py-16 px-4 bg-muted">

@@ -27,6 +27,7 @@ async function getReviews() {
       sourceUrl: r.sourceUrl,
       sourceType: r.sourceType,
       author: r.author,
+      imageUrl: r.imageUrl,
       createdAt: r.createdAt,
     }));
   } catch (error) {
@@ -79,23 +80,47 @@ export default async function ReviewsPage() {
               rel="noopener noreferrer"
               className="group block rounded-xl border border-border bg-muted overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/10"
             >
-              {/* Image Placeholder */}
-              <div className="relative aspect-[4/3] bg-background">
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                  <svg
-                    className="h-12 w-12"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-                    />
-                  </svg>
-                </div>
+              {/* Image */}
+              <div className="relative aspect-[4/3] bg-background overflow-hidden">
+                {review.imageUrl ? (
+                  <img
+                    src={review.imageUrl}
+                    alt={review.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // 이미지 로드 실패 시 플레이스홀더 표시
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const placeholder = document.createElement("div");
+                        placeholder.className = "absolute inset-0 flex items-center justify-center text-muted-foreground";
+                        placeholder.innerHTML = `
+                          <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                          </svg>
+                        `;
+                        parent.appendChild(placeholder);
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                    <svg
+                      className="h-12 w-12"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth="1"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+                      />
+                    </svg>
+                  </div>
+                )}
                 {/* External Link Icon */}
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="rounded-full bg-background/80 p-2">
