@@ -11,6 +11,7 @@ interface Review {
   sourceType: string;
   author: string | null;
   imageUrl: string | null;
+  imageError?: boolean;
 }
 
 function getSourceLabel(sourceType: string) {
@@ -27,7 +28,7 @@ function getSourceLabel(sourceType: string) {
 }
 
 export default function ReviewSection() {
-  const [reviews, setReviews] = useState<ReviewWithError[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

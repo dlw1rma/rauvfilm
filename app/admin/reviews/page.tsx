@@ -103,6 +103,31 @@ export default function AdminReviewsPage() {
     setIsModalOpen(true);
   };
 
+  const handleFetchThumbnail = async () => {
+    if (!formData.sourceUrl) {
+      alert("원본 URL을 먼저 입력해주세요.");
+      return;
+    }
+
+    setFetchingThumbnail(true);
+    try {
+      const res = await fetch(`/api/reviews/fetch-thumbnail?url=${encodeURIComponent(formData.sourceUrl)}`);
+      const data = await res.json();
+      
+      if (data.thumbnailUrl) {
+        setFormData((prev) => ({ ...prev, imageUrl: data.thumbnailUrl }));
+        alert("썸네일을 가져왔습니다.");
+      } else {
+        alert("썸네일을 찾을 수 없습니다. 수동으로 입력해주세요.");
+      }
+    } catch (error) {
+      console.error("Failed to fetch thumbnail:", error);
+      alert("썸네일을 가져오는데 실패했습니다.");
+    } finally {
+      setFetchingThumbnail(false);
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
 

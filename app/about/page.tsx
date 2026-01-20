@@ -1,10 +1,5 @@
 "use client";
 
-import type { Metadata } from "next";
-
-// Note: Metadata는 클라이언트 컴포넌트에서 사용할 수 없으므로 제거
-// 대신 layout.tsx나 다른 서버 컴포넌트에서 처리하거나, 동적 메타데이터는 제거
-
 export default function AboutPage() {
   return (
     <>
