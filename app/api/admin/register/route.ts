@@ -103,15 +103,6 @@ export async function POST(request: NextRequest) {
       path: "/",
     });
 
-    // 세션 정보를 DB에 저장 (간단한 구현)
-    // 실제로는 Redis 등을 사용하는 것이 좋습니다
-    await prisma.admin.update({
-      where: { id: admin.id },
-      data: {
-        // 세션 토큰을 임시로 저장 (실제로는 별도 세션 테이블 권장)
-      },
-    });
-
     return NextResponse.json(
       {
         success: true,
@@ -123,15 +114,42 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Registration error:", error);
     
+    // 구체적인 에러 메시지 반환
     if (error.message?.includes("ADMIN_SECRET_KEY")) {
       return NextResponse.json(
-        { error: "서버 설정 오류가 발생했습니다." },
+        { error: "서버 설정 오류: ADMIN_SECRET_KEY 환경변수가 설정되지 않았습니다." },
+        { status: 500 }
+      );
+    }
+
+    // Prisma 에러 처리
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "이미 등록된 이메일입니다." },
+        { status: 409 }
+      );
+    }
+
+    if (error.code === "P1001" || error.message?.includes("Can't reach database")) {
+      return NextResponse.json(
+        { error: "데이터베이스 연결 오류가 발생했습니다." },
+        { status: 500 }
+      );
+    }
+
+    // Prisma 모델이 없을 때 (마이그레이션 미실행)
+    if (error.message?.includes("Unknown model") || error.message?.includes("admin")) {
+      return NextResponse.json(
+        { error: "데이터베이스 마이그레이션이 필요합니다. Prisma 마이그레이션을 실행해주세요." },
         { status: 500 }
       );
     }
 
     return NextResponse.json(
-      { error: "회원가입 처리 중 오류가 발생했습니다." },
+      { 
+        error: "회원가입 처리 중 오류가 발생했습니다.",
+        details: process.env.NODE_ENV === "development" ? error.message : undefined
+      },
       { status: 500 }
     );
   }
