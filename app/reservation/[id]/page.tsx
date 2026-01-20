@@ -350,27 +350,19 @@ export default function ReservationDetailPage() {
           </div>
 
               {/* Actions */}
-              <div className="border-t border-border p-4 flex justify-between items-center">
-                <Link
-                  href={`/balance/${params.id}`}
-                  className="px-4 py-2 text-sm bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+              <div className="border-t border-border p-4 flex justify-end gap-2">
+                <button
+                  onClick={() => handleAction("edit")}
+                  className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-background transition-colors"
                 >
-                  잔금 확인하기
-                </Link>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleAction("edit")}
-                    className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-background transition-colors"
-                  >
-                    수정
-                  </button>
-                  <button
-                    onClick={() => handleAction("delete")}
-                    className="px-4 py-2 text-sm text-accent border border-accent/30 rounded-lg hover:bg-accent/10 transition-colors"
-                  >
-                    삭제
-                  </button>
-                </div>
+                  수정
+                </button>
+                <button
+                  onClick={() => handleAction("delete")}
+                  className="px-4 py-2 text-sm text-accent border border-accent/30 rounded-lg hover:bg-accent/10 transition-colors"
+                >
+                  삭제
+                </button>
               </div>
         </article>
 

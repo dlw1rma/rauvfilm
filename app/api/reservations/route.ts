@@ -114,9 +114,6 @@ export async function POST(request: NextRequest) {
       discountReviewBlog,
       // 특이사항
       specialNotes,
-      // 짝꿍 할인 시스템
-      referredBy,
-      totalAmount,
     } = body;
 
     // 유효성 검사
@@ -143,40 +140,6 @@ export async function POST(request: NextRequest) {
 
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 짝꿍 코드 자동 생성: 예식날짜(YYYYMMDD) + 성함
-    let referralCode: string | null = null;
-    if (weddingDate && author) {
-      // weddingDate가 "2025-05-20" 형식이면 "20250520"으로 변환
-      const dateStr = weddingDate.replace(/-/g, "");
-      referralCode = `${dateStr}${author}`;
-    }
-
-    // 짝꿍 할인 금액 (기본 3만원)
-    const REFERRAL_DISCOUNT_AMOUNT = 30000;
-    let discountAmount = 0;
-
-    // referredBy 코드가 입력된 경우 처리
-    if (referredBy) {
-      // 기존 예약자 중 해당 코드를 가진 사람 찾기
-      const referrer = await prisma.reservation.findFirst({
-        where: { referralCode: referredBy },
-      });
-
-      if (referrer) {
-        // 추천인에게 할인 적용
-        await prisma.reservation.update({
-          where: { id: referrer.id },
-          data: {
-            referredCount: { increment: 1 },
-            discountAmount: { increment: REFERRAL_DISCOUNT_AMOUNT },
-          },
-        });
-
-        // 신규 예약자에게도 할인 적용
-        discountAmount = REFERRAL_DISCOUNT_AMOUNT;
-      }
-    }
 
     const reservation = await prisma.reservation.create({
       data: {
@@ -231,13 +194,6 @@ export async function POST(request: NextRequest) {
         discountReviewBlog: discountReviewBlog || false,
         // 특이사항
         specialNotes: specialNotes || null,
-        // 짝꿍 할인 시스템
-        referralCode: referralCode || null,
-        referredBy: referredBy || null,
-        referredCount: 0,
-        reviewLink: null,
-        discountAmount: discountAmount,
-        totalAmount: totalAmount || null,
       },
     });
 
