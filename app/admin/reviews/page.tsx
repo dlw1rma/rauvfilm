@@ -97,6 +97,7 @@ export default function AdminReviewsPage() {
       sourceUrl: review.sourceUrl,
       sourceType: review.sourceType,
       author: review.author || "",
+      imageUrl: review.imageUrl || "",
     });
     setEditingId(review.id);
     setIsModalOpen(true);
