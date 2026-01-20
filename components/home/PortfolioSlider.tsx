@@ -118,7 +118,7 @@ export default function PortfolioSlider() {
             }}
           >
             {/* Card with Thumbnail */}
-            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-3 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-accent/20">
+            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-2 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-accent/20">
               {/* Thumbnail Image */}
               {thumbnailUrl ? (
                 <img
@@ -130,27 +130,23 @@ export default function PortfolioSlider() {
                 <div className="absolute inset-0 bg-gradient-to-br from-muted to-background" />
               )}
 
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-              {/* Play Icon - Top Right */}
-              <div className="absolute top-3 right-3 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-accent/80 transition-colors">
-                <svg
-                  className="w-5 h-5 text-white ml-0.5"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </div>
-
-              {/* Text Overlay - Bottom */}
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <h3 className="text-white font-bold text-base md:text-lg leading-tight">
-                  {item.title}
-                </h3>
+              {/* Play Icon - Center */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-accent/80 transition-colors">
+                  <svg
+                    className="w-6 h-6 text-white ml-0.5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
               </div>
             </div>
+            {/* Title Below Thumbnail */}
+            <h3 className="text-xs md:text-sm text-muted-foreground text-center line-clamp-2">
+              {item.title}
+            </h3>
           </div>
         );
       })}
