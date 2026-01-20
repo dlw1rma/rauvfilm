@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import CustomShootingModal from "@/components/reservation/CustomShootingModal";
 
 type ProductType = "가성비형" | "기본형" | "시네마틱형" | "야외스냅" | "프리웨딩" | "";
 type EventType = "야외스냅" | "프리웨딩" | "";
@@ -72,6 +73,7 @@ export default function NewReservationPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showCustomModal, setShowCustomModal] = useState(false);
 
   // 전화번호 포맷팅 (하이픈 추가)
   const formatPhoneNumber = (value: string): string => {
@@ -156,6 +158,12 @@ export default function NewReservationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 현재 섹션이 마지막 섹션이 아니면 제출하지 않음
+    if (currentSection < totalSections) {
+      return;
+    }
+    
     setIsSubmitting(true);
     setError("");
 
@@ -1128,9 +1136,34 @@ export default function NewReservationPage() {
                   rows={6}
                   value={formData.specialNotes}
                   onChange={handleChange}
+                  onKeyDown={(e) => {
+                    // Enter 키로 인한 자동 제출 방지
+                    if (e.key === "Enter" && e.ctrlKey) {
+                      // Ctrl+Enter는 허용 (줄바꿈)
+                      return;
+                    }
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      // Shift+Enter가 아닌 Enter는 기본 동작 방지
+                      e.preventDefault();
+                    }
+                  }}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
                   placeholder="특이사항이나 요구사항이 있으시면 작성해주세요"
                 />
+              </div>
+
+              {/* 커스텀 촬영 요청 버튼 */}
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomModal(true)}
+                  className="w-full rounded-lg border-2 border-accent bg-transparent py-3 font-medium text-accent transition-all hover:bg-accent hover:text-white"
+                >
+                  🎬 커스텀 촬영 요청하기
+                </button>
+                <p className="mt-2 text-xs text-muted-foreground text-center">
+                  대표지정 or 대표배정 촬영만 해당됩니다
+                </p>
               </div>
             </div>
           )}
@@ -1203,6 +1236,19 @@ export default function NewReservationPage() {
             )}
           </div>
         </form>
+
+        {/* 커스텀 촬영 요청 모달 */}
+        <CustomShootingModal
+          isOpen={showCustomModal}
+          onClose={() => setShowCustomModal(false)}
+          initialData={{
+            weddingDate: formData.weddingDate,
+            weddingTime: formData.weddingTime,
+            venue: formData.venueName,
+            groomName: formData.groomName,
+            brideName: formData.brideName,
+          }}
+        />
       </div>
     </div>
   );
