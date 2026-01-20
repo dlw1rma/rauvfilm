@@ -8,6 +8,7 @@ interface Portfolio {
   id: number;
   title: string;
   youtubeUrl: string;
+  thumbnailUrl?: string | null;
   category: string;
   featured: boolean;
   isVisible: boolean;
@@ -27,6 +28,7 @@ export default function AdminPortfolioPage() {
   const [formData, setFormData] = useState({
     title: "",
     youtubeUrl: "",
+    thumbnailUrl: "",
     category: "가성비형",
     featured: false,
   });
@@ -70,7 +72,7 @@ export default function AdminPortfolioPage() {
           await fetchPortfolios();
           setIsModalOpen(false);
           setEditingId(null);
-          setFormData({ title: "", youtubeUrl: "", category: "가성비형", featured: false });
+          setFormData({ title: "", youtubeUrl: "", thumbnailUrl: "", category: "가성비형", featured: false });
         }
       } else {
         // 추가
@@ -83,7 +85,7 @@ export default function AdminPortfolioPage() {
         if (res.ok) {
           await fetchPortfolios();
           setIsModalOpen(false);
-          setFormData({ title: "", youtubeUrl: "", category: "가성비형", featured: false });
+          setFormData({ title: "", youtubeUrl: "", thumbnailUrl: "", category: "가성비형", featured: false });
         }
       }
     } catch (error) {
@@ -98,6 +100,7 @@ export default function AdminPortfolioPage() {
     setFormData({
       title: portfolio.title,
       youtubeUrl: portfolio.youtubeUrl,
+      thumbnailUrl: portfolio.thumbnailUrl || "",
       category: portfolio.category,
       featured: portfolio.featured,
     });
@@ -187,7 +190,7 @@ export default function AdminPortfolioPage() {
               </button>
               <button
                 onClick={() => {
-                  setFormData({ title: "", youtubeUrl: "", category: "가성비형", featured: false });
+                  setFormData({ title: "", youtubeUrl: "", thumbnailUrl: "", category: "가성비형", featured: false });
                   setEditingId(null);
                   setIsModalOpen(true);
                 }}
@@ -417,6 +420,21 @@ export default function AdminPortfolioPage() {
                     placeholder="https://www.youtube.com/watch?v=..."
                     className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    썸네일 URL <span className="text-xs text-muted-foreground">(선택사항)</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.thumbnailUrl}
+                    onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                    placeholder="https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    썸네일이 로딩되지 않는 경우 직접 URL을 입력하세요. 비워두면 YouTube 자동 썸네일을 사용합니다.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">카테고리</label>

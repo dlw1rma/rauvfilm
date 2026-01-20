@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   try {
     const prisma = getPrisma();
     const body = await request.json();
-    const { title, youtubeUrl, category, featured, description } = body;
+    const { title, youtubeUrl, thumbnailUrl, category, featured, description } = body;
 
     if (!title || !youtubeUrl) {
       return NextResponse.json(
@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         youtubeUrl,
+        thumbnailUrl: thumbnailUrl || null,
         category: category || "가성비형",
         featured: featured || false,
         description: description || null,

@@ -35,6 +35,10 @@ export default function NewReservationPage() {
     termsAgreed: false,
     faqRead: false,
     
+    // 짝꿍 할인 시스템
+    referredBy: "",
+    totalAmount: 0,
+    
     // 본식 영상 예약 고객님 필수 추가 작성 항목
     weddingDate: "",
     weddingTime: "",
@@ -687,7 +691,44 @@ export default function NewReservationPage() {
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   placeholder="짝궁 코드가 있으시면 입력해주세요"
                 />
-          </div>
+              </div>
+
+              <div>
+                <label htmlFor="referredBy" className="mb-2 block text-sm font-medium">
+                  짝꿍 추천 코드
+                </label>
+                <input
+                  type="text"
+                  id="referredBy"
+                  name="referredBy"
+                  value={formData.referredBy}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="지인으로부터 받은 짝꿍 코드를 입력해주세요"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  지인의 짝꿍 코드를 입력하시면 추천인과 신규 예약자 모두 할인을 받으실 수 있습니다.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="totalAmount" className="mb-2 block text-sm font-medium">
+                  전체 계약 금액 (원)
+                </label>
+                <input
+                  type="number"
+                  id="totalAmount"
+                  name="totalAmount"
+                  value={formData.totalAmount}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="예: 500000"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  계약서에 명시된 전체 금액을 입력해주세요.
+                </p>
+              </div>
 
               <div>
                 <label htmlFor="foundPath" className="mb-2 block text-sm font-medium">

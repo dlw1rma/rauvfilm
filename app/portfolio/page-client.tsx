@@ -8,6 +8,7 @@ interface PortfolioItem {
   title: string;
   videoId: string;
   category: string;
+  thumbnailUrl?: string | null;
 }
 
 function extractVideoId(url: string): string {
@@ -51,6 +52,7 @@ export default function PortfolioPageClient() {
             title: p.title,
             videoId: extractVideoId(p.youtubeUrl),
             category: p.category,
+            thumbnailUrl: p.thumbnailUrl,
           }));
           setPortfolioItems(items);
         }
@@ -212,35 +214,52 @@ export default function PortfolioPageClient() {
               <p className="text-muted-foreground">등록된 포트폴리오가 없습니다.</p>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {portfolioItems.map((item) => {
-                const thumbnailUrl = getYoutubeThumbnail(item.videoId, 'maxres');
+                // DB에 저장된 썸네일이 있으면 우선 사용, 없으면 YouTube 썸네일 사용
+                const thumbnailUrl = item.thumbnailUrl || getYoutubeThumbnail(item.videoId, 'maxres');
                 
                 return (
                   <div
                     key={item.id}
-                    className="group rounded-xl border border-border bg-muted p-3 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/10 cursor-pointer"
+                    className="group cursor-pointer"
                     onClick={() => {
-                      // 모달 플레이어는 기본 비율 사용 (API 호출 없음)
                       setSelectedVideo({ 
                         videoId: item.videoId, 
                         title: item.title
                       });
                     }}
                   >
-                    {/* Thumbnail */}
-                    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-3 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-accent/20">
-                      <img
-                        src={thumbnailUrl}
-                        alt={item.title}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
+                    {/* Thumbnail - 박스형 디자인 제거, 깔끔한 디자인 */}
+                    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-4 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl group-hover:shadow-accent/20">
+                      {thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={item.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            // 썸네일 로딩 실패 시 YouTube 기본 썸네일로 대체
+                            const target = e.target as HTMLImageElement;
+                            target.src = getYoutubeThumbnail(item.videoId, 'hq');
+                          }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-muted to-background flex items-center justify-center">
+                          <svg className="w-16 h-16 text-muted-foreground" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.258.232-.423.557-.328l5.603 3.112z" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
-                    <div className="px-1">
+                    {/* Category & Title */}
+                    <div className="space-y-2">
                       <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
                         {item.category}
                       </span>
-                      <h3 className="mt-2 font-medium">{item.title}</h3>
+                      <h3 className="text-lg font-semibold group-hover:text-accent transition-colors line-clamp-2">
+                        {item.title}
+                      </h3>
                     </div>
                   </div>
                 );

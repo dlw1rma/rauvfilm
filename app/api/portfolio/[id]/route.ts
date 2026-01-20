@@ -40,13 +40,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const portfolioId = parseInt(id);
     const body = await request.json();
-    const { title, youtubeUrl, category, featured, description, isVisible, order } = body;
+    const { title, youtubeUrl, thumbnailUrl, category, featured, description, isVisible, order } = body;
 
     const portfolio = await prisma.portfolio.update({
       where: { id: portfolioId },
       data: {
         ...(title && { title }),
         ...(youtubeUrl && { youtubeUrl }),
+        ...(thumbnailUrl !== undefined && { thumbnailUrl: thumbnailUrl || null }),
         ...(category && { category }),
         ...(typeof featured === "boolean" && { featured }),
         ...(description !== undefined && { description }),

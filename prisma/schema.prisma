@@ -70,6 +70,14 @@ model Reservation {
   discountNewYear     Boolean? @default(true)  // 신년할인 (항상 체크)
   discountReviewBlog  Boolean? @default(false) // 블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)
   
+  // 짝꿍 할인 및 후기 할인 시스템
+  referralCode    String?   // 예식날짜+성함으로 생성될 고유 코드 (예: 20250520홍길동)
+  referredBy      String?   // 나를 추천해준 사람의 코드
+  referredCount   Int       @default(0) // 내 코드를 사용한 사람 수
+  reviewLink      String?   // 후기 링크 URL
+  discountAmount  Int       @default(0) // 할인 총액
+  totalAmount     Int?      // 기존 계약 전체 금액
+  
   // 특이사항
   specialNotes    String?   @db.Text // 특이사항 및 요구사항
   
