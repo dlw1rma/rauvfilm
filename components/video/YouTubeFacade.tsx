@@ -29,11 +29,12 @@ export default function YouTubeFacade({
     return (
       <div className={cn("relative aspect-video w-full", className)}>
         <iframe
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&controls=1&showinfo=0&modestbranding=1`}
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          className="absolute inset-0 h-full w-full rounded-lg"
+          className="absolute inset-0 w-full h-full rounded-lg"
+          style={{ border: "none" }}
         />
       </div>
     );
@@ -76,10 +77,6 @@ export default function YouTubeFacade({
             <path d="M8 5v14l11-7z" />
           </svg>
         </div>
-      </div>
-      {/* Title Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-        <p className="text-sm font-medium text-white line-clamp-2">{title}</p>
       </div>
     </button>
   );

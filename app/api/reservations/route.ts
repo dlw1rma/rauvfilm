@@ -101,12 +101,22 @@ export async function POST(request: NextRequest) {
       // 본식DVD 주 재생매체
       playbackDevice,
       // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
+      eventType,
+      shootLocation,
       shootDate,
-      shootTimePlace,
+      shootTime,
       shootConcept,
-      // 할인사항 및 특이사항 작성 항목
+      // 할인사항 (체크박스)
+      discountCouple,
+      discountReview,
+      discountNewYear,
+      discountReview1,
+      discountReview2,
+      discountReview3,
+      discountSnap,
+      discountPreWedding,
+      // 특이사항
       specialNotes,
-      discountInfo,
     } = body;
 
     // 유효성 검사
@@ -140,7 +150,7 @@ export async function POST(request: NextRequest) {
         content: content || "",
         author,
         password: hashedPassword,
-        isPrivate: isPrivate || false,
+        isPrivate: isPrivate !== undefined ? isPrivate : true, // 기본값 true (비밀글만)
         // 필수 작성항목(공통)
         brideName: brideName || null,
         bridePhone: bridePhone || null,
@@ -157,7 +167,7 @@ export async function POST(request: NextRequest) {
         // 개인정보 활용 동의
         privacyAgreed: privacyAgreed || false,
         // 본식DVD 예약 고객님 필수 추가 작성 항목
-        weddingDate: weddingDate ? new Date(weddingDate) : null,
+        weddingDate: weddingDate || null,
         weddingTime: weddingTime || null,
         venueName: venueName || null,
         venueFloor: venueFloor || null,
@@ -174,12 +184,22 @@ export async function POST(request: NextRequest) {
         // 본식DVD 주 재생매체
         playbackDevice: playbackDevice || null,
         // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
-        shootDate: shootDate ? new Date(shootDate) : null,
-        shootTimePlace: shootTimePlace || null,
+        eventType: eventType || null,
+        shootLocation: shootLocation || null,
+        shootDate: shootDate || null,
+        shootTime: shootTime || null,
         shootConcept: shootConcept || null,
-        // 할인사항 및 특이사항 작성 항목
+        // 할인사항 (체크박스)
+        discountCouple: discountCouple || false,
+        discountReview: discountReview || false,
+        discountNewYear: discountNewYear || false,
+        discountReview1: discountReview1 || false,
+        discountReview2: discountReview2 || false,
+        discountReview3: discountReview3 || false,
+        discountSnap: discountSnap || false,
+        discountPreWedding: discountPreWedding || false,
+        // 특이사항
         specialNotes: specialNotes || null,
-        discountInfo: discountInfo || null,
       },
     });
 

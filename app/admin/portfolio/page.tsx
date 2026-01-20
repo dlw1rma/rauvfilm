@@ -32,7 +32,6 @@ export default function AdminPortfolioPage() {
   });
   const [syncData, setSyncData] = useState({
     channelHandle: "rauvfilm_Cine",
-    apiKey: "",
     category: "가성비형",
   });
 
@@ -297,27 +296,14 @@ export default function AdminPortfolioPage() {
                     @ 기호 없이 입력하세요 (예: rauvfilm_Cine)
                   </p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    YouTube Data API 키 <span className="text-accent">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={syncData.apiKey}
-                    onChange={(e) => setSyncData({ ...syncData, apiKey: e.target.value })}
-                    placeholder="AIza..."
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    <a
-                      href="https://console.cloud.google.com/apis/credentials"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent hover:underline"
-                    >
-                      Google Cloud Console
-                    </a>
-                    에서 API 키를 발급받으세요
+                <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
+                  <p className="text-sm font-medium text-accent mb-1">
+                    🔐 YouTube API 키는 환경변수로 관리됩니다
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    API 키는 서버 환경변수 <code className="px-1 py-0.5 bg-background rounded text-xs">YOUTUBE_API_KEY</code>에 설정되어 있어야 합니다.
+                    <br />
+                    Cloudtype 환경변수 설정에서 <code className="px-1 py-0.5 bg-background rounded text-xs">YOUTUBE_API_KEY</code>를 추가해주세요.
                   </p>
                 </div>
                 <div>
@@ -356,8 +342,8 @@ export default function AdminPortfolioPage() {
                 <button
                   type="button"
                   onClick={async () => {
-                    if (!syncData.channelHandle || !syncData.apiKey) {
-                      setSyncResult("채널 핸들과 API 키를 입력해주세요.");
+                    if (!syncData.channelHandle) {
+                      setSyncResult("채널 핸들을 입력해주세요.");
                       return;
                     }
 
@@ -368,7 +354,11 @@ export default function AdminPortfolioPage() {
                       const res = await fetch("/api/admin/portfolio/sync-youtube", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(syncData),
+                        body: JSON.stringify({
+                          channelHandle: syncData.channelHandle,
+                          category: syncData.category,
+                          // API 키는 서버 환경변수에서 가져옴 (보안)
+                        }),
                       });
 
                       const data = await res.json();

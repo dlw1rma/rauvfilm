@@ -232,18 +232,153 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              <Link
-                href="/contact"
-                className={`block w-full rounded-lg py-3 text-center font-medium transition-all hover:-translate-y-0.5 ${
-                  plan.popular
-                    ? "bg-accent text-white hover:bg-accent-hover"
-                    : "bg-background text-foreground hover:bg-border"
-                }`}
-              >
-                상담 신청하기
-              </Link>
             </div>
           ))}
+        </div>
+
+        {/* 진행중인 이벤트 */}
+        <div className="mt-16 rounded-xl border border-border bg-muted p-8">
+          <div className="mb-6 text-center">
+            <h2 className="mb-4 text-2xl font-bold">진행중인 이벤트</h2>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <span className="rounded-full bg-accent px-4 py-1 text-sm font-medium text-white">
+                모든 상품 진행 가능
+              </span>
+              <span className="rounded-full bg-muted border border-border px-4 py-1 text-sm font-medium">
+                스냅 + 식전영상 모두 선택 가능
+              </span>
+            </div>
+          </div>
+
+          {/* 서울 야외촬영 */}
+          <div className="mb-8 rounded-xl border border-border bg-background p-6">
+            <h3 className="mb-4 text-xl font-bold">서울 야외촬영</h3>
+            <p className="mb-4 text-sm text-muted-foreground">
+              서울지역 1~2시간 촬영 | 스냅작가가 있을 경우만 프리웨딩 가능
+            </p>
+            
+            <div className="grid gap-4 md:grid-cols-2 mb-4">
+              <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-white">
+                    스냅촬영
+                  </span>
+                  <span className="text-lg font-bold text-accent">5만원</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  원본 전체 + 신부님 셀렉 10장 보정
+                </p>
+              </div>
+              <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-white">
+                    프리웨딩 식전영상
+                  </span>
+                  <span className="text-lg font-bold text-accent">10만원</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  영상촬영 기반 1~2분 하이라이트
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <h4 className="mb-2 text-sm font-medium">촬영 장소</h4>
+              <div className="flex flex-wrap gap-2">
+                {["노을공원", "창경궁", "동작대교", "잠수교", "올림픽공원", "서울숲"].map((location) => (
+                  <span
+                    key={location}
+                    className="rounded-full border border-border bg-muted px-3 py-1 text-xs"
+                  >
+                    {location}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                *위 장소 중 한 곳에서 진행됩니다
+              </p>
+            </div>
+          </div>
+
+          {/* 예약후기 작성 이벤트 */}
+          <div className="mb-8 rounded-xl border border-border bg-background p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">
+                HOT
+              </span>
+              <h3 className="text-xl font-bold">예약후기 작성 이벤트</h3>
+            </div>
+            <p className="mb-4 text-sm text-muted-foreground">
+              예약확정 후 1개월 이내, 카페 또는 자신의 블로그에 후기 작성
+            </p>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-lg border border-accent/30 bg-accent/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="rounded-full bg-accent px-2 py-1 text-xs font-medium text-white">
+                    1건 작성
+                  </span>
+                  <span className="text-base font-bold text-accent">1만원 할인</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  가성비형은 원본전체 전달
+                </p>
+              </div>
+              <div className="rounded-lg border border-accent/30 bg-accent/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="rounded-full bg-accent px-2 py-1 text-xs font-medium text-white">
+                    2건 작성
+                  </span>
+                  <span className="text-base font-bold text-accent">2만원 할인</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  + SNS영상
+                </p>
+              </div>
+              <div className="rounded-lg border border-accent/30 bg-accent/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="rounded-full bg-accent px-2 py-1 text-xs font-medium text-white">
+                    3건 작성
+                  </span>
+                  <span className="text-base font-bold text-accent">2만원 할인</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  + SNS영상 + 원본영상 전체
+                </p>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              *내용 중복 불가 | [가성비형]은 1건만 인정
+            </p>
+          </div>
+
+          {/* 할인 박스들 */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-border bg-background p-4">
+              <h4 className="mb-2 text-lg font-bold">짝궁할인</h4>
+              <p className="mb-2 text-xl font-bold text-accent">1만원 할인</p>
+              <p className="text-xs text-muted-foreground">
+                소개하신 분, 소개받으신 분 각 1만원 할인. 소개해 주시는 분은 잔금 0원까지 중복 가능
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <h4 className="mb-2 text-lg font-bold">블로그와 카페 촬영후기</h4>
+              <p className="mb-2 text-xl font-bold text-accent">총 2만원 페이백</p>
+              <p className="text-xs text-muted-foreground">
+                상품 받으신 날부터 1개월 이내 카페와 자신의 블로그 후기 각각 종 2건 작성
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <h4 className="mb-2 text-lg font-bold">26년 신년할인</h4>
+              <p className="mb-2 text-xl font-bold text-accent">5만원 할인</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                26년 모든 예약자 대상. (26년 4월까지)
+              </p>
+              <p className="text-xs text-muted-foreground">
+                *1인 1캠 미적용, 제휴상품 미적용
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Additional Options */}
@@ -269,18 +404,6 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* CTA */}
-        <div className="mt-16 text-center">
-          <p className="mb-6 text-muted-foreground">
-            궁금한 점이 있으시면 편하게 문의해주세요.
-          </p>
-          <Link
-            href="/contact"
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-accent px-8 text-base font-medium text-white transition-all hover:bg-accent-hover hover:-translate-y-1"
-          >
-            무료 상담 신청
-          </Link>
-        </div>
       </div>
     </div>
   );

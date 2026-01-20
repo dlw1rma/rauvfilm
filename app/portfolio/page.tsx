@@ -90,18 +90,6 @@ export default async function PortfolioPage() {
           </div>
         )}
 
-        {/* CTA */}
-        <div className="mt-16 text-center">
-          <p className="mb-6 text-muted-foreground">
-            마음에 드는 스타일이 있으신가요?
-          </p>
-          <a
-            href="/contact"
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-accent px-8 text-base font-medium text-white transition-all hover:bg-accent-hover hover:-translate-y-1"
-          >
-            촬영 문의하기
-          </a>
-        </div>
       </div>
     </div>
   );

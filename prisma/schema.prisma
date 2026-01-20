@@ -10,14 +10,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 예약 게시판
+  // 예약 게시판
 model Reservation {
   id          Int       @id @default(autoincrement())
   title       String
-  content     String    @db.Text
+  content     String?   @db.Text // 문의 내용 (선택)
   author      String    // 계약자(글쓴이) 성함
   password    String    // bcrypt 해시
-  isPrivate   Boolean   @default(false)
+  isPrivate   Boolean   @default(true) // 비밀글만 가능
   viewCount   Int       @default(0)
   
   // 필수 작성항목(공통)
@@ -38,8 +38,8 @@ model Reservation {
   privacyAgreed   Boolean? @default(false) // 개인정보 수집 이용 동의
   
   // 본식DVD 예약 고객님 필수 추가 작성 항목
-  weddingDate     DateTime? // 예식 날짜
-  weddingTime     String?   // 예식 시간
+  weddingDate     String?   // 예식 날짜 (텍스트)
+  weddingTime     String?   // 예식 시간 (텍스트)
   venueName       String?   // 장소명
   venueFloor      String?   // 층/홀이름
   guestCount      Int?      // 초대인원
@@ -57,13 +57,24 @@ model Reservation {
   playbackDevice  String?   // (핸드폰, LED TV/ OLED TV, 빔프로젝터)
   
   // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
-  shootDate       DateTime? // 촬영 날짜
-  shootTimePlace  String?   @db.Text // 시간 및 장소
+  eventType       String?   // 이벤트 촬영 (야외스냅, 프리웨딩)
+  shootLocation   String?   // 희망 촬영 장소
+  shootDate       String?   // 촬영 날짜 (텍스트)
+  shootTime       String?   // 촬영 시간 (텍스트)
   shootConcept    String?   @db.Text // 원하시는 컨셉
   
-  // 할인사항 및 특이사항 작성 항목
+  // 할인사항 (체크박스)
+  discountCouple      Boolean? @default(false) // 짝궁할인
+  discountReview      Boolean? @default(false) // 블로그와 카페 촬영후기
+  discountNewYear     Boolean? @default(false) // 26년 신년할인
+  discountReview1     Boolean? @default(false) // 예약후기 작성 이벤트 1건
+  discountReview2     Boolean? @default(false) // 예약후기 작성 이벤트 2건
+  discountReview3     Boolean? @default(false) // 예약후기 작성 이벤트 3건
+  discountSnap        Boolean? @default(false) // 서울 야외촬영 스냅촬영
+  discountPreWedding  Boolean? @default(false) // 서울 야외촬영 프리웨딩 식전영상
+  
+  // 특이사항
   specialNotes    String?   @db.Text // 특이사항 및 요구사항
-  discountInfo    String?   @db.Text // 할인 사항
   
   // 기존 필드 (하위 호환성)
   phone       String?  // 기존 필드 (deprecated)

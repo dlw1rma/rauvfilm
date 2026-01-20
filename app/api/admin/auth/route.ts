@@ -40,16 +40,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!admin) {
-      return NextResponse.json(
-        { error: "이메일 또는 비밀번호가 올바르지 않습니다." },
-        { status: 401 }
-      );
-    }
+    // 타이밍 공격 방지: 계정 존재 여부와 관계없이 항상 bcrypt.compare 실행
+    // 더미 해시를 사용하여 동일한 시간 소요
+    const dummyHash = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+    const passwordToCompare = admin?.password || dummyHash;
+    
+    // 비밀번호 검증 (항상 실행하여 타이밍 공격 방지)
+    const isValid = await bcrypt.compare(password, passwordToCompare);
 
-    // 비밀번호 검증
-    const isValid = await bcrypt.compare(password, admin.password);
-    if (!isValid) {
+    if (!admin || !isValid) {
+      // 실패한 로그인 시도 로깅 (보안 모니터링)
+      console.warn(`[SECURITY] Failed login attempt for email: ${email} from IP: ${request.headers.get("x-forwarded-for") || "unknown"}`);
+      
       return NextResponse.json(
         { error: "이메일 또는 비밀번호가 올바르지 않습니다." },
         { status: 401 }

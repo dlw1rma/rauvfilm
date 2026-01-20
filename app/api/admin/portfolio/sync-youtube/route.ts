@@ -72,6 +72,17 @@ async function fetchYouTubeChannelVideos(
   }
 }
 
+// 환경변수에서 YouTube API 키 가져오기 (보안 강화)
+function getYouTubeApiKey(): string {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "YOUTUBE_API_KEY 환경변수가 설정되지 않았습니다. 프로덕션 환경에서는 반드시 환경변수로 설정해야 합니다."
+    );
+  }
+  return apiKey;
+}
+
 // POST: YouTube 채널 동기화
 export async function POST(request: NextRequest) {
   try {
@@ -83,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     const prisma = getPrisma();
     const body = await request.json();
-    const { channelHandle, apiKey, category } = body;
+    const { channelHandle, category } = body;
 
     if (!channelHandle) {
       return NextResponse.json(
@@ -92,12 +103,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "YouTube Data API 키가 필요합니다." },
-        { status: 400 }
-      );
-    }
+    // 환경변수에서 API 키 가져오기 (보안 강화)
+    const apiKey = getYouTubeApiKey();
 
     // YouTube 채널에서 영상 목록 가져오기
     const youtubeVideos = await fetchYouTubeChannelVideos(
@@ -162,10 +169,21 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("YouTube sync error:", error);
+    
+    // API 키 관련 에러는 상세 정보 숨김
+    if (error.message?.includes("YOUTUBE_API_KEY")) {
+      return NextResponse.json(
+        {
+          error: "YouTube API 키가 설정되지 않았습니다. 서버 관리자에게 문의하세요.",
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: "YouTube 동기화에 실패했습니다.",
-        details: error.message,
+        details: process.env.NODE_ENV === "development" ? error.message : undefined,
       },
       { status: 500 }
     );

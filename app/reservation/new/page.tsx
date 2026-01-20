@@ -5,17 +5,21 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type ProductType = "가성비형" | "기본형" | "시네마틱형" | "야외스냅" | "프리웨딩" | "";
+type EventType = "야외스냅" | "프리웨딩" | "";
 
 export default function NewReservationPage() {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState(1);
   const [formData, setFormData] = useState({
     // 기본 정보
-    title: "",
-    author: "",
+    title: "본식DVD 예약합니다",
     password: "",
-    content: "",
-    isPrivate: false,
+    isPrivate: true, // 비밀글만 가능
+    isBrideContractor: false, // 신부님이 계약자인지
+    isGroomContractor: false, // 신랑님이 계약자인지
+    
+    // 개인정보 활용 동의 (1번째로 이동)
+    privacyAgreed: false,
     
     // 필수 작성항목(공통)
     brideName: "",
@@ -31,10 +35,7 @@ export default function NewReservationPage() {
     termsAgreed: false,
     faqRead: false,
     
-    // 개인정보 활용 동의
-    privacyAgreed: false,
-    
-    // 본식DVD 예약 고객님 필수 추가 작성 항목
+    // 본식 영상 예약 고객님 필수 추가 작성 항목
     weddingDate: "",
     weddingTime: "",
     venueName: "",
@@ -49,27 +50,95 @@ export default function NewReservationPage() {
     deliveryAddress: "",
     seonwonpan: false,
     gimbalShoot: false,
-    
-    // 본식DVD 주 재생매체
     playbackDevice: "",
     
     // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
+    eventType: "" as EventType,
+    shootLocation: "",
     shootDate: "",
-    shootTimePlace: "",
+    shootTime: "",
     shootConcept: "",
     
-    // 할인사항 및 특이사항 작성 항목
+    // 할인사항 (체크박스)
+    discountCouple: false, // 짝궁할인
+    discountReview: false, // 블로그와 카페 촬영후기
+    discountNewYear: false, // 26년 신년할인
+    discountReview1: false, // 예약후기 작성 이벤트 1건
+    discountReview2: false, // 예약후기 작성 이벤트 2건
+    discountReview3: false, // 예약후기 작성 이벤트 3건
+    discountSnap: false, // 서울 야외촬영 스냅촬영
+    discountPreWedding: false, // 서울 야외촬영 프리웨딩 식전영상
+    
+    // 특이사항
     specialNotes: "",
-    discountInfo: "",
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // 전화번호 포맷팅 (하이픈 추가)
+  const formatPhoneNumber = (value: string): string => {
+    const numbers = value.replace(/[^0-9]/g, "");
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    if (numbers.length <= 11) return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  };
+
+  // 전화번호에서 하이픈 제거
+  const removeHyphens = (value: string): string => {
+    return value.replace(/-/g, "");
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
+    
+    // 전화번호 필드는 하이픈 자동 추가
+    if ((name === "bridePhone" || name === "groomPhone" || name === "receiptPhone") && type !== "checkbox") {
+      const formatted = formatPhoneNumber(value);
+      setFormData((prev) => {
+        const updated = {
+          ...prev,
+          [name]: formatted,
+        };
+        
+        // 계약자 전화번호가 변경되면 비밀번호 자동 업데이트
+        if (name === "bridePhone" && prev.isBrideContractor) {
+          updated.password = removeHyphens(formatted);
+        } else if (name === "groomPhone" && prev.isGroomContractor) {
+          updated.password = removeHyphens(formatted);
+        }
+        
+        return updated;
+      });
+      return;
+    }
+    
+    // 계약자 체크박스 처리
+    if (name === "isBrideContractor") {
+      const isChecked = (e.target as HTMLInputElement).checked;
+      setFormData((prev) => ({
+        ...prev,
+        isBrideContractor: isChecked,
+        isGroomContractor: isChecked ? false : prev.isGroomContractor,
+        password: isChecked ? removeHyphens(prev.bridePhone) : (prev.isGroomContractor ? removeHyphens(prev.groomPhone) : ""),
+      }));
+      return;
+    }
+    
+    if (name === "isGroomContractor") {
+      const isChecked = (e.target as HTMLInputElement).checked;
+      setFormData((prev) => ({
+        ...prev,
+        isGroomContractor: isChecked,
+        isBrideContractor: isChecked ? false : prev.isBrideContractor,
+        password: isChecked ? removeHyphens(prev.groomPhone) : (prev.isBrideContractor ? removeHyphens(prev.bridePhone) : ""),
+      }));
+      return;
+    }
+    
     setFormData((prev) => ({
       ...prev,
       [name]:
@@ -85,23 +154,44 @@ export default function NewReservationPage() {
     setError("");
 
     // 필수 항목 검증
-    if (!formData.title || !formData.author || !formData.password) {
-      setError("제목, 계약자 성함, 비밀번호는 필수 항목입니다.");
+    if (!formData.title || !formData.password) {
+      setError("제목과 비밀번호는 필수 항목입니다.");
       setIsSubmitting(false);
       return;
     }
 
-    if (!formData.termsAgreed || !formData.faqRead || !formData.privacyAgreed) {
+    // 계약자 확인
+    if (!formData.isBrideContractor && !formData.isGroomContractor) {
+      setError("계약자를 선택해주세요. (신부님 또는 신랑님 중 한 명)");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 계약자 이름 설정
+    const contractorName = formData.isBrideContractor ? formData.brideName : formData.groomName;
+    if (!contractorName) {
+      setError("계약자 이름을 입력해주세요.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.privacyAgreed || !formData.termsAgreed || !formData.faqRead) {
       setError("약관 동의 및 개인정보 활용 동의는 필수입니다.");
       setIsSubmitting(false);
       return;
     }
 
     try {
+      // 계약자 이름 설정
+      const contractorName = formData.isBrideContractor ? formData.brideName : formData.groomName;
+      
       const res = await fetch("/api/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          author: contractorName, // 계약자 이름으로 설정
+        }),
       });
 
       const data = await res.json();
@@ -122,10 +212,13 @@ export default function NewReservationPage() {
   const totalSections = 6;
   const canProceed = (section: number) => {
     if (section === 1) {
-      return formData.title && formData.author && formData.password;
+      return formData.title && formData.password && formData.privacyAgreed;
     }
     if (section === 2) {
-      return formData.brideName && formData.bridePhone && formData.groomName && formData.groomPhone;
+      const hasNames = formData.brideName && formData.groomName;
+      const hasPhones = formData.bridePhone && formData.groomPhone;
+      const hasContractor = formData.isBrideContractor || formData.isGroomContractor;
+      return hasNames && hasPhones && hasContractor;
     }
     return true;
   };
@@ -154,7 +247,7 @@ export default function NewReservationPage() {
             </svg>
             목록으로
           </Link>
-          <h1 className="text-3xl font-bold">예약 문의 작성</h1>
+          <h1 className="text-3xl font-bold">예약글 작성</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             예약 정보를 정확히 입력해주세요. 예약 후 변경사항은 카카오톡 채널로 문의해주세요.
           </p>
@@ -188,88 +281,90 @@ export default function NewReservationPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Section 1: 기본 정보 */}
+          {/* Section 1: 개인정보 활용 동의 (1번째로 이동) */}
           {currentSection === 1 && (
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">1. 기본 정보</h2>
+                <h2 className="text-xl font-semibold">1. 개인정보 활용 동의 (필수)</h2>
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted p-6 space-y-4">
+                <p className="text-sm leading-relaxed">
+                  본인은 귀사의 식별, 예약 및 행사 고객 관리 위해 귀사가 본인의 개인 정보를 수집이용하고자 하는 경우
+                  개인정보보호법 제15조, 제22조에 따라 동의를 얻어야 합니다.
+                  이에 본식 촬영 계약을 위하여 아래와 같이 개인정보를 수집 이용 및 제공하고자 합니다.
+                  내용을 자세히 읽으신 후 동의 여부를 결정하여 주십시오.
+                </p>
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold">개인정보 수집 이용 내역</h3>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                    <li>항목: 이름, 휴대폰번호, 이메일, 예약자 성함, 예식자이름(신랑,신부), 자택주소</li>
+                    <li>수집 및 이용 목적: 식별, 예약 및 행사 고객 관리, 실물 상품 발송</li>
+                    <li>보유기간: 계약일로 부터 5년</li>
+                  </ul>
+                </div>
+
+                <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
+                  <p className="text-sm text-accent font-medium">
+                    위의 개인정보 수집 이용에 대한 동의를 거부할 권리가 있습니다.
+                    그러나, 동의를 거부할 경우 본식 촬영 계약이 진행되지 않음을 알려드립니다.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="privacyAgreed"
+                    name="privacyAgreed"
+                    required
+                    checked={formData.privacyAgreed}
+                    onChange={handleChange}
+                    className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                  />
+                  <label htmlFor="privacyAgreed" className="text-sm font-medium">
+                    위와 같이 개인정보를 수집·이용하는데 동의하십니까? <span className="text-accent">*</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="border-b border-border pb-4">
+                <h2 className="text-xl font-semibold">기본 정보</h2>
               </div>
               
-          <div>
-            <label htmlFor="title" className="mb-2 block text-sm font-medium">
-              제목 <span className="text-accent">*</span>
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              required
-              value={formData.title}
-              onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  placeholder="예: 2024년 5월 가성비형 예약 문의"
-            />
-          </div>
+              <div>
+                <label htmlFor="title" className="mb-2 block text-sm font-medium">
+                  제목 <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  required
+                  value="본식DVD 예약합니다"
+                  readOnly
+                  className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-muted-foreground cursor-not-allowed"
+                />
+              </div>
 
-            <div>
-              <label htmlFor="author" className="mb-2 block text-sm font-medium">
-                  계약자(글쓴이) 성함 <span className="text-accent">*</span>
-              </label>
-              <input
-                type="text"
-                id="author"
-                name="author"
-                required
-                value={formData.author}
-                onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-medium">
-                비밀번호 <span className="text-accent">*</span>
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="글 수정/삭제 시 필요"
-              />
-          </div>
-
-          <div>
-            <label htmlFor="content" className="mb-2 block text-sm font-medium">
-                  문의 내용
-            </label>
-            <textarea
-              id="content"
-              name="content"
-                  rows={4}
-              value={formData.content}
-              onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                  placeholder="추가 문의사항이 있으시면 작성해주세요."
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="isPrivate"
-              name="isPrivate"
-              checked={formData.isPrivate}
-              onChange={handleChange}
-              className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-            />
-            <label htmlFor="isPrivate" className="text-sm">
-              비밀글로 작성 (작성자와 관리자만 열람 가능)
-            </label>
-          </div>
+              <div>
+                <label htmlFor="password" className="mb-2 block text-sm font-medium">
+                  비밀번호 <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="password"
+                  name="password"
+                  required
+                  value={formData.password}
+                  readOnly
+                  className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-muted-foreground cursor-not-allowed"
+                  placeholder="계약자 전화번호로 자동 설정됩니다"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  계약자 전화번호로 자동 설정됩니다 (하이픈 제외)
+                </p>
+              </div>
             </div>
           )}
 
@@ -282,9 +377,24 @@ export default function NewReservationPage() {
 
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="brideName" className="mb-2 block text-sm font-medium">
-                    신부님 성함 <span className="text-accent">*</span>
-                  </label>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label htmlFor="brideName" className="block text-sm font-medium">
+                      신부님 성함 <span className="text-accent">*</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="isBrideContractor"
+                        name="isBrideContractor"
+                        checked={formData.isBrideContractor}
+                        onChange={handleChange}
+                        className="h-4 w-4 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="isBrideContractor" className="text-xs text-muted-foreground">
+                        계약자
+                      </label>
+                    </div>
+                  </div>
                   <input
                     type="text"
                     id="brideName"
@@ -306,14 +416,30 @@ export default function NewReservationPage() {
                     required
                     value={formData.bridePhone}
                     onChange={handleChange}
+                    maxLength={13}
                     className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     placeholder="010-1234-5678"
                   />
                 </div>
                 <div>
-                  <label htmlFor="groomName" className="mb-2 block text-sm font-medium">
-                    신랑님 성함 <span className="text-accent">*</span>
-                  </label>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label htmlFor="groomName" className="block text-sm font-medium">
+                      신랑님 성함 <span className="text-accent">*</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="isGroomContractor"
+                        name="isGroomContractor"
+                        checked={formData.isGroomContractor}
+                        onChange={handleChange}
+                        className="h-4 w-4 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="isGroomContractor" className="text-xs text-muted-foreground">
+                        계약자
+                      </label>
+                    </div>
+                  </div>
                   <input
                     type="text"
                     id="groomName"
@@ -335,6 +461,7 @@ export default function NewReservationPage() {
                     required
                     value={formData.groomPhone}
                     onChange={handleChange}
+                    maxLength={13}
                     className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     placeholder="010-1234-5678"
                   />
@@ -352,6 +479,7 @@ export default function NewReservationPage() {
                   required
                   value={formData.receiptPhone}
                   onChange={handleChange}
+                  maxLength={13}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   placeholder="010-1234-5678"
                 />
@@ -386,27 +514,6 @@ export default function NewReservationPage() {
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   placeholder="example@email.com"
                 />
-              </div>
-
-              <div>
-                <label htmlFor="productType" className="mb-2 block text-sm font-medium">
-                  상품 종류 <span className="text-accent">*</span>
-                </label>
-                <select
-                  id="productType"
-                  name="productType"
-                  required
-                  value={formData.productType}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="">선택해주세요</option>
-                  <option value="가성비형">가성비형</option>
-                  <option value="기본형">기본형</option>
-                  <option value="시네마틱형">시네마틱형</option>
-                  <option value="야외스냅">야외스냅</option>
-                  <option value="프리웨딩">프리웨딩</option>
-                </select>
               </div>
 
               <div>
@@ -473,65 +580,30 @@ export default function NewReservationPage() {
             </div>
           )}
 
-          {/* Section 3: 개인정보 활용 동의 */}
+          {/* Section 3: 본식 영상 예약 고객님 필수 추가 작성 항목 */}
           {currentSection === 3 && (
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">3. 개인정보 활용 동의 (필수)</h2>
+                <h2 className="text-xl font-semibold">3. 본식 영상 예약 고객님 필수 추가 작성 항목</h2>
               </div>
 
-              <div className="rounded-lg border border-border bg-muted p-6 space-y-4">
-                <p className="text-sm leading-relaxed">
-                  본인은 귀사의 식별, 예약 및 행사 고객 관리 위해 귀사가 본인의 개인 정보를 수집이용하고자 하는 경우
-                  개인정보보호법 제15조, 제22조에 따라 동의를 얻어야 합니다.
-                  이에 본식 촬영 계약을 위하여 아래와 같이 개인정보를 수집 이용 및 제공하고자 합니다.
-                  내용을 자세히 읽으신 후 동의 여부를 결정하여 주십시오.
-                </p>
-
-                <div className="space-y-2">
-                  <h3 className="font-semibold">개인정보 수집 이용 내역</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                    <li>항목: 이름, 휴대폰번호, 이메일, 예약자 성함, 예식자이름(신랑,신부), 자택주소</li>
-                    <li>수집 및 이용 목적: 식별, 예약 및 행사 고객 관리, 실물 상품 발송</li>
-                    <li>보유기간: 계약일로 부터 5년</li>
-                  </ul>
-                </div>
-
-                <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
-                  <p className="text-sm text-accent font-medium">
-                    위의 개인정보 수집 이용에 대한 동의를 거부할 권리가 있습니다.
-                    그러나, 동의를 거부할 경우 본식 촬영 계약이 진행되지 않음을 알려드립니다.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="privacyAgreed"
-                    name="privacyAgreed"
-                    required
-                    checked={formData.privacyAgreed}
-                    onChange={handleChange}
-                    className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                  />
-                  <label htmlFor="privacyAgreed" className="text-sm font-medium">
-                    위와 같이 개인정보를 수집·이용하는데 동의하십니까? <span className="text-accent">*</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Section 4: 본식DVD 예약 고객님 필수 추가 작성 항목 */}
-          {currentSection === 4 && (
-            <div className="space-y-6">
-              <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">4. 본식 영상 예약 고객님 필수 추가 작성 항목</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {(formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형")
-                    ? "본식 영상 관련 정보를 입력해주세요."
-                    : "본식 영상이 아닌 경우 다음 단계로 진행하세요."}
-                </p>
+              <div>
+                <label htmlFor="productType" className="mb-2 block text-sm font-medium">
+                  상품 종류 <span className="text-accent">*</span>
+                </label>
+                <select
+                  id="productType"
+                  name="productType"
+                  required
+                  value={formData.productType}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                >
+                  <option value="">선택해주세요</option>
+                  <option value="가성비형">가성비형</option>
+                  <option value="기본형">기본형</option>
+                  <option value="시네마틱형">시네마틱형</option>
+                </select>
               </div>
 
               {(formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") && (
@@ -542,13 +614,14 @@ export default function NewReservationPage() {
                         예식 날짜 <span className="text-accent">*</span>
                       </label>
                       <input
-                        type="date"
+                        type="text"
                         id="weddingDate"
                         name="weddingDate"
                         required
                         value={formData.weddingDate}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        placeholder="예: 2024-05-15 또는 2024년 5월 15일"
                       />
                     </div>
                     <div>
@@ -556,13 +629,14 @@ export default function NewReservationPage() {
                         예식 시간 <span className="text-accent">*</span>
                       </label>
                       <input
-                        type="time"
+                        type="text"
                         id="weddingTime"
                         name="weddingTime"
                         required
                         value={formData.weddingTime}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        placeholder="예: 14:00 또는 오후 2시"
                       />
                     </div>
                   </div>
@@ -762,49 +836,222 @@ export default function NewReservationPage() {
             </div>
           )}
 
+          {/* Section 4: 할인사항 */}
+          {currentSection === 4 && (
+            <div className="space-y-6">
+              <div className="border-b border-border pb-4">
+                <h2 className="text-xl font-semibold">4. 할인사항</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border bg-muted p-4">
+                  <h3 className="mb-3 text-sm font-medium">할인 이벤트</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="discountCouple"
+                        name="discountCouple"
+                        checked={formData.discountCouple}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="discountCouple" className="text-sm">
+                        짝궁할인 (1만원 할인)
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="discountReview"
+                        name="discountReview"
+                        checked={formData.discountReview}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="discountReview" className="text-sm">
+                        블로그와 카페 촬영후기 (총 2만원 페이백)
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="discountNewYear"
+                        name="discountNewYear"
+                        checked={formData.discountNewYear}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="discountNewYear" className="text-sm">
+                        26년 신년할인 (5만원 할인) *1인 1캠 미적용, 제휴상품 미적용
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-muted p-4">
+                  <h3 className="mb-3 text-sm font-medium">예약후기 작성 이벤트</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="discountReview1"
+                        name="discountReview1"
+                        checked={formData.discountReview1}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="discountReview1" className="text-sm">
+                        1건 작성 (1만원 할인) - 가성비형은 원본전체 전달
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="discountReview2"
+                        name="discountReview2"
+                        checked={formData.discountReview2}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="discountReview2" className="text-sm">
+                        2건 작성 (2만원 할인) + SNS영상
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="discountReview3"
+                        name="discountReview3"
+                        checked={formData.discountReview3}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="discountReview3" className="text-sm">
+                        3건 작성 (2만원 할인) + SNS영상 + 원본영상 전체
+                      </label>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      *내용 중복 불가 | [가성비형]은 1건만 인정
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-muted p-4">
+                  <h3 className="mb-3 text-sm font-medium">서울 야외촬영</h3>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    서울지역 1~2시간 촬영 | 스냅작가가 있을 경우만 프리웨딩 가능
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="discountSnap"
+                        name="discountSnap"
+                        checked={formData.discountSnap}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="discountSnap" className="text-sm">
+                        스냅촬영 (5만원) - 원본 전체 + 신부님 셀렉 10장 보정
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="discountPreWedding"
+                        name="discountPreWedding"
+                        checked={formData.discountPreWedding}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="discountPreWedding" className="text-sm">
+                        프리웨딩 식전영상 (10만원) - 영상촬영 기반 1~2분 하이라이트
+                      </label>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      촬영 장소: 노을공원, 창경궁, 동작대교, 잠수교, 올림픽공원, 서울숲 중 한 곳
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Section 5: 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목 */}
           {currentSection === 5 && (
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
                 <h2 className="text-xl font-semibold">5. 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  상담 후 최종적으로 결정된 항목을 작성 부탁드립니다.
-                </p>
               </div>
 
-              {(formData.productType === "야외스냅" || formData.productType === "프리웨딩") && (
+              <div>
+                <label htmlFor="eventType" className="mb-2 block text-sm font-medium">
+                  이벤트 촬영 <span className="text-accent">*</span>
+                </label>
+                <select
+                  id="eventType"
+                  name="eventType"
+                  required
+                  value={formData.eventType}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                >
+                  <option value="">선택해주세요</option>
+                  <option value="야외스냅">야외스냅</option>
+                  <option value="프리웨딩">프리웨딩</option>
+                </select>
+              </div>
+
+              {(formData.eventType === "야외스냅" || formData.eventType === "프리웨딩") && (
                 <>
+                  <div>
+                    <label htmlFor="shootLocation" className="mb-2 block text-sm font-medium">
+                      희망 촬영 장소 <span className="text-accent">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="shootLocation"
+                      name="shootLocation"
+                      required
+                      value={formData.shootLocation}
+                      onChange={handleChange}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      placeholder="예: 노을공원, 창경궁, 동작대교, 잠수교, 올림픽공원, 서울숲 등"
+                    />
+                  </div>
+
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
                       <label htmlFor="shootDate" className="mb-2 block text-sm font-medium">
                         촬영 날짜 <span className="text-accent">*</span>
                       </label>
                       <input
-                        type="date"
+                        type="text"
                         id="shootDate"
                         name="shootDate"
                         required
                         value={formData.shootDate}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        placeholder="예: 2024-05-15 또는 2024년 5월 15일"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="shootTimePlace" className="mb-2 block text-sm font-medium">
-                      시간 및 장소 <span className="text-accent">*</span>
-                    </label>
-                    <textarea
-                      id="shootTimePlace"
-                      name="shootTimePlace"
-                      required
-                      rows={3}
-                      value={formData.shootTimePlace}
-                      onChange={handleChange}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                      placeholder="예: 오전 10시, 한강공원"
-                    />
+                    <div>
+                      <label htmlFor="shootTime" className="mb-2 block text-sm font-medium">
+                        촬영 시간 <span className="text-accent">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="shootTime"
+                        name="shootTime"
+                        required
+                        value={formData.shootTime}
+                        onChange={handleChange}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        placeholder="예: 오전 10시 또는 10:00"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -824,21 +1071,14 @@ export default function NewReservationPage() {
                   </div>
                 </>
               )}
-
-              <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
-                <p className="text-sm text-accent font-medium">
-                  ★예약 후 임의로 예약글을 변경하셔도 변경된 내용으로 예약이 안되고 누락됩니다.
-                  바뀌는 내용이 있을 시 스스로 변경하지 마시고 꼭 카카오톡 채널로 남겨주세요★
-                </p>
-              </div>
             </div>
           )}
 
-          {/* Section 6: 할인사항 및 특이사항 */}
+          {/* Section 6: 특이사항 */}
           {currentSection === 6 && (
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">6. 할인사항 및 특이사항 작성 항목</h2>
+                <h2 className="text-xl font-semibold">6. 특이사항</h2>
               </div>
 
               <div>
@@ -855,21 +1095,6 @@ export default function NewReservationPage() {
                   placeholder="특이사항이나 요구사항이 있으시면 작성해주세요"
                 />
               </div>
-
-              <div>
-                <label htmlFor="discountInfo" className="mb-2 block text-sm font-medium">
-                  할인 사항
-                </label>
-                <textarea
-                  id="discountInfo"
-                  name="discountInfo"
-                  rows={4}
-                  value={formData.discountInfo}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                  placeholder="적용할 할인 사항이 있으시면 작성해주세요"
-                />
-              </div>
             </div>
           )}
 
@@ -879,8 +1104,8 @@ export default function NewReservationPage() {
               <button
                 type="button"
                 onClick={() => setCurrentSection(currentSection - 1)}
-              className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
-            >
+                className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
+              >
                 이전
               </button>
             )}
@@ -899,13 +1124,13 @@ export default function NewReservationPage() {
                 다음
               </button>
             ) : (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? "등록 중..." : "등록하기"}
-            </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "등록 중..." : "등록하기"}
+              </button>
             )}
           </div>
         </form>

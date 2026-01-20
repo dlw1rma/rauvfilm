@@ -3,6 +3,7 @@ import { getPrisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { generateSessionToken } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * 관리자 회원가입 API
@@ -23,6 +24,12 @@ function getAdminSecretKey(): string {
 // POST: 회원가입
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting 적용 (15분에 3회 제한 - 회원가입은 더 엄격하게)
+    const rateLimitResponse = rateLimit(request, 3, 15 * 60 * 1000);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const body = await request.json();
     const { email, password, name, secretKey } = body;
 

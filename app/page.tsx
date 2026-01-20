@@ -12,12 +12,6 @@ const serviceItemsTop = [
     icon: "dollar",
   },
   {
-    title: "진행중인 이벤트",
-    titleEn: "Events",
-    href: "/events",
-    icon: "gift",
-  },
-  {
     title: "예약 절차",
     titleEn: "Reservation process",
     href: "/reservation",
@@ -76,8 +70,8 @@ export default function Home() {
           {/* Section Title - Left aligned, Red */}
           <h2 className="mb-8 text-left text-2xl font-bold tracking-widest text-accent">SERVICE</h2>
 
-          {/* Top 5 Cards - 5 columns on desktop, 2 on mobile */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+          {/* Top 4 Cards - 4 columns on desktop, 2 on mobile */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             {serviceItemsTop.map((item) => (
               <Link
                 key={item.title}
@@ -157,23 +151,27 @@ export default function Home() {
             <br className="hidden md:block" />
             가장 예쁜 모습만을 남겨드리고 있습니다.
           </p>
-          <div className="mb-8 relative aspect-video w-full rounded-lg overflow-hidden bg-muted">
-            {/* PC 버전 영상 */}
-            <iframe
-              src="https://www.youtube.com/embed/BEEXhZW2GMo?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=BEEXhZW2GMo"
-              title="COLOR"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="hidden md:block absolute inset-0 w-full h-full"
-            />
-            {/* 모바일 버전 영상 */}
-            <iframe
-              src="https://www.youtube.com/embed/6GEYb31W9go?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=6GEYb31W9go"
-              title="COLOR"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="md:hidden absolute inset-0 w-full h-full"
-            />
+          <div className="mb-8 relative w-full rounded-lg overflow-hidden bg-muted">
+            {/* PC 버전 영상 - 16:9 비율 */}
+            <div className="hidden md:block relative w-full" style={{ aspectRatio: "16/9" }}>
+              <iframe
+                src="https://www.youtube.com/embed/BEEXhZW2GMo?controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+                style={{ border: "none" }}
+              />
+            </div>
+            {/* 모바일 버전 영상 - 쇼츠 비율 (9:16) */}
+            <div className="md:hidden relative w-full mx-auto" style={{ aspectRatio: "9/16", maxWidth: "400px" }}>
+              <iframe
+                src="https://www.youtube.com/embed/6GEYb31W9go?controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+                style={{ border: "none" }}
+              />
+            </div>
           </div>
         </div>
       </section>
