@@ -148,21 +148,21 @@ export default function PortfolioSlider() {
       {/* Video Modal */}
       {selectedVideo && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
           onClick={() => setSelectedVideo(null)}
         >
           <div
-            className="relative w-full max-w-5xl"
+            className="relative w-full h-full flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
               onClick={() => setSelectedVideo(null)}
-              className="absolute -top-12 right-0 text-white hover:text-accent transition-colors"
+              className="absolute top-4 right-4 z-10 text-white hover:text-accent transition-colors"
               aria-label="닫기"
             >
               <svg
-                className="w-8 h-8"
+                className="w-10 h-10"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth="2"
@@ -176,27 +176,35 @@ export default function PortfolioSlider() {
               </svg>
             </button>
 
-            {/* Video Player - 동적 비율 */}
+            {/* Video Player - 동적 비율, 화면에 꽉 차게 */}
             <div 
-              className="relative w-full mx-auto"
+              className="relative w-full h-full flex items-center justify-center"
               style={{ 
-                aspectRatio: videoAspectRatio,
-                maxWidth: "100%",
-                maxHeight: "90vh"
+                maxWidth: "95vw",
+                maxHeight: "95vh"
               }}
             >
-              <iframe
-                src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&controls=1&showinfo=0&modestbranding=1`}
-                title={selectedVideo.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 w-full h-full rounded-lg"
-                style={{ border: "none" }}
-              />
+              <div
+                className="relative w-full"
+                style={{ 
+                  aspectRatio: videoAspectRatio,
+                  maxWidth: "100%",
+                  maxHeight: "95vh"
+                }}
+              >
+                <iframe
+                  src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&controls=1&showinfo=0&modestbranding=1`}
+                  title={selectedVideo.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full rounded-lg"
+                  style={{ border: "none" }}
+                />
+              </div>
             </div>
 
             {/* Video Title */}
-            <h3 className="mt-4 text-center text-white text-lg font-medium">
+            <h3 className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white text-lg font-medium max-w-4xl px-4">
               {selectedVideo.title}
             </h3>
           </div>
