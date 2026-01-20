@@ -39,6 +39,7 @@ export default function PortfolioSlider() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [portfolios, setPortfolios] = useState<PortfolioItem[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string } | null>(null);
+  const [videoAspectRatio, setVideoAspectRatio] = useState<number>(16 / 9); // 기본값 16:9
 
   useEffect(() => {
     // DB에서 포트폴리오 데이터 가져오기
@@ -104,7 +105,21 @@ export default function PortfolioSlider() {
             <div
               key={`${item.id}-${index}`}
               className="flex-shrink-0 w-[280px] md:w-[320px] lg:w-[360px] group cursor-pointer"
-              onClick={() => {
+              onClick={async () => {
+                // 서버 사이드 API로 실제 영상 비율 가져오기
+                try {
+                  const response = await fetch(`/api/youtube/oembed?videoId=${videoId}`);
+                  if (response.ok) {
+                    const data = await response.json();
+                    setVideoAspectRatio(data.aspectRatio);
+                  } else {
+                    // 실패 시 기본값 사용
+                    setVideoAspectRatio(16 / 9);
+                  }
+                } catch (error) {
+                  console.error("Error fetching video aspect ratio:", error);
+                  setVideoAspectRatio(16 / 9);
+                }
                 setSelectedVideo({ videoId, title: item.title });
               }}
             >
@@ -161,8 +176,15 @@ export default function PortfolioSlider() {
               </svg>
             </button>
 
-            {/* Video Player - 16:9 비율 */}
-            <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
+            {/* Video Player - 동적 비율 */}
+            <div 
+              className="relative w-full mx-auto"
+              style={{ 
+                aspectRatio: videoAspectRatio,
+                maxWidth: "100%",
+                maxHeight: "90vh"
+              }}
+            >
               <iframe
                 src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&controls=1&showinfo=0&modestbranding=1`}
                 title={selectedVideo.title}
