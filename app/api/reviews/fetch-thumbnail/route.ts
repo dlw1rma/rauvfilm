@@ -58,9 +58,34 @@ export async function GET(request: NextRequest) {
     }
 
     // 네이버 블로그 특별 처리
-    if (targetUrl.includes("blog.naver.com")) {
-      // 네이버 블로그는 특별한 방식으로 썸네일을 가져올 수 있습니다
-      // 여기서는 기본 이미지나 null을 반환
+    if (targetUrl.includes("blog.naver.com") || targetUrl.includes("cafe.naver.com")) {
+      // 네이버 블로그/카페는 iframe이나 특수 구조를 사용하므로
+      // HTML에서 이미지 태그를 직접 찾아봅니다
+      
+      // img 태그에서 src 속성 찾기 (네이버 블로그/카페의 대표 이미지)
+      const imgMatches = html.match(/<img[^>]+src=["']([^"']*postfiles\.pstatic\.net[^"']*)["']/gi);
+      if (imgMatches && imgMatches.length > 0) {
+        // 첫 번째 이미지 URL 추출
+        const firstImgMatch = imgMatches[0].match(/src=["']([^"']+)["']/i);
+        if (firstImgMatch && firstImgMatch[1]) {
+          let imgUrl = firstImgMatch[1];
+          // 상대 URL인 경우 절대 URL로 변환
+          if (imgUrl.startsWith("//")) {
+            imgUrl = `https:${imgUrl}`;
+          } else if (imgUrl.startsWith("/")) {
+            imgUrl = `https://blog.naver.com${imgUrl}`;
+          }
+          return NextResponse.json({ thumbnailUrl: imgUrl });
+        }
+      }
+      
+      // 네이버 블로그의 og:image가 있는 경우 (일부 블로그)
+      // 이미 위에서 처리했지만, 네이버 특수 형식도 확인
+      const naverOgImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']*postfiles\.pstatic\.net[^"']*)["']/i);
+      if (naverOgImageMatch && naverOgImageMatch[1]) {
+        return NextResponse.json({ thumbnailUrl: naverOgImageMatch[1] });
+      }
+      
       return NextResponse.json({ thumbnailUrl: null });
     }
 

@@ -8,6 +8,18 @@ const nextConfig: NextConfig = {
         hostname: "img.youtube.com",
         pathname: "/vi/**",
       },
+      {
+        protocol: "https",
+        hostname: "postfiles.pstatic.net",
+      },
+      {
+        protocol: "https",
+        hostname: "blogfiles.pstatic.net",
+      },
+      {
+        protocol: "https",
+        hostname: "*.pstatic.net",
+      },
     ],
   },
 };

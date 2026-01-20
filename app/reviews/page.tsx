@@ -87,8 +87,9 @@ export default async function ReviewsPage() {
                     src={review.imageUrl}
                     alt={review.title}
                     className="w-full h-full object-cover"
+                    crossOrigin="anonymous"
                     onError={(e) => {
-                      // 이미지 로드 실패 시 플레이스홀더 표시
+                      console.error("Image load error:", review.imageUrl);
                       const target = e.target as HTMLImageElement;
                       target.style.display = "none";
                       const parent = target.parentElement;
@@ -102,6 +103,9 @@ export default async function ReviewsPage() {
                         `;
                         parent.appendChild(placeholder);
                       }
+                    }}
+                    onLoad={() => {
+                      console.log("Image loaded:", review.imageUrl);
                     }}
                   />
                 ) : (

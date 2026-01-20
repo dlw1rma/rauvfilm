@@ -88,10 +88,15 @@ export default function ReviewSection() {
                   src={review.imageUrl}
                   alt={review.title}
                   className="w-full h-full object-cover"
-                  onError={() => {
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    console.error("Image load error for review", review.id, review.imageUrl);
                     setReviews((prev) =>
                       prev.map((r) => (r.id === review.id ? { ...r, imageError: true } : r))
                     );
+                  }}
+                  onLoad={() => {
+                    console.log("Image loaded successfully for review", review.id);
                   }}
                 />
               ) : (
