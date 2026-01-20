@@ -113,40 +113,53 @@ export default function AdminReviewsPage() {
     try {
       console.log("Fetching data for URL:", formData.sourceUrl);
       const res = await fetch(`/api/reviews/fetch-thumbnail?url=${encodeURIComponent(formData.sourceUrl)}`);
-      const data = await res.json();
       
-      console.log("Fetch response:", data);
+      console.log("Response status:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}: ${res.statusText}` }));
+        console.error("API error response:", errorData);
+        alert(`오류가 발생했습니다: ${errorData.error || res.statusText}\n수동으로 입력해주세요.`);
+        return;
+      }
+      
+      const data = await res.json();
+      console.log("Fetch response data:", JSON.stringify(data, null, 2));
       
       let updatedFields: string[] = [];
+      let hasAnyData = false;
       
       // 제목 업데이트
-      if (data.title) {
-        setFormData((prev) => ({ ...prev, title: data.title }));
+      if (data.title && data.title.trim()) {
+        setFormData((prev) => ({ ...prev, title: data.title.trim() }));
         updatedFields.push(`제목: ${data.title}`);
+        hasAnyData = true;
       }
       
       // 내용 업데이트
-      if (data.excerpt) {
-        setFormData((prev) => ({ ...prev, excerpt: data.excerpt }));
-        updatedFields.push(`내용: ${data.excerpt.substring(0, 50)}...`);
+      if (data.excerpt && data.excerpt.trim()) {
+        setFormData((prev) => ({ ...prev, excerpt: data.excerpt.trim() }));
+        updatedFields.push(`내용: ${data.excerpt.length > 50 ? data.excerpt.substring(0, 50) + "..." : data.excerpt}`);
+        hasAnyData = true;
       }
       
       // 썸네일 업데이트
-      if (data.thumbnailUrl) {
-        setFormData((prev) => ({ ...prev, imageUrl: data.thumbnailUrl }));
-        updatedFields.push(`썸네일: ${data.thumbnailUrl.substring(0, 50)}...`);
+      if (data.thumbnailUrl && data.thumbnailUrl.trim()) {
+        setFormData((prev) => ({ ...prev, imageUrl: data.thumbnailUrl.trim() }));
+        updatedFields.push(`썸네일: ${data.thumbnailUrl.length > 50 ? data.thumbnailUrl.substring(0, 50) + "..." : data.thumbnailUrl}`);
+        hasAnyData = true;
       }
       
-      if (updatedFields.length > 0) {
+      if (hasAnyData) {
         alert(`다음 정보를 가져왔습니다:\n\n${updatedFields.join("\n")}`);
       } else {
-        const errorMsg = data.error || "정보를 찾을 수 없습니다.";
-        console.error("Fetch failed:", errorMsg, data);
-        alert(`${errorMsg}\n수동으로 입력해주세요.`);
+        const errorMsg = data.error || data.message || "정보를 찾을 수 없습니다.";
+        console.error("No data found. Response:", data);
+        alert(`${errorMsg}\n\n브라우저 콘솔(F12)에서 자세한 로그를 확인하세요.\n수동으로 입력해주세요.`);
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
-      alert(`정보를 가져오는데 실패했습니다.\n${error instanceof Error ? error.message : String(error)}`);
+      alert(`정보를 가져오는데 실패했습니다.\n\n에러: ${error instanceof Error ? error.message : String(error)}\n\n브라우저 콘솔(F12)에서 자세한 로그를 확인하세요.`);
     } finally {
       setFetchingThumbnail(false);
     }

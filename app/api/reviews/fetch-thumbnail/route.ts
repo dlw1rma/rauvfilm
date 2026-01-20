@@ -16,24 +16,46 @@ async function fetchDataFromAPI(url: string): Promise<ParsedData | null> {
   try {
     // linkpreview.net API 사용 (무료 플랜: 1000 requests/month)
     const apiKey = process.env.LINKPREVIEW_API_KEY || "";
-    if (apiKey) {
-      const response = await fetch(
-        `https://api.linkpreview.net/?key=${apiKey}&q=${encodeURIComponent(url)}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.title || data.image || data.description) {
-          console.log("Found data via linkpreview API:", data);
-          return {
-            thumbnailUrl: data.image || null,
-            title: data.title || null,
-            excerpt: data.description ? truncateText(data.description, 200) : null,
-          };
-        }
-      }
+    console.log("LinkPreview API Key present:", !!apiKey);
+    
+    if (!apiKey) {
+      console.log("LINKPREVIEW_API_KEY not set, skipping API call");
+      return null;
     }
+    
+    const apiUrl = `https://api.linkpreview.net/?key=${apiKey}&q=${encodeURIComponent(url)}`;
+    console.log("Calling LinkPreview API:", apiUrl.replace(apiKey, "***"));
+    
+    const response = await fetch(apiUrl, {
+      headers: {
+        "Accept": "application/json",
+      },
+    });
+    
+    console.log("LinkPreview API response status:", response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("LinkPreview API error:", response.status, errorText);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log("LinkPreview API response data:", JSON.stringify(data, null, 2));
+    
+    if (data.title || data.image || data.description) {
+      const result = {
+        thumbnailUrl: data.image || null,
+        title: data.title || null,
+        excerpt: data.description ? truncateText(data.description, 200) : null,
+      };
+      console.log("Returning API data:", result);
+      return result;
+    }
+    
+    console.log("LinkPreview API returned no useful data");
   } catch (error) {
-    console.error("Error fetching from API:", error);
+    console.error("Error fetching from LinkPreview API:", error);
   }
   return null;
 }
@@ -203,36 +225,128 @@ export async function GET(request: NextRequest) {
 
             const metaData = extractMetaData(html);
             
-            // 네이버 이미지 찾기
+            // 네이버 이미지 찾기 (우선순위: og:image > 첫 번째 본문 이미지)
+            if (!metaData.thumbnailUrl) {
+              // 1. og:image 우선
+              const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+              if (ogImageMatch && ogImageMatch[1]) {
+                const imgUrl = ogImageMatch[1].trim();
+                if (imgUrl && (imgUrl.startsWith("http://") || imgUrl.startsWith("https://"))) {
+                  metaData.thumbnailUrl = imgUrl;
+                }
+              }
+            }
+            
+            // 2. 본문의 첫 번째 이미지 (썸네일용)
             if (!metaData.thumbnailUrl) {
               metaData.thumbnailUrl = findNaverImages(html);
             }
-
-            // 네이버 블로그 제목 찾기 (특수 처리)
-            if (!metaData.title) {
-              const naverTitleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-              if (naverTitleMatch && naverTitleMatch[1]) {
-                // "블로그명 : 포스트 제목" 형식에서 포스트 제목만 추출
-                const titleParts = naverTitleMatch[1].split(":");
-                if (titleParts.length > 1) {
-                  metaData.title = titleParts[titleParts.length - 1].trim();
-                } else {
-                  metaData.title = naverTitleMatch[1].trim();
+            
+            // 3. se-image-resource (네이버 블로그 에디터 이미지)
+            if (!metaData.thumbnailUrl) {
+              const seImageMatch = html.match(/<img[^>]*class=["'][^"']*se-image-resource[^"']*["'][^>]*src=["']([^"']+)["']/i);
+              if (seImageMatch && seImageMatch[1]) {
+                let imgUrl = seImageMatch[1].trim();
+                if (imgUrl.startsWith("//")) {
+                  imgUrl = `https:${imgUrl}`;
+                }
+                if (imgUrl && (imgUrl.startsWith("http://") || imgUrl.startsWith("https://"))) {
+                  metaData.thumbnailUrl = imgUrl;
                 }
               }
             }
 
-            // 네이버 블로그 본문에서 내용 추출
+            // 네이버 블로그 제목 찾기 (여러 패턴 시도)
+            if (!metaData.title) {
+              // 1. og:title에서 찾기
+              const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+              if (ogTitleMatch && ogTitleMatch[1]) {
+                metaData.title = ogTitleMatch[1].trim();
+              }
+              
+              // 2. title 태그에서 찾기
+              if (!metaData.title) {
+                const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+                if (titleMatch && titleMatch[1]) {
+                  let title = titleMatch[1].trim();
+                  // "블로그명 : 포스트 제목" 또는 "포스트 제목 - 블로그명" 형식 처리
+                  if (title.includes(":")) {
+                    const parts = title.split(":");
+                    title = parts[parts.length - 1].trim();
+                  } else if (title.includes(" - ")) {
+                    const parts = title.split(" - ");
+                    title = parts[0].trim();
+                  }
+                  metaData.title = title;
+                }
+              }
+              
+              // 3. se-title-text 클래스에서 찾기 (네이버 블로그 에디터)
+              if (!metaData.title) {
+                const seTitleMatch = html.match(/<div[^>]*class=["'][^"']*se-title-text[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+                if (seTitleMatch && seTitleMatch[1]) {
+                  metaData.title = extractTextFromHTML(seTitleMatch[1], 100).trim();
+                }
+              }
+              
+              // 4. p.titleArea 또는 .title_area에서 찾기
+              if (!metaData.title) {
+                const titleAreaMatch = html.match(/<p[^>]*class=["'][^"']*title[^"']*["'][^>]*>([\s\S]*?)<\/p>/i);
+                if (titleAreaMatch && titleAreaMatch[1]) {
+                  metaData.title = extractTextFromHTML(titleAreaMatch[1], 100).trim();
+                }
+              }
+            }
+
+            // 네이버 블로그 본문에서 내용 추출 (여러 패턴 시도)
             if (!metaData.excerpt) {
-              // 본문 영역 찾기
-              const contentMatch = html.match(/<div[^>]*class=["'][^"']*se-main-container[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
-              if (contentMatch && contentMatch[1]) {
-                metaData.excerpt = extractTextFromHTML(contentMatch[1], 200);
-              } else {
-                // 대체 패턴
-                const altContentMatch = html.match(/<div[^>]*id=["']postViewArea["'][^>]*>([\s\S]*?)<\/div>/i);
-                if (altContentMatch && altContentMatch[1]) {
-                  metaData.excerpt = extractTextFromHTML(altContentMatch[1], 200);
+              // 1. og:description에서 찾기
+              const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i);
+              if (ogDescMatch && ogDescMatch[1]) {
+                metaData.excerpt = truncateText(ogDescMatch[1], 200);
+              }
+              
+              // 2. se-main-container (네이버 블로그 에디터 본문)
+              if (!metaData.excerpt) {
+                const seMainMatch = html.match(/<div[^>]*class=["'][^"']*se-main-container[^"']*["'][^>]*>([\s\S]{100,5000})<\/div>/i);
+                if (seMainMatch && seMainMatch[1]) {
+                  const extracted = extractTextFromHTML(seMainMatch[1], 200);
+                  if (extracted.length > 30) {
+                    metaData.excerpt = extracted;
+                  }
+                }
+              }
+              
+              // 3. postViewArea
+              if (!metaData.excerpt) {
+                const postViewMatch = html.match(/<div[^>]*id=["']postViewArea["'][^>]*>([\s\S]{100,5000})<\/div>/i);
+                if (postViewMatch && postViewMatch[1]) {
+                  const extracted = extractTextFromHTML(postViewMatch[1], 200);
+                  if (extracted.length > 30) {
+                    metaData.excerpt = extracted;
+                  }
+                }
+              }
+              
+              // 4. se-component-content (네이버 블로그 컴포넌트)
+              if (!metaData.excerpt) {
+                const seComponentMatch = html.match(/<div[^>]*class=["'][^"']*se-component-content[^"']*["'][^>]*>([\s\S]{100,3000})<\/div>/i);
+                if (seComponentMatch && seComponentMatch[1]) {
+                  const extracted = extractTextFromHTML(seComponentMatch[1], 200);
+                  if (extracted.length > 30) {
+                    metaData.excerpt = extracted;
+                  }
+                }
+              }
+              
+              // 5. article 태그
+              if (!metaData.excerpt) {
+                const articleMatch = html.match(/<article[^>]*>([\s\S]{100,5000})<\/article>/i);
+                if (articleMatch && articleMatch[1]) {
+                  const extracted = extractTextFromHTML(articleMatch[1], 200);
+                  if (extracted.length > 30) {
+                    metaData.excerpt = extracted;
+                  }
                 }
               }
             }
@@ -318,10 +432,33 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log("Final parsed data:", metaData);
-    return NextResponse.json(metaData);
+    console.log("Final parsed data:", JSON.stringify(metaData, null, 2));
+    
+    // 최소한 하나의 데이터라도 있는지 확인
+    if (metaData.title || metaData.thumbnailUrl || metaData.excerpt) {
+      return NextResponse.json(metaData);
+    }
+    
+    // 데이터가 없어도 에러가 아닌 경우 (정상 응답)
+    return NextResponse.json({
+      thumbnailUrl: null,
+      title: null,
+      excerpt: null,
+      message: "페이지에서 정보를 찾을 수 없습니다. 수동으로 입력해주세요.",
+    });
   } catch (error) {
     console.error("Error fetching data:", error);
+    
+    // 에러 발생 시에도 서드파티 API 한 번 더 시도
+    try {
+      const apiData = await fetchDataFromAPI(url);
+      if (apiData && (apiData.title || apiData.thumbnailUrl || apiData.excerpt)) {
+        console.log("Using API data after error:", apiData);
+        return NextResponse.json(apiData);
+      }
+    } catch (apiError) {
+      console.error("API fallback also failed:", apiError);
+    }
     
     return NextResponse.json(
       { 
