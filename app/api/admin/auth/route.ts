@@ -3,11 +3,12 @@ import { cookies } from "next/headers";
 import {
   generateSessionToken,
   validateSessionToken,
-  verifyPassword,
 } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { getPrisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
-// POST: 로그인
+// POST: 로그인 (이메일/비밀번호)
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting 적용 (15분에 5회 제한)
@@ -17,20 +18,40 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { password } = body;
+    const { email, password } = body;
 
-    if (!password) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: "비밀번호를 입력해주세요." },
+        { error: "이메일과 비밀번호를 입력해주세요." },
         { status: 400 }
       );
     }
 
-    // 비밀번호 검증 (bcrypt)
-    const isValid = await verifyPassword(password);
+    const prisma = getPrisma();
+
+    // 관리자 계정 조회
+    const admin = await prisma.admin.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        name: true,
+      },
+    });
+
+    if (!admin) {
+      return NextResponse.json(
+        { error: "이메일 또는 비밀번호가 올바르지 않습니다." },
+        { status: 401 }
+      );
+    }
+
+    // 비밀번호 검증
+    const isValid = await bcrypt.compare(password, admin.password);
     if (!isValid) {
       return NextResponse.json(
-        { error: "비밀번호가 올바르지 않습니다." },
+        { error: "이메일 또는 비밀번호가 올바르지 않습니다." },
         { status: 401 }
       );
     }
@@ -50,7 +71,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "로그인 성공"
+      message: "로그인 성공",
+      admin: {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+      },
     });
   } catch (error) {
     console.error("Login error:", error);

@@ -13,7 +13,18 @@ interface Stats {
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [mode, setMode] = useState<"login" | "register">("login");
+  
+  // 로그인 상태
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  
+  // 회원가입 상태
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerName, setRegisterName] = useState("");
+  const [secretKey, setSecretKey] = useState("");
+  
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [stats, setStats] = useState<Stats>({
@@ -106,19 +117,56 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
         setIsLoggedIn(true);
+        setEmail("");
         setPassword("");
       } else {
         setError(data.error || "로그인에 실패했습니다.");
       }
     } catch {
       setError("로그인 처리 중 오류가 발생했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/admin/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: registerEmail,
+          password: registerPassword,
+          name: registerName,
+          secretKey,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setIsLoggedIn(true);
+        setRegisterEmail("");
+        setRegisterPassword("");
+        setRegisterName("");
+        setSecretKey("");
+        setMode("login");
+      } else {
+        setError(data.error || "회원가입에 실패했습니다.");
+      }
+    } catch {
+      setError("회원가입 처리 중 오류가 발생했습니다.");
     } finally {
       setSubmitting(false);
     }
@@ -150,39 +198,168 @@ export default function AdminPage() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">관리자 로그인</h1>
+            <h1 className="text-2xl font-bold mb-2">
+              {mode === "login" ? "관리자 로그인" : "관리자 회원가입"}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              관리자 권한이 필요합니다.
+              {mode === "login"
+                ? "이메일과 비밀번호로 로그인하세요."
+                : "시크릿키를 입력하여 관리자 계정을 생성하세요."}
             </p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
-                비밀번호
-              </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="관리자 비밀번호"
-                disabled={submitting}
-              />
-            </div>
-            {error && (
-              <p className="text-sm text-accent">{error}</p>
-            )}
+
+          {/* 탭 전환 */}
+          <div className="flex gap-2 mb-6">
             <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50"
+              onClick={() => {
+                setMode("login");
+                setError("");
+              }}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                mode === "login"
+                  ? "bg-accent text-white"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
             >
-              {submitting ? "로그인 중..." : "로그인"}
+              로그인
             </button>
-          </form>
+            <button
+              onClick={() => {
+                setMode("register");
+                setError("");
+              }}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                mode === "register"
+                  ? "bg-accent text-white"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              회원가입
+            </button>
+          </div>
+
+          {/* 로그인 폼 */}
+          {mode === "login" && (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium mb-2">
+                  이메일
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="admin@example.com"
+                  disabled={submitting}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium mb-2">
+                  비밀번호
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="비밀번호"
+                  disabled={submitting}
+                  required
+                />
+              </div>
+              {error && <p className="text-sm text-accent">{error}</p>}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50"
+              >
+                {submitting ? "로그인 중..." : "로그인"}
+              </button>
+            </form>
+          )}
+
+          {/* 회원가입 폼 */}
+          {mode === "register" && (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div>
+                <label htmlFor="secretKey" className="block text-sm font-medium mb-2">
+                  시크릿키 <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="secretKey"
+                  value={secretKey}
+                  onChange={(e) => setSecretKey(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="시크릿키를 입력하세요"
+                  disabled={submitting}
+                  required
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  관리자에게 발급받은 시크릿키를 입력하세요.
+                </p>
+              </div>
+              <div>
+                <label htmlFor="registerEmail" className="block text-sm font-medium mb-2">
+                  이메일
+                </label>
+                <input
+                  type="email"
+                  id="registerEmail"
+                  value={registerEmail}
+                  onChange={(e) => setRegisterEmail(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="admin@example.com"
+                  disabled={submitting}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="registerName" className="block text-sm font-medium mb-2">
+                  이름 (선택)
+                </label>
+                <input
+                  type="text"
+                  id="registerName"
+                  value={registerName}
+                  onChange={(e) => setRegisterName(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="이름"
+                  disabled={submitting}
+                />
+              </div>
+              <div>
+                <label htmlFor="registerPassword" className="block text-sm font-medium mb-2">
+                  비밀번호
+                </label>
+                <input
+                  type="password"
+                  id="registerPassword"
+                  value={registerPassword}
+                  onChange={(e) => setRegisterPassword(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="최소 8자 이상"
+                  disabled={submitting}
+                  required
+                  minLength={8}
+                />
+              </div>
+              {error && <p className="text-sm text-accent">{error}</p>}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50"
+              >
+                {submitting ? "회원가입 중..." : "회원가입"}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     );

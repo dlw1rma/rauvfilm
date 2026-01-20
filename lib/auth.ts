@@ -22,9 +22,7 @@ function getRequiredEnv(key: string): string {
   return value;
 }
 
-// 환경변수에서 관리자 비밀번호 해시 가져오기
-// 주의: 환경변수에는 bcrypt 해시를 저장해야 함
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
+// 세션 시크릿키 (필수)
 const SESSION_SECRET = getRequiredEnv("SESSION_SECRET");
 
 // 세션 토큰 생성 (crypto.randomBytes 사용 - 암호학적으로 안전)
@@ -74,48 +72,7 @@ export function validateSessionToken(token: string): boolean {
   }
 }
 
-// 비밀번호 검증 (bcrypt)
-export async function verifyPassword(password: string): Promise<boolean> {
-  // 환경변수가 없으면 무조건 거부 (보안 강화)
-  if (!ADMIN_PASSWORD_HASH) {
-    console.error(
-      "❌ 보안 오류: ADMIN_PASSWORD_HASH 환경변수가 설정되지 않았습니다. 로그인이 차단됩니다."
-    );
-    console.error("현재 환경변수 상태:", {
-      hasHash: !!process.env.ADMIN_PASSWORD_HASH,
-      hashLength: process.env.ADMIN_PASSWORD_HASH?.length || 0,
-      hashPrefix: process.env.ADMIN_PASSWORD_HASH?.substring(0, 10) || "없음",
-    });
-    return false;
-  }
-
-  // 디버깅: 환경변수 로드 확인
-  console.log("🔐 비밀번호 검증 시도:", {
-    hashLength: ADMIN_PASSWORD_HASH.length,
-    hashPrefix: ADMIN_PASSWORD_HASH.substring(0, 20),
-    hashSuffix: ADMIN_PASSWORD_HASH.substring(ADMIN_PASSWORD_HASH.length - 10),
-    passwordLength: password.length,
-    passwordPrefix: password.substring(0, 3) + "***",
-  });
-
-  // 해시값 앞뒤 공백 제거 (환경변수 설정 시 공백이 포함될 수 있음)
-  const trimmedHash = ADMIN_PASSWORD_HASH.trim();
-
-  const result = await bcrypt.compare(password, trimmedHash).catch((err) => {
-    console.error("❌ bcrypt 비교 오류:", err);
-    return false;
-  });
-  
-  if (!result) {
-    console.warn("❌ 비밀번호 검증 실패 - 해시와 일치하지 않음");
-  } else {
-    console.log("✅ 비밀번호 검증 성공");
-  }
-
-  return result;
-}
-
-// 비밀번호 해시 생성 헬퍼 (초기 설정용)
+// 비밀번호 해시 생성 헬퍼 (회원가입/비밀번호 변경용)
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
@@ -142,5 +99,23 @@ export async function requireAdminAuth(
       { error: "인증 확인 중 오류가 발생했습니다." },
       { status: 500 }
     );
+  }
+}
+
+// 세션에서 관리자 정보 가져오기 (선택적)
+export async function getAdminFromSession(): Promise<{ id: number; email: string } | null> {
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("admin_session")?.value;
+
+    if (!sessionToken || !validateSessionToken(sessionToken)) {
+      return null;
+    }
+
+    // 실제로는 세션 토큰에 관리자 ID를 포함하거나 별도 세션 테이블에서 조회
+    // 현재는 간단한 구현이므로 null 반환
+    return null;
+  } catch {
+    return null;
   }
 }
