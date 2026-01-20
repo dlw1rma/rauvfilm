@@ -289,29 +289,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
-      <section className="py-20 px-4">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="mb-6 text-2xl font-bold">촬영이 필요하신가요?</h2>
-          <p className="mb-8 text-muted-foreground">
-            예식 일정, 촬영 스타일, 가격 등 궁금한 점이 있으시면 언제든 문의해주세요.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/reservation"
-              className="inline-flex h-12 items-center justify-center rounded bg-accent px-8 text-base font-medium text-white transition-all hover:bg-accent-hover hover:-translate-y-1"
-            >
-              예약 문의하기
-            </Link>
-            <Link
-              href="/portfolio"
-              className="inline-flex h-12 items-center justify-center rounded border border-border px-8 text-base font-medium transition-all hover:bg-muted hover:-translate-y-1"
-            >
-              포트폴리오 보기
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
