@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 interface RouteParams {
@@ -9,6 +9,7 @@ interface RouteParams {
 // POST: 비밀번호 확인
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = getPrisma();
     const { id } = await params;
     const reservationId = parseInt(id);
     const body = await request.json();

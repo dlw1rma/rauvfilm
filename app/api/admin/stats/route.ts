@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 // 관리자 대시보드 통계 조회
 export async function GET() {
   try {
+    const prisma = getPrisma();
     const [
       totalReservations,
       pendingReservations,

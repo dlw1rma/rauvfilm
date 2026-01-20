@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -8,6 +8,7 @@ interface RouteParams {
 // GET: 리뷰 상세 조회
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = getPrisma();
     const { id } = await params;
     const reviewId = parseInt(id);
 
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT: 리뷰 수정
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = getPrisma();
     const { id } = await params;
     const reviewId = parseInt(id);
     const body = await request.json();
@@ -66,6 +68,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE: 리뷰 삭제
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = getPrisma();
     const { id } = await params;
     const reviewId = parseInt(id);
 

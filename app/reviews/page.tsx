@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import prisma from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "고객 후기 | 라우브필름",
@@ -13,20 +13,26 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 async function getReviews() {
-  const reviews = await prisma.review.findMany({
-    where: { isVisible: true },
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-  });
+  try {
+    const prisma = getPrisma();
+    const reviews = await prisma.review.findMany({
+      where: { isVisible: true },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+    });
 
-  return reviews.map((r) => ({
-    id: r.id,
-    title: r.title,
-    excerpt: r.excerpt,
-    sourceUrl: r.sourceUrl,
-    sourceType: r.sourceType,
-    author: r.author,
-    createdAt: r.createdAt,
-  }));
+    return reviews.map((r) => ({
+      id: r.id,
+      title: r.title,
+      excerpt: r.excerpt,
+      sourceUrl: r.sourceUrl,
+      sourceType: r.sourceType,
+      author: r.author,
+      createdAt: r.createdAt,
+    }));
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    return [];
+  }
 }
 
 function getSourceLabel(sourceType: string) {

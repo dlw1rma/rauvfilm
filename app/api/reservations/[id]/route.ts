@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 interface RouteParams {
@@ -9,6 +9,7 @@ interface RouteParams {
 // GET: 예약 상세 조회
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = getPrisma();
     const { id } = await params;
     const reservationId = parseInt(id);
     const { searchParams } = new URL(request.url);
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT: 예약 수정
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = getPrisma();
     const { id } = await params;
     const reservationId = parseInt(id);
     const body = await request.json();
@@ -143,6 +145,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE: 예약 삭제
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = getPrisma();
     const { id } = await params;
     const reservationId = parseInt(id);
     const body = await request.json();

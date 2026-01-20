@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "예약 문의",
@@ -10,28 +10,34 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 async function getReservations() {
-  const reservations = await prisma.reservation.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      author: true,
-      isPrivate: true,
-      createdAt: true,
-      reply: {
-        select: { id: true },
+  try {
+    const prisma = getPrisma();
+    const reservations = await prisma.reservation.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        author: true,
+        isPrivate: true,
+        createdAt: true,
+        reply: {
+          select: { id: true },
+        },
       },
-    },
-  });
+    });
 
-  return reservations.map((r) => ({
-    id: r.id,
-    title: r.title,
-    author: r.author,
-    isPrivate: r.isPrivate,
-    createdAt: r.createdAt.toISOString().split("T")[0],
-    hasReply: !!r.reply,
-  }));
+    return reservations.map((r) => ({
+      id: r.id,
+      title: r.title,
+      author: r.author,
+      isPrivate: r.isPrivate,
+      createdAt: r.createdAt.toISOString().split("T")[0],
+      hasReply: !!r.reply,
+    }));
+  } catch (error) {
+    console.error("Error fetching reservations:", error);
+    return [];
+  }
 }
 
 export default async function ReservationPage() {

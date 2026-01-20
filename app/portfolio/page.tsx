@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { Portfolio } from "@prisma/client";
 import YouTubeFacade from "@/components/video/YouTubeFacade";
-import prisma from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "포트폴리오 | 라우브필름",
@@ -30,17 +30,24 @@ function extractVideoId(url: string): string {
 }
 
 async function getPortfolios() {
-  const portfolios = await prisma.portfolio.findMany({
-    where: { isVisible: true },
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-  });
+  try {
+    const prisma = getPrisma();
+    const portfolios = await prisma.portfolio.findMany({
+      where: { isVisible: true },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+    });
 
-  return portfolios.map((p: Portfolio) => ({
-    id: p.id,
-    title: p.title,
-    videoId: extractVideoId(p.youtubeUrl),
-    category: p.category,
-  }));
+    return portfolios.map((p: Portfolio) => ({
+      id: p.id,
+      title: p.title,
+      videoId: extractVideoId(p.youtubeUrl),
+      category: p.category,
+    }));
+  } catch (error) {
+    // Cloudtype에서 DATABASE_URL 미주입 시에도 렌더가 프로세스 크래시로 이어지지 않게 방어
+    console.error("Error fetching portfolios:", error);
+    return [];
+  }
 }
 
 export default async function PortfolioPage() {
