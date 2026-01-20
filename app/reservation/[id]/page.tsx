@@ -22,6 +22,14 @@ interface Reservation {
   } | null;
 }
 
+// 작성자 이름 마스킹 함수 (첫 글자와 두 번째 글자만 보이고 나머지는 *)
+const maskAuthorName = (name: string): string => {
+  if (!name || name.length === 0) return "";
+  if (name.length === 1) return name + "*";
+  if (name.length === 2) return name[0] + name[1] + "*";
+  return name[0] + name[1] + "*".repeat(name.length - 2);
+};
+
 export default function ReservationDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -194,7 +202,7 @@ export default function ReservationDetailPage() {
             </p>
             <div className="flex flex-col items-center gap-2">
               <p className="text-sm text-muted-foreground">
-                작성자: {reservation.author} | 작성일: {reservation.createdAt.split("T")[0]}
+                작성자: {maskAuthorName(reservation.author)}
               </p>
             </div>
             <button
@@ -215,7 +223,7 @@ export default function ReservationDetailPage() {
               </p>
               <form onSubmit={handlePasswordSubmit}>
                 <input
-                  type="password"
+                  type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="예약자 전화번호를 입력하세요"
@@ -387,7 +395,7 @@ export default function ReservationDetailPage() {
               </p>
               <form onSubmit={handlePasswordSubmit}>
                 <input
-                  type="password"
+                  type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="예약자 전화번호를 입력하세요"

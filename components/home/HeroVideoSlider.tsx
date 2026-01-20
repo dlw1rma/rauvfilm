@@ -1,23 +1,42 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 export default function HeroVideoSlider() {
   // 단일 영상 ID: sfKkrvLg_7g
   const videoId = "sfKkrvLg_7g";
+  const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    // 히어로 비디오의 실제 비율 가져오기
+    fetch(`/api/youtube/video-details?videoId=${videoId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setVideoDimensions({ width: data.width, height: data.height });
+      })
+      .catch((error) => {
+        console.error("Error fetching hero video dimensions:", error);
+        setVideoDimensions({ width: 1280, height: 720 });
+      });
+  }, []);
 
   return (
     <section className="relative w-full min-h-[400px] max-h-[60vh] overflow-hidden bg-black">
-      {/* Video Background - 좌우 고정, 위아래는 잘려도 됨 */}
-      <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+      {/* Video Background - 좌우 밀착(Width-Fixed), 위아래는 잘려도 됨 */}
+      <div 
+        className="absolute inset-0 w-full h-full"
+        style={videoDimensions ? {
+          aspectRatio: `${videoDimensions.width} / ${videoDimensions.height}`,
+          width: "100%"
+        } : {}}
+      >
         <iframe
           src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
           title="Hero Video"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           className="absolute inset-0 w-full h-full"
           style={{ 
-            border: "none",
-            objectFit: "cover",
-            width: "100%",
-            height: "100%"
+            border: "none"
           }}
           allowFullScreen
         />

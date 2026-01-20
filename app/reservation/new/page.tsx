@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import CustomShootingModal from "@/components/reservation/CustomShootingModal";
 
 type ProductType = "가성비형" | "기본형" | "시네마틱형" | "야외스냅" | "프리웨딩" | "";
 type EventType = "야외스냅" | "프리웨딩" | "";
@@ -69,11 +68,20 @@ export default function NewReservationPage() {
     
     // 특이사항
     specialNotes: "",
+    
+    // 커스텀 촬영 요청
+    customShootingRequest: false,
+    customStyle: [] as string[],
+    customEditStyle: [] as string[],
+    customMusic: [] as string[],
+    customLength: [] as string[],
+    customEffect: [] as string[],
+    customContent: [] as string[],
+    customSpecialRequest: "",
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [showCustomModal, setShowCustomModal] = useState(false);
 
   // 전화번호 포맷팅 (하이픈 추가)
   const formatPhoneNumber = (value: string): string => {
@@ -206,7 +214,7 @@ export default function NewReservationPage() {
   const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
     // 이벤트가 있으면 기본 동작 방지
     if (e) {
-      e.preventDefault();
+    e.preventDefault();
       e.stopPropagation();
     }
     
@@ -526,11 +534,11 @@ export default function NewReservationPage() {
               </div>
 
               <div className="grid gap-6 sm:grid-cols-2">
-                <div>
+          <div>
                   <div className="mb-2 flex items-center justify-between">
                     <label htmlFor="brideName" className="block text-sm font-medium">
                       신부님 성함 <span className="text-accent">*</span>
-                    </label>
+            </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -545,20 +553,20 @@ export default function NewReservationPage() {
                       </label>
                     </div>
                   </div>
-                  <input
-                    type="text"
+            <input
+              type="text"
                     id="brideName"
                     name="brideName"
-                    required
+              required
                     value={formData.brideName}
-                    onChange={handleChange}
+              onChange={handleChange}
                     className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  />
-                </div>
-                <div>
+            />
+          </div>
+            <div>
                   <label htmlFor="bridePhone" className="mb-2 block text-sm font-medium">
                     신부님 전화번호 <span className="text-accent">*</span>
-                  </label>
+              </label>
                   <input
                     type="tel"
                     id="bridePhone"
@@ -590,52 +598,52 @@ export default function NewReservationPage() {
                       </label>
                     </div>
                   </div>
-                  <input
-                    type="text"
+              <input
+                type="text"
                     id="groomName"
                     name="groomName"
-                    required
+                required
                     value={formData.groomName}
-                    onChange={handleChange}
+                onChange={handleChange}
                     className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  />
-                </div>
-                <div>
+              />
+            </div>
+            <div>
                   <label htmlFor="groomPhone" className="mb-2 block text-sm font-medium">
                     신랑님 전화번호 <span className="text-accent">*</span>
-                  </label>
-                  <input
+              </label>
+              <input
                     type="tel"
                     id="groomPhone"
                     name="groomPhone"
-                    required
+                required
                     value={formData.groomPhone}
-                    onChange={handleChange}
+                onChange={handleChange}
                     maxLength={13}
                     className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     placeholder="010-1234-5678"
-                  />
-                </div>
-              </div>
+              />
+            </div>
+          </div>
 
-              <div>
+            <div>
                 <label htmlFor="receiptPhone" className="mb-2 block text-sm font-medium">
                   현금 영수증 받으실 전화번호 <span className="text-accent">*</span>
-                </label>
-                <input
-                  type="tel"
+              </label>
+              <input
+                type="tel"
                   id="receiptPhone"
                   name="receiptPhone"
                   required
                   value={formData.receiptPhone}
-                  onChange={handleChange}
+                onChange={handleChange}
                   maxLength={13}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  placeholder="010-1234-5678"
-                />
-              </div>
+                placeholder="010-1234-5678"
+              />
+            </div>
 
-              <div>
+            <div>
                 <label htmlFor="depositName" className="mb-2 block text-sm font-medium">
                   예약금 입금자명 <span className="text-accent">*</span>
                 </label>
@@ -653,18 +661,18 @@ export default function NewReservationPage() {
               <div>
                 <label htmlFor="productEmail" className="mb-2 block text-sm font-medium">
                   상품 받으실 E-mail 주소 <span className="text-accent">*</span>
-                </label>
-                <input
-                  type="email"
+              </label>
+              <input
+                type="email"
                   id="productEmail"
                   name="productEmail"
                   required
                   value={formData.productEmail}
-                  onChange={handleChange}
+                onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  placeholder="example@email.com"
-                />
-              </div>
+                placeholder="example@email.com"
+              />
+            </div>
 
               <div>
                 <label htmlFor="partnerCode" className="mb-2 block text-sm font-medium">
@@ -679,7 +687,7 @@ export default function NewReservationPage() {
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   placeholder="짝궁 코드가 있으시면 입력해주세요"
                 />
-              </div>
+          </div>
 
               <div>
                 <label htmlFor="foundPath" className="mb-2 block text-sm font-medium">
@@ -758,18 +766,18 @@ export default function NewReservationPage() {
 
               {(formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") && (
                 <>
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="weddingDate" className="mb-2 block text-sm font-medium">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <label htmlFor="weddingDate" className="mb-2 block text-sm font-medium">
                         예식 날짜 <span className="text-accent">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        id="weddingDate"
-                        name="weddingDate"
+              </label>
+              <input
+                type="date"
+                id="weddingDate"
+                name="weddingDate"
                         required
-                        value={formData.weddingDate}
-                        onChange={handleChange}
+                value={formData.weddingDate}
+                onChange={handleChange}
                         onKeyDown={(e) => e.preventDefault()}
                         onClick={(e) => {
                           // 입력 필드 클릭 시 달력 열기
@@ -779,9 +787,9 @@ export default function NewReservationPage() {
                         }}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-foreground cursor-pointer"
                         style={{ colorScheme: 'light' }}
-                      />
-                    </div>
-                    <div>
+              />
+            </div>
+            <div>
                       <label htmlFor="weddingTime" className="mb-2 block text-sm font-medium">
                         예식 시간 <span className="text-accent">*</span>
                       </label>
@@ -809,14 +817,14 @@ export default function NewReservationPage() {
                     <div>
                       <label htmlFor="venueName" className="mb-2 block text-sm font-medium">
                         장소명 <span className="text-accent">*</span>
-                      </label>
-                      <input
-                        type="text"
+              </label>
+              <input
+                type="text"
                         id="venueName"
                         name="venueName"
                         required
                         value={formData.venueName}
-                        onChange={handleChange}
+                onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                       />
                     </div>
@@ -831,11 +839,11 @@ export default function NewReservationPage() {
                         value={formData.venueFloor}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                      />
-                    </div>
-                  </div>
+              />
+            </div>
+          </div>
 
-                  <div>
+          <div>
                     <label htmlFor="guestCount" className="mb-2 block text-sm font-medium">
                       초대인원
                     </label>
@@ -979,20 +987,20 @@ export default function NewReservationPage() {
                       <div>
                         <label htmlFor="deliveryAddress" className="mb-2 block text-sm font-medium">
                           (USB)상품받으실 거주지 주소 <span className="text-accent">*</span>
-                        </label>
-                        <textarea
+            </label>
+            <textarea
                           id="deliveryAddress"
                           name="deliveryAddress"
                           required={formData.usbOption}
                           rows={3}
                           value={formData.deliveryAddress}
-                          onChange={handleChange}
+              onChange={handleChange}
                           className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
                           placeholder="USB 추가 옵션 선택 시 상세 주소까지 입력해주세요"
-                        />
+            />
                       </div>
                     )}
-                  </div>
+          </div>
 
                   <div>
                     <label htmlFor="playbackDevice" className="mb-2 block text-sm font-medium">
@@ -1027,19 +1035,19 @@ export default function NewReservationPage() {
               <div className="rounded-lg border border-border bg-muted p-4">
                 <h3 className="mb-3 text-sm font-medium">할인 이벤트</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
                       id="discountNewYear"
                       name="discountNewYear"
                       checked={formData.discountNewYear}
-                      onChange={handleChange}
-                      className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                    />
+              onChange={handleChange}
+              className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+            />
                     <label htmlFor="discountNewYear" className="text-sm">
                       2026년 신년할인 (5만원)
-                    </label>
-                  </div>
+            </label>
+          </div>
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
@@ -1235,18 +1243,257 @@ export default function NewReservationPage() {
                 />
               </div>
 
-              {/* 커스텀 촬영 요청 버튼 */}
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowCustomModal(true)}
-                  className="w-full rounded-lg border-2 border-accent bg-transparent py-3 font-medium text-accent transition-all hover:bg-accent hover:text-white"
-                >
-                  🎬 커스텀 촬영 요청하기
-                </button>
-                <p className="mt-2 text-xs text-muted-foreground text-center">
-                  대표지정 or 대표배정 촬영만 해당됩니다
-                </p>
+              {/* 커스텀 촬영 요청 */}
+              <div className="mt-6 rounded-lg border border-border bg-muted p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <input
+                    type="checkbox"
+                    id="customShootingRequest"
+                    name="customShootingRequest"
+                    checked={formData.customShootingRequest}
+                    onChange={handleChange}
+                    className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                  />
+                  <label htmlFor="customShootingRequest" className="text-sm font-medium">
+                    🎬 커스텀 촬영 요청 (대표지정 or 대표배정 촬영만 해당)
+                  </label>
+                </div>
+
+                {formData.customShootingRequest && (
+                  <div className="space-y-6 mt-4 pt-4 border-t border-border">
+                    {/* 안내 문구 */}
+                    <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        ✅ 계약을 완료한 후 카카오톡 채널을 통해 커스텀 신청 부탁드립니다.
+                        <br />
+                        ✅ 여건에 따라 불가한 옵션이 있을 수 있습니다.
+                        <br />
+                        🚨 카카오톡 채널로 말씀없이 작성하시면 적용되지 않습니다!!
+                      </p>
+                    </div>
+
+                    {/* 영상 스타일 */}
+                    <div>
+                      <label className="mb-3 block text-sm font-medium">
+                        🎬 영상 스타일 <span className="text-accent">*</span>
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {["시네마틱", "다큐멘터리"].map((style) => (
+                          <div key={style} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              id={`customStyle-${style}`}
+                              name="customStyle"
+                              value={style}
+                              checked={formData.customStyle.includes(style)}
+                              onChange={(e) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  customStyle: [style],
+                                }));
+                              }}
+                              className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                            />
+                            <label htmlFor={`customStyle-${style}`} className="text-sm cursor-pointer">
+                              {style}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 편집 스타일 */}
+                    <div>
+                      <label className="mb-3 block text-sm font-medium">
+                        ✂️ 편집 스타일 <span className="text-accent">*</span>
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { value: "빠른 컷 편집", label: "빠른 템포의 컷 편집" },
+                          { value: "부드러운 전환", label: "느린 템포의 컷 편집" },
+                          { value: "영화 같은 편집", label: "영화 같은 편집" },
+                        ].map((option) => (
+                          <div key={option.value} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              id={`customEditStyle-${option.value}`}
+                              name="customEditStyle"
+                              value={option.value}
+                              checked={formData.customEditStyle.includes(option.value)}
+                              onChange={(e) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  customEditStyle: [option.value],
+                                }));
+                              }}
+                              className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                            />
+                            <label htmlFor={`customEditStyle-${option.value}`} className="text-sm cursor-pointer">
+                              {option.label}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 음악 장르 */}
+                    <div>
+                      <label className="mb-3 block text-sm font-medium">
+                        🎵 음악 장르 <span className="text-accent">*</span>
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {["클래식", "팝", "발라드", "재즈", "인디", "K-pop", "영화 OST", "직접 선곡"].map((music) => (
+                          <div key={music} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              id={`customMusic-${music}`}
+                              name="customMusic"
+                              value={music}
+                              checked={formData.customMusic.includes(music)}
+                              onChange={(e) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  customMusic: [music],
+                                }));
+                              }}
+                              className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                            />
+                            <label htmlFor={`customMusic-${music}`} className="text-sm cursor-pointer">
+                              {music}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 영상 진행형식 */}
+                    <div>
+                      <label className="mb-3 block text-sm font-medium">
+                        ⏱️ 영상 진행형식 <span className="text-accent">*</span>
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { value: "하이라이트 (3-5분)", label: "뮤직비디오 (2-3분)" },
+                          { value: "예능형 (10-15분)", label: "예능형 (10-15분)(추가비용 발생)" },
+                          { value: "다큐멘터리(20-30분)", label: "다큐멘터리(15-30분)" },
+                        ].map((option) => (
+                          <div key={option.value} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              id={`customLength-${option.value}`}
+                              name="customLength"
+                              value={option.value}
+                              checked={formData.customLength.includes(option.value)}
+                              onChange={(e) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  customLength: [option.value],
+                                }));
+                              }}
+                              className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                            />
+                            <label htmlFor={`customLength-${option.value}`} className="text-sm cursor-pointer">
+                              {option.label}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 추가효과 */}
+                    <div>
+                      <label className="mb-3 block text-sm font-medium">✨ 추가효과</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { value: "타임랩스", label: "적절한 슬로우 모션" },
+                          { value: "자막/나레이션", label: "자막/나레이션(다큐멘터리 추천)" },
+                          { value: "인터뷰 삽입", label: "인터뷰 삽입" },
+                        ].map((option) => (
+                          <div key={option.value} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`customEffect-${option.value}`}
+                              name="customEffect"
+                              value={option.value}
+                              checked={formData.customEffect.includes(option.value)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    customEffect: [...prev.customEffect, option.value],
+                                  }));
+                                } else {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    customEffect: prev.customEffect.filter((e) => e !== option.value),
+                                  }));
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-border bg-background text-accent focus:ring-accent"
+                            />
+                            <label htmlFor={`customEffect-${option.value}`} className="text-sm cursor-pointer">
+                              {option.label}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 추가 옵션 */}
+                    <div>
+                      <label className="mb-3 block text-sm font-medium">📱 추가 옵션 (추가비용 발생)</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { value: "드론 촬영", label: "드론 촬영 (촬영 여건에 따라 불가할 수 있습니다.)" },
+                          { value: "수석 촬영자 추가", label: "수석 촬영자 추가(25만원)" },
+                        ].map((option) => (
+                          <div key={option.value} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`customContent-${option.value}`}
+                              name="customContent"
+                              value={option.value}
+                              checked={formData.customContent.includes(option.value)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    customContent: [...prev.customContent, option.value],
+                                  }));
+                                } else {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    customContent: prev.customContent.filter((c) => c !== option.value),
+                                  }));
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-border bg-background text-accent focus:ring-accent"
+                            />
+                            <label htmlFor={`customContent-${option.value}`} className="text-sm cursor-pointer">
+                              {option.label}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 특별 요청사항 */}
+                    <div>
+                      <label htmlFor="customSpecialRequest" className="mb-2 block text-sm font-medium">
+                        💝 특별 요청사항
+                      </label>
+                      <textarea
+                        id="customSpecialRequest"
+                        name="customSpecialRequest"
+                        rows={4}
+                        value={formData.customSpecialRequest}
+                        onChange={handleChange}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                        placeholder="특별히 담고 싶은 순간이나 요청사항을 자유롭게 작성해주세요."
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1257,13 +1504,13 @@ export default function NewReservationPage() {
               <button
                 type="button"
                 onClick={() => setCurrentSection(currentSection - 1)}
-                className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
-              >
+              className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
+            >
                 이전
               </button>
             )}
             {currentSection < totalSections ? (
-              <button
+            <button
                 type="button"
                 onClick={handleNext}
                 className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover"
@@ -1273,7 +1520,7 @@ export default function NewReservationPage() {
             ) : (
               <button
                 type="button"
-                disabled={isSubmitting}
+              disabled={isSubmitting}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -1282,26 +1529,13 @@ export default function NewReservationPage() {
                     handleSubmit(e as any);
                   }
                 }}
-                className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? "등록 중..." : "등록하기"}
-              </button>
+              className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "등록 중..." : "등록하기"}
+            </button>
             )}
           </div>
         </form>
-
-        {/* 커스텀 촬영 요청 모달 */}
-        <CustomShootingModal
-          isOpen={showCustomModal}
-          onClose={() => setShowCustomModal(false)}
-          initialData={{
-            weddingDate: formData.weddingDate,
-            weddingTime: formData.weddingTime,
-            venue: formData.venueName,
-            groomName: formData.groomName,
-            brideName: formData.brideName,
-          }}
-        />
       </div>
     </div>
   );

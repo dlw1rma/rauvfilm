@@ -38,8 +38,7 @@ function getYoutubeThumbnail(youtubeId: string, quality: 'default' | 'hq' | 'mq'
 
 export default function PortfolioPageClient() {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
-  const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string } | null>(null);
-  const [videoAspectRatio, setVideoAspectRatio] = useState<number>(16 / 9);
+  const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string; width: number; height: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,6 +63,23 @@ export default function PortfolioPageClient() {
       });
   }, []);
 
+  // 히어로 비디오 ID
+  const heroVideoId = "IbiUX6n7eEM";
+  const [heroVideoDimensions, setHeroVideoDimensions] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    // 히어로 비디오의 실제 비율 가져오기
+    fetch(`/api/youtube/video-details?videoId=${heroVideoId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setHeroVideoDimensions({ width: data.width, height: data.height });
+      })
+      .catch((error) => {
+        console.error("Error fetching hero video dimensions:", error);
+        setHeroVideoDimensions({ width: 1280, height: 720 });
+      });
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen py-20 px-4">
@@ -76,26 +92,26 @@ export default function PortfolioPageClient() {
     );
   }
 
-  // 히어로 비디오 ID
-  const heroVideoId = "IbiUX6n7eEM";
-
   return (
     <>
       <div className="min-h-screen">
         {/* Hero Video Section */}
         <section className="relative w-full min-h-[500px] max-h-[70vh] overflow-hidden bg-black mb-16">
-          {/* Video Background - 좌우 고정, 위아래는 잘려도 됨 */}
-          <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+          {/* Video Background - 좌우 밀착(Width-Fixed), 위아래는 잘려도 됨 */}
+          <div 
+            className="absolute inset-0 w-full h-full"
+            style={heroVideoDimensions ? {
+              aspectRatio: `${heroVideoDimensions.width} / ${heroVideoDimensions.height}`,
+              width: "100%"
+            } : {}}
+          >
             <iframe
               src={`https://www.youtube.com/embed/${heroVideoId}?autoplay=1&mute=1&loop=1&playlist=${heroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
               title="Portfolio Hero Video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               className="absolute inset-0 w-full h-full"
               style={{ 
-                border: "none",
-                objectFit: "cover",
-                width: "100%",
-                height: "100%"
+                border: "none"
               }}
               allowFullScreen
             />
@@ -138,20 +154,35 @@ export default function PortfolioPageClient() {
                     key={item.id}
                     className="group rounded-xl border border-border bg-muted p-3 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/10 cursor-pointer"
                     onClick={async () => {
-                      // 서버 사이드 API로 실제 영상 비율 가져오기
+                      // YouTube Data API v3로 실제 영상 비율 가져오기
                       try {
-                        const response = await fetch(`/api/youtube/oembed?videoId=${item.videoId}`);
+                        const response = await fetch(`/api/youtube/video-details?videoId=${item.videoId}`);
                         if (response.ok) {
                           const data = await response.json();
-                          setVideoAspectRatio(data.aspectRatio);
+                          setSelectedVideo({ 
+                            videoId: item.videoId, 
+                            title: item.title,
+                            width: data.width,
+                            height: data.height
+                          });
                         } else {
-                          setVideoAspectRatio(16 / 9);
+                          // 실패 시 기본값 사용
+                          setSelectedVideo({ 
+                            videoId: item.videoId, 
+                            title: item.title,
+                            width: 1280,
+                            height: 720
+                          });
                         }
                       } catch (error) {
                         console.error("Error fetching video aspect ratio:", error);
-                        setVideoAspectRatio(16 / 9);
+                        setSelectedVideo({ 
+                          videoId: item.videoId, 
+                          title: item.title,
+                          width: 1280,
+                          height: 720
+                        });
                       }
-                      setSelectedVideo({ videoId: item.videoId, title: item.title });
                     }}
                   >
                     {/* Thumbnail */}
@@ -208,12 +239,12 @@ export default function PortfolioPageClient() {
               </svg>
             </button>
 
-            {/* Video Player - 좌우 고정, 위아래는 잘려도 됨 */}
+            {/* Video Player - 좌우 밀착(Width-Fixed), 위아래는 잘려도 됨 */}
             <div 
-              className="relative w-full h-full flex items-center justify-center"
+              className="relative w-full"
               style={{ 
-                width: "100%",
-                height: "100%"
+                aspectRatio: `${selectedVideo.width} / ${selectedVideo.height}`,
+                maxWidth: "100%"
               }}
             >
               <iframe
@@ -223,10 +254,7 @@ export default function PortfolioPageClient() {
                 allowFullScreen
                 className="absolute inset-0 w-full h-full"
                 style={{ 
-                  border: "none",
-                  objectFit: "cover",
-                  width: "100%",
-                  height: "100%"
+                  border: "none"
                 }}
               />
             </div>
