@@ -8,24 +8,18 @@ export default function KakaoChannelButton() {
   return (
     <button
       onClick={handleClick}
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#FEE500] text-[#3C1E1E] px-4 py-3 rounded-full shadow-lg hover:brightness-95 hover:scale-105 transition-all"
+      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#FFD700] text-black px-4 py-3 rounded-xl shadow-lg hover:brightness-95 hover:scale-105 transition-all"
       aria-label="카카오톡 상담"
     >
-      {/* Message Icon */}
+      {/* Chat Bubble Icon - Solid Black */}
       <svg
         className="w-5 h-5"
-        fill="none"
+        fill="black"
         viewBox="0 0 24 24"
-        strokeWidth="2"
-        stroke="currentColor"
       >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
-        />
+        <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
       </svg>
-      <span className="font-medium text-sm">문의</span>
+      <span className="font-medium text-sm text-black">문의</span>
     </button>
   );
 }
