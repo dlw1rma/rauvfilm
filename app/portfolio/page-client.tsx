@@ -208,7 +208,7 @@ export default function PortfolioPageClient() {
                 </h1>
                 <div className="space-y-2 text-white/90 text-sm md:text-base lg:text-lg leading-relaxed drop-shadow-md">
                   <p>상품 종류, 커스텀 여부를 잘 확인해주세요!</p>
-                  <p>대표와 장 촬영만이</p>
+                  <p>대표와 수석실장 촬영만이</p>
                   <p>짐벌(움직임이 있는) 커스텀 촬영으로 진행 가능하며</p>
                   <p>이외 촬영은 움직임이 없이 촬영됩니다.</p>
                 </div>
