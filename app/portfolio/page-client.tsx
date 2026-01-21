@@ -42,6 +42,7 @@ export default function PortfolioPageClient() {
   const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("전체");
 
   useEffect(() => {
     fetch("/api/portfolio")
@@ -115,14 +116,38 @@ export default function PortfolioPageClient() {
   const currentHeroVideoId = isMobile ? mobileHeroVideoId : desktopHeroVideoId;
   const currentHeroVideoDimensions = isMobile ? mobileHeroVideoDimensions : desktopHeroVideoDimensions;
 
-  // 검색 필터링
+  // 카테고리별 색상 매핑
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "가성비형":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+      case "기본형":
+        return "bg-green-500/20 text-green-400 border-green-500/30";
+      case "시네마틱형":
+        return "bg-purple-500/20 text-purple-400 border-purple-500/30";
+      default:
+        return "bg-accent/10 text-accent border-accent/30";
+    }
+  };
+
+  // 카테고리 목록 추출
+  const categories = ["전체", ...Array.from(new Set(portfolioItems.map(item => item.category)))];
+
+  // 필터링 (카테고리 + 검색)
   const filteredItems = portfolioItems.filter((item) => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      item.title.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query)
-    );
+    // 카테고리 필터
+    if (selectedCategory !== "전체" && item.category !== selectedCategory) {
+      return false;
+    }
+    // 검색 필터
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      return (
+        item.title.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query)
+      );
+    }
+    return true;
   });
 
   if (loading) {
@@ -219,6 +244,31 @@ export default function PortfolioPageClient() {
 
         <div className="py-20 px-4">
           <div className="mx-auto max-w-7xl">
+            {/* Category Filter */}
+            <div className="mb-8">
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all ${
+                      selectedCategory === category
+                        ? category === "가성비형"
+                          ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
+                          : category === "기본형"
+                          ? "bg-green-500 text-white shadow-lg shadow-green-500/30"
+                          : category === "시네마틱형"
+                          ? "bg-purple-500 text-white shadow-lg shadow-purple-500/30"
+                          : "bg-accent text-white shadow-lg shadow-accent/30"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Search Bar */}
             <div className="mb-8">
               <div className="relative max-w-md mx-auto">
@@ -241,7 +291,7 @@ export default function PortfolioPageClient() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="제목 또는 카테고리로 검색..."
+                  placeholder="제목으로 검색..."
                   className="w-full pl-12 pr-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                 />
                 {searchQuery && (
@@ -266,7 +316,7 @@ export default function PortfolioPageClient() {
                   </button>
                 )}
               </div>
-              {searchQuery && (
+              {(searchQuery || selectedCategory !== "전체") && (
                 <p className="mt-3 text-center text-sm text-muted-foreground">
                   {filteredItems.length}개의 결과를 찾았습니다
                 </p>
@@ -328,8 +378,8 @@ export default function PortfolioPageClient() {
                       )}
                     </div>
                     {/* Category & Title */}
-                    <div className="space-y-2">
-                      <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+                    <div className="space-y-3">
+                      <span className={`inline-block rounded-lg border px-4 py-2 text-sm font-bold ${getCategoryColor(item.category)}`}>
                         {item.category}
                       </span>
                       <h3 className="text-lg font-semibold group-hover:text-accent transition-colors line-clamp-2">

@@ -156,8 +156,20 @@ export default function PricingPage() {
               )}
 
               <div className="mb-6">
-                <p className="text-sm font-medium text-accent">{plan.subtitle}</p>
-                <h3 className="mt-1 text-2xl font-bold">{plan.name}</h3>
+                <div className="mb-3">
+                  <span className={`inline-block rounded-lg border-2 px-4 py-2 text-base font-bold ${
+                    plan.subtitle === "가성비형"
+                      ? "bg-blue-500/20 text-blue-400 border-blue-500/50"
+                      : plan.subtitle === "기본형"
+                      ? "bg-green-500/20 text-green-400 border-green-500/50"
+                      : plan.subtitle === "시네마틱형"
+                      ? "bg-purple-500/20 text-purple-400 border-purple-500/50"
+                      : "bg-accent/10 text-accent border-accent/50"
+                  }`}>
+                    {plan.subtitle}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold">{plan.name}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {plan.description}
                 </p>
