@@ -7,7 +7,7 @@
  * - 생성 시점: 관리자가 예약을 "확정(CONFIRMED)" 상태로 변경할 때
  */
 
-import { prisma } from './prisma';
+import { prisma } from '@/lib/prisma';
 import type { Booking } from '@prisma/client';
 
 export interface PartnerCodeValidation {

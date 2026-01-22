@@ -3,7 +3,7 @@
  */
 
 import { cookies } from 'next/headers';
-import { prisma } from './prisma';
+import { prisma } from '@/lib/prisma';
 import type { Booking } from '@prisma/client';
 
 export interface CustomerSession {

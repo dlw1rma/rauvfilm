@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
 import { safeParseInt, normalizePhone, sanitizeString, isValidUrl } from "@/lib/validation";
+import { verifyReview } from "@/lib/reviewVerification";
 
 interface RouteParams {
   params: Promise<{ id: string }>;

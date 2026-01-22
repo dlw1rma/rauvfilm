@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
+import { safeParseInt, sanitizeString, normalizePhone } from "@/lib/validation";
 import { safeParseInt, normalizePhone, sanitizeString } from "@/lib/validation";
 
 interface RouteParams {

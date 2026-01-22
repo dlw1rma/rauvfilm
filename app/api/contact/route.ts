@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
+import { safeParseInt, sanitizeString, normalizePhone, isValidEmail } from "@/lib/validation";
 
 // POST: 문의 제출
 export async function POST(request: NextRequest) {
