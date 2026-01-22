@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "고객 후기 | 라우브필름",
@@ -14,7 +14,6 @@ export const dynamic = "force-dynamic";
 
 async function getReviews() {
   try {
-    const prisma = getPrisma();
     const reviews = await prisma.review.findMany({
       where: { isVisible: true },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],

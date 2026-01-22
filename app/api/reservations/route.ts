@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
 import { safeParseInt, sanitizeString, normalizePhone, validateLength } from "@/lib/validation";
@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
       return rateLimitResponse;
     }
 
-    const prisma = getPrisma();
     const { searchParams } = new URL(request.url);
     const page = safeParseInt(searchParams.get("page"), 1, 1, 1000);
     const limit = safeParseInt(searchParams.get("limit"), 10, 1, 100);
@@ -74,7 +73,6 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse;
     }
 
-    const prisma = getPrisma();
     const body = await request.json();
     const {
       title,

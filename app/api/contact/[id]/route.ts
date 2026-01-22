@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { safeParseInt } from "@/lib/validation";
 
 // GET: 문의 상세 조회 (관리자만 가능)
@@ -15,7 +15,6 @@ export async function GET(
   }
 
   try {
-    const prisma = getPrisma();
     const { id } = await params;
     const contactId = safeParseInt(id, 0, 1, 2147483647);
     if (contactId === 0) {
@@ -59,7 +58,6 @@ export async function PATCH(
   }
 
   try {
-    const prisma = getPrisma();
     const { id } = await params;
     const contactId = safeParseInt(id, 0, 1, 2147483647);
     if (contactId === 0) {
@@ -98,7 +96,6 @@ export async function DELETE(
   }
 
   try {
-    const prisma = getPrisma();
     const { id } = await params;
     const contactId = safeParseInt(id, 0, 1, 2147483647);
     if (contactId === 0) {

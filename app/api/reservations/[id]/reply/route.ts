@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { safeParseInt, sanitizeString } from "@/lib/validation";
 
 // 답변 등록/수정 (관리자만 가능)
@@ -15,7 +15,6 @@ export async function POST(
   }
 
   try {
-    const prisma = getPrisma();
     const { id } = await params;
     const reservationId = safeParseInt(id, 0, 1, 2147483647);
     if (reservationId === 0) {
@@ -80,7 +79,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const prisma = getPrisma();
     const { id } = await params;
     const reservationId = safeParseInt(id, 0, 1, 2147483647);
     if (reservationId === 0) {

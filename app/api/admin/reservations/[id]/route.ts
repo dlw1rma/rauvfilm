@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth";
 import { safeParseInt } from "@/lib/validation";
 
@@ -16,7 +16,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return authResponse;
     }
 
-    const prisma = getPrisma();
     const { id } = await params;
     const reservationId = safeParseInt(id, 0, 1, 2147483647);
     if (reservationId === 0) {

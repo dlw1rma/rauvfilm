@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "예약 문의",
@@ -11,7 +11,6 @@ export const dynamic = "force-dynamic";
 
 async function getReservations() {
   try {
-    const prisma = getPrisma();
     const reservations = await prisma.reservation.findMany({
       orderBy: { createdAt: "desc" },
       select: {

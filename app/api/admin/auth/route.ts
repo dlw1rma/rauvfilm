@@ -5,7 +5,7 @@ import {
   validateSessionToken,
 } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 // POST: 로그인 (이메일/비밀번호)
@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prisma = getPrisma();
 
     // 관리자 계정 조회
     const admin = await prisma.admin.findUnique({

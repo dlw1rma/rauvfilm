@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 // POST: 문의 제출
 export async function POST(request: NextRequest) {
@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse;
     }
 
-    const prisma = getPrisma();
     const body = await request.json();
     const { name, phone, email, weddingDate, message } = body;
 
@@ -79,7 +78,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const prisma = getPrisma();
     const { searchParams } = new URL(request.url);
     const page = safeParseInt(searchParams.get("page"), 1, 1, 1000);
     const limit = safeParseInt(searchParams.get("limit"), 20, 1, 100);

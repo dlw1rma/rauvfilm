@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { safeParseInt, sanitizeString, isValidUrl } from "@/lib/validation";
 
 interface RouteParams {
@@ -9,7 +9,6 @@ interface RouteParams {
 // GET: 포트폴리오 상세 조회
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = getPrisma();
     const { id } = await params;
     const portfolioId = safeParseInt(id, 0, 1, 2147483647);
     if (portfolioId === 0) {
@@ -50,7 +49,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
-    const prisma = getPrisma();
     const { id } = await params;
     const portfolioId = safeParseInt(id, 0, 1, 2147483647);
     if (portfolioId === 0) {
@@ -110,7 +108,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
-    const prisma = getPrisma();
     const { id } = await params;
     const portfolioId = safeParseInt(id, 0, 1, 2147483647);
     if (portfolioId === 0) {

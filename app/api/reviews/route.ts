@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 // GET: 리뷰 목록 조회
 export async function GET(request: NextRequest) {
   try {
-    const prisma = getPrisma();
     const { searchParams } = new URL(request.url);
     const admin = searchParams.get("admin");
 
@@ -44,7 +43,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const prisma = getPrisma();
     const body = await request.json();
     const { title, excerpt, sourceUrl, sourceType, author, imageUrl } = body;
 

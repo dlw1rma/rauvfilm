@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Cloudtype 운영 점검용 헬스 체크
@@ -23,7 +23,6 @@ export async function GET() {
   }
 
   try {
-    const prisma = getPrisma();
     await prisma.$queryRaw`SELECT 1`;
     return NextResponse.json({ ok: true, env: { DATABASE_URL: true }, db: "ok" });
   } catch (error) {

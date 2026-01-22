@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { generateSessionToken } from "@/lib/auth";
@@ -67,7 +67,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prisma = getPrisma();
 
     // 이미 존재하는 이메일인지 확인
     const existingAdmin = await prisma.admin.findUnique({

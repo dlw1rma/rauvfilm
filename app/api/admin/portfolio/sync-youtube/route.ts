@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth";
 
 /**
@@ -127,7 +127,6 @@ export async function POST(request: NextRequest) {
       return authResponse;
     }
 
-    const prisma = getPrisma();
     const body = await request.json();
     const { channelHandle, category } = body;
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
 import { safeParseInt } from "@/lib/validation";
@@ -17,7 +17,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return rateLimitResponse;
     }
 
-    const prisma = getPrisma();
     const { id } = await params;
     const reservationId = safeParseInt(id, 0, 1, 2147483647);
     if (reservationId === 0) {
