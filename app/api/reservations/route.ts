@@ -150,6 +150,84 @@ export async function POST(request: NextRequest) {
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 잔금 및 할인 계산
+    const totalAmount = body.totalAmount || 0; // 정가 (클라이언트에서 전달받거나 기본값 0)
+    const depositAmount = 100000; // 예약금 10만원 고정
+    let referralDiscount = 0; // 짝꿍 할인
+    let reviewDiscount = 0; // 후기 할인 (후기 링크가 있을 때만)
+    
+    // referralCode 자동 생성 (예식날짜+성함)
+    let referralCode: string | null = null;
+    if (weddingDate && author) {
+      try {
+        // 예식날짜를 YYYYMMDD 형식으로 변환
+        let dateStr: string;
+        if (typeof weddingDate === 'string') {
+          // "2025-05-20" 형식 또는 "20250520" 형식 모두 처리
+          dateStr = weddingDate.replace(/-/g, '').substring(0, 8);
+          if (dateStr.length !== 8) {
+            // Date 객체로 파싱 시도
+            const date = new Date(weddingDate);
+            if (!isNaN(date.getTime())) {
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              dateStr = `${year}${month}${day}`;
+            } else {
+              dateStr = '';
+            }
+          }
+        } else {
+          dateStr = '';
+        }
+        
+        if (dateStr && author) {
+          referralCode = `${dateStr}${author}`;
+          
+          // 중복 체크 및 처리
+          let counter = 1;
+          let finalCode = referralCode;
+          while (await prisma.reservation.findUnique({ where: { referralCode: finalCode } })) {
+            finalCode = `${referralCode}${counter}`;
+            counter++;
+          }
+          referralCode = finalCode;
+        }
+      } catch (error) {
+        console.error("Error generating referral code:", error);
+        // referralCode 생성 실패해도 계속 진행
+      }
+    }
+
+    // 짝꿍 할인 처리
+    if (partnerCode) {
+      // 추천인 코드 확인
+      const referrer = await prisma.reservation.findUnique({
+        where: { referralCode: partnerCode },
+      });
+
+      if (referrer) {
+        // 추천인에게 referredCount +1, discountAmount +1만원
+        await prisma.reservation.update({
+          where: { id: referrer.id },
+          data: {
+            referredCount: { increment: 1 },
+            discountAmount: { increment: 10000 },
+            referralDiscount: { increment: 10000 },
+          },
+        });
+
+        // 신규 예약자에게도 짝꿍 할인 1만원 적용
+        referralDiscount = 10000;
+      }
+    }
+
+    // 할인 총액 계산
+    const discountAmount = referralDiscount + reviewDiscount;
+
+    // 최종 잔금 계산: 정가 - 예약금 - 할인들
+    const finalBalance = Math.max(0, totalAmount - depositAmount - discountAmount);
+
     const reservation = await prisma.reservation.create({
       data: {
         title,
@@ -212,6 +290,16 @@ export async function POST(request: NextRequest) {
         customEffect: Array.isArray(customEffect) ? customEffect.join(", ") : customEffect || null,
         customContent: Array.isArray(customContent) ? customContent.join(", ") : customContent || null,
         customSpecialRequest: customSpecialRequest || null,
+        // 잔금 및 할인 시스템
+        totalAmount,
+        depositAmount,
+        discountAmount,
+        referralDiscount,
+        reviewDiscount,
+        finalBalance,
+        referralCode,
+        referredBy: partnerCode || null,
+        referredCount: 0,
       },
     });
 

@@ -30,3 +30,9 @@ export function getPrisma(): PrismaClient {
   return globalForPrisma.prisma;
 }
 
+/**
+ * PrismaClient 인스턴스를 직접 export
+ * API 파일에서 import { prisma } from '@/lib/prisma' 형식으로 사용 가능
+ */
+export const prisma = getPrisma();
+

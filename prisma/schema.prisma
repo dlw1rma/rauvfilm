@@ -83,6 +83,26 @@ model Reservation {
   customContent         String?  @db.Text // 추가 옵션 (배열을 문자열로 저장)
   customSpecialRequest  String?  @db.Text // 특별 요청사항
   
+  // 잔금 및 할인 시스템
+  totalAmount       Int?      @default(0)  // 계약 전체 금액 (정가)
+  depositAmount     Int?      @default(100000)  // 예약금 (기본 10만원)
+  discountAmount    Int?      @default(0)  // 할인 총액
+  referralDiscount  Int?      @default(0)  // 짝꿍 할인 (1만원)
+  reviewDiscount    Int?      @default(0)  // 후기 할인 (1만원)
+  finalBalance      Int?      @default(0)  // 최종 잔금 (정가 - 예약금 - 할인들)
+  
+  // 짝꿍 할인 시스템
+  referralCode      String?   @unique  // 예식날짜+성함으로 생성될 고유 코드 (예: 20250520홍길동)
+  referredBy        String?   // 나를 추천해준 사람의 코드
+  referredCount     Int?      @default(0)  // 내 코드를 사용한 사람 수
+  
+  // 후기 할인 시스템
+  reviewLink        String?   @db.Text // 후기 링크 URL
+  
+  // 입금 정보
+  depositPaidAt     DateTime? // 예약금 입금일
+  balancePaidAt     DateTime? // 잔금 입금일
+  
   // 기존 필드 (하위 호환성)
   phone       String?  // 기존 필드 (deprecated)
   email       String?  // 기존 필드 (deprecated)
