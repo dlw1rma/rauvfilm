@@ -30,6 +30,7 @@ const navigation: NavItem[] = [
     href: "/reservation",
     children: [
       { name: "예약하기", href: "/reservation" },
+      { name: "마이페이지", href: "/mypage" },
       { name: "FAQ", href: "/faq" },
       { name: "제휴", href: "/coalition" },
     ],
