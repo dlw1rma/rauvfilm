@@ -9,6 +9,12 @@
   --muted: #1a1a1a;
   --muted-foreground: #e5e7eb;
   --border: #2a2a2a;
+
+  /* 미니멀 모던 확장 */
+  --card: #161616;
+  --card-hover: #1c1c1c;
+  --subtle: rgba(255, 255, 255, 0.05);
+  --accent-subtle: rgba(229, 9, 20, 0.1);
 }
 
 @theme inline {
@@ -19,6 +25,10 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-subtle: var(--subtle);
+  --color-accent-subtle: var(--accent-subtle);
   --font-sans: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
