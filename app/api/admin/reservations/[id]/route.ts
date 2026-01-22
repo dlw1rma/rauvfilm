@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth";
+import { safeParseInt } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -17,7 +18,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const prisma = getPrisma();
     const { id } = await params;
-    const reservationId = parseInt(id);
+    const reservationId = safeParseInt(id, 0, 1, 2147483647);
+    if (reservationId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 예약 ID입니다." },
+        { status: 400 }
+      );
+    }
 
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },

@@ -16,8 +16,19 @@ export async function GET(request: NextRequest) {
       featured?: boolean;
     } = {};
 
-    // 관리자가 아닌 경우 공개된 것만
-    if (admin !== "true") {
+    // admin=true인 경우 관리자 인증 필수
+    if (admin === "true") {
+      const { requireAdminAuth } = await import("@/lib/auth");
+      const authResponse = await requireAdminAuth(request);
+      if (authResponse) {
+        // 인증 실패 시 공개 데이터만 반환
+        where.isVisible = true;
+      } else {
+        // 관리자 인증 성공 시 모든 데이터
+        // where는 빈 객체 유지
+      }
+    } else {
+      // 관리자가 아닌 경우 공개된 것만
       where.isVisible = true;
     }
 
@@ -44,8 +55,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: 포트폴리오 등록
+// POST: 포트폴리오 등록 (관리자만 가능)
 export async function POST(request: NextRequest) {
+  // 관리자 인증 필수
+  const { requireAdminAuth } = await import("@/lib/auth");
+  const authResponse = await requireAdminAuth(request);
+  if (authResponse) {
+    return authResponse;
+  }
+
   try {
     const prisma = getPrisma();
     const body = await request.json();

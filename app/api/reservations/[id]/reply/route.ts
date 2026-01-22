@@ -1,18 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
+import { safeParseInt, sanitizeString } from "@/lib/validation";
 
-// 답변 등록/수정
+// 답변 등록/수정 (관리자만 가능)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 관리자 인증 필수
+  const { requireAdminAuth } = await import("@/lib/auth");
+  const authResponse = await requireAdminAuth(request);
+  if (authResponse) {
+    return authResponse;
+  }
+
   try {
     const prisma = getPrisma();
     const { id } = await params;
-    const reservationId = parseInt(id);
+    const reservationId = safeParseInt(id, 0, 1, 2147483647);
+    if (reservationId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 예약 ID입니다." },
+        { status: 400 }
+      );
+    }
     const { content } = await request.json();
+    const sanitizedContent = sanitizeString(content, 10000);
 
-    if (!content) {
+    if (!sanitizedContent) {
       return NextResponse.json(
         { error: "답변 내용을 입력해주세요." },
         { status: 400 }
@@ -42,8 +57,8 @@ export async function POST(
     } else {
       // 새 답변 등록
       reply = await prisma.reply.create({
-        data: {
-          content,
+      data: {
+        content: sanitizedContent,
           reservationId,
         },
       });
@@ -67,7 +82,13 @@ export async function DELETE(
   try {
     const prisma = getPrisma();
     const { id } = await params;
-    const reservationId = parseInt(id);
+    const reservationId = safeParseInt(id, 0, 1, 2147483647);
+    if (reservationId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 예약 ID입니다." },
+        { status: 400 }
+      );
+    }
 
     await prisma.reply.delete({
       where: { reservationId },

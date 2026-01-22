@@ -6,11 +6,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { validateSessionToken } from '@/lib/auth';
+import { safeParseInt } from '@/lib/validation';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const adminSession = cookieStore.get('admin_session');
-  return !!adminSession?.value;
+  if (!adminSession?.value) return false;
+  // 서명 검증 추가
+  return validateSessionToken(adminSession.value);
 }
 
 export async function PUT(
@@ -23,7 +27,13 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const reviewId = parseInt(id);
+    const reviewId = safeParseInt(id, 0, 1, 2147483647);
+    if (reviewId === 0) {
+      return NextResponse.json(
+        { error: '잘못된 후기 ID입니다.' },
+        { status: 400 }
+      );
+    }
     const body = await request.json();
     const { action, rejectReason } = body;
 

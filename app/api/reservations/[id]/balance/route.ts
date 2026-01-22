@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { rateLimit } from "@/lib/rate-limit";
+import { safeParseInt, normalizePhone, sanitizeString } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -13,11 +15,24 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    // Rate limiting 적용
+    const rateLimitResponse = rateLimit(request, 20, 15 * 60 * 1000); // 15분에 20회
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const { id } = await params;
-    const reservationId = parseInt(id);
+    const reservationId = safeParseInt(id, 0, 1, 2147483647);
+    if (reservationId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 예약 ID입니다." },
+        { status: 400 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const passwordParam = searchParams.get("password");
-    const nameParam = searchParams.get("name");
+    const nameParam = sanitizeString(searchParams.get("name"), 50);
     const phoneParam = searchParams.get("phone");
 
     const reservation = await prisma.reservation.findUnique({
@@ -42,13 +57,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isAuthenticated = isPasswordValid;
     } else if (nameParam && phoneParam) {
       // 이름과 전화번호로 인증 (신부/신랑 전화번호 중 하나라도 일치하면 OK)
-      const normalizedPhone = phoneParam.replace(/[^0-9]/g, "");
-      isAuthenticated =
-        (reservation.author === nameParam ||
-          reservation.brideName === nameParam ||
-          reservation.groomName === nameParam) &&
-        (reservation.bridePhone?.replace(/[^0-9]/g, "") === normalizedPhone ||
-          reservation.groomPhone?.replace(/[^0-9]/g, "") === normalizedPhone);
+      const normalizedPhone = normalizePhone(phoneParam);
+      if (normalizedPhone.length < 10) {
+        isAuthenticated = false;
+      } else {
+        isAuthenticated =
+          (reservation.author === nameParam ||
+            reservation.brideName === nameParam ||
+            reservation.groomName === nameParam) &&
+          (reservation.bridePhone?.replace(/[^0-9]/g, "") === normalizedPhone ||
+            reservation.groomPhone?.replace(/[^0-9]/g, "") === normalizedPhone);
+      }
     }
 
     if (!isAuthenticated) {

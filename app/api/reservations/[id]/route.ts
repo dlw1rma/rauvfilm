@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { rateLimit } from "@/lib/rate-limit";
+import { safeParseInt } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -9,9 +11,21 @@ interface RouteParams {
 // GET: 예약 상세 조회
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    // Rate limiting 적용
+    const rateLimitResponse = rateLimit(request, 30, 60 * 1000); // 1분에 30회
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const prisma = getPrisma();
     const { id } = await params;
-    const reservationId = parseInt(id);
+    const reservationId = safeParseInt(id, 0, 1, 2147483647);
+    if (reservationId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 예약 ID입니다." },
+        { status: 400 }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const passwordParam = searchParams.get("password");
 
@@ -88,9 +102,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT: 예약 수정
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    // Rate limiting 적용
+    const rateLimitResponse = rateLimit(request, 10, 15 * 60 * 1000); // 15분에 10회
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const prisma = getPrisma();
     const { id } = await params;
-    const reservationId = parseInt(id);
+    const reservationId = safeParseInt(id, 0, 1, 2147483647);
+    if (reservationId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 예약 ID입니다." },
+        { status: 400 }
+      );
+    }
     const body = await request.json();
     const { password, title, content, phone, email, weddingDate, location, isPrivate } = body;
 
@@ -145,9 +171,21 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE: 예약 삭제
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    // Rate limiting 적용 (삭제는 더 엄격하게)
+    const rateLimitResponse = rateLimit(request, 5, 15 * 60 * 1000); // 15분에 5회
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const prisma = getPrisma();
     const { id } = await params;
-    const reservationId = parseInt(id);
+    const reservationId = safeParseInt(id, 0, 1, 2147483647);
+    if (reservationId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 예약 ID입니다." },
+        { status: 400 }
+      );
+    }
     const body = await request.json();
     const { password, adminDelete } = body;
 
@@ -163,8 +201,21 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 관리자 삭제가 아닌 경우 비밀번호 확인
-    if (!adminDelete) {
+    // 관리자 삭제인 경우 관리자 인증 강제
+    if (adminDelete) {
+      const { requireAdminAuth } = await import("@/lib/auth");
+      const authResponse = await requireAdminAuth(request);
+      if (authResponse) {
+        return authResponse; // 인증 실패
+      }
+    } else {
+      // 일반 사용자 삭제는 비밀번호 확인
+      if (!password) {
+        return NextResponse.json(
+          { error: "비밀번호를 입력해주세요." },
+          { status: 400 }
+        );
+      }
       const isPasswordValid = await bcrypt.compare(password, reservation.password);
       if (!isPasswordValid) {
         return NextResponse.json(

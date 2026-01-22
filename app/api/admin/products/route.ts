@@ -9,10 +9,14 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { formatKRW } from '@/lib/pricing';
 
+import { validateSessionToken } from '@/lib/auth';
+
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const adminSession = cookieStore.get('admin_session');
-  return !!adminSession?.value;
+  if (!adminSession?.value) return false;
+  // 서명 검증 추가
+  return validateSessionToken(adminSession.value);
 }
 
 /**

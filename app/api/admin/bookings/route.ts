@@ -8,12 +8,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { formatKRW } from '@/lib/pricing';
+import { safeParseInt, sanitizeString } from '@/lib/validation';
+
+import { validateSessionToken } from '@/lib/auth';
 
 // 관리자 인증 확인
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const adminSession = cookieStore.get('admin_session');
-  return !!adminSession?.value;
+  if (!adminSession?.value) return false;
+  // 서명 검증 추가
+  return validateSessionToken(adminSession.value);
 }
 
 /**
@@ -27,9 +32,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const search = sanitizeString(searchParams.get('search'), 100);
+    const page = safeParseInt(searchParams.get('page'), 1, 1, 1000);
+    const limit = safeParseInt(searchParams.get('limit'), 20, 1, 100);
 
     const where: Record<string, unknown> = {};
 
@@ -38,8 +43,8 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
 
-    // 검색 (이름, 전화번호, 예식장)
-    if (search) {
+    // 검색 (이름, 전화번호, 예식장) - sanitized search 사용
+    if (search && search.length >= 2) {
       where.OR = [
         { customerName: { contains: search } },
         { customerPhone: { contains: search } },

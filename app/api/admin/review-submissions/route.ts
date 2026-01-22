@@ -7,11 +7,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { getPlatformName } from '@/lib/reviewVerification';
+import { validateSessionToken } from '@/lib/auth';
+import { safeParseInt } from '@/lib/validation';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const adminSession = cookieStore.get('admin_session');
-  return !!adminSession?.value;
+  if (!adminSession?.value) return false;
+  // 서명 검증 추가
+  return validateSessionToken(adminSession.value);
 }
 
 export async function GET(request: NextRequest) {
@@ -22,8 +26,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = safeParseInt(searchParams.get('page'), 1, 1, 1000);
+    const limit = safeParseInt(searchParams.get('limit'), 20, 1, 100);
 
     const where: Record<string, unknown> = {};
 

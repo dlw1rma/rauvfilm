@@ -8,11 +8,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { validateSessionToken } from '@/lib/auth';
+import { safeParseInt, isValidUrl, sanitizeString } from '@/lib/validation';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const adminSession = cookieStore.get('admin_session');
-  return !!adminSession?.value;
+  if (!adminSession?.value) return false;
+  // 서명 검증 추가
+  return validateSessionToken(adminSession.value);
 }
 
 export async function POST(
@@ -25,9 +29,33 @@ export async function POST(
 
   try {
     const { id } = await params;
-    const bookingId = parseInt(id);
+    const bookingId = safeParseInt(id, 0, 1, 2147483647);
+    if (bookingId === 0) {
+      return NextResponse.json(
+        { error: '잘못된 예약 ID입니다.' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { videoUrl, contractUrl } = body;
+
+    // URL 검증
+    if (videoUrl && !isValidUrl(videoUrl)) {
+      return NextResponse.json(
+        { error: '올바른 영상 URL 형식이 아닙니다.' },
+        { status: 400 }
+      );
+    }
+    if (contractUrl && !isValidUrl(contractUrl)) {
+      return NextResponse.json(
+        { error: '올바른 계약서 URL 형식이 아닙니다.' },
+        { status: 400 }
+      );
+    }
+
+    const sanitizedVideoUrl = videoUrl ? sanitizeString(videoUrl, 2000) : null;
+    const sanitizedContractUrl = contractUrl ? sanitizeString(contractUrl, 2000) : null;
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },

@@ -8,11 +8,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { formatKRW } from '@/lib/pricing';
+import { validateSessionToken } from '@/lib/auth';
+import { safeParseInt } from '@/lib/validation';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const adminSession = cookieStore.get('admin_session');
-  return !!adminSession?.value;
+  if (!adminSession?.value) return false;
+  // 서명 검증 추가
+  return validateSessionToken(adminSession.value);
 }
 
 /**
@@ -28,7 +32,13 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const eventId = parseInt(id);
+    const eventId = safeParseInt(id, 0, 1, 2147483647);
+    if (eventId === 0) {
+      return NextResponse.json(
+        { error: '잘못된 이벤트 ID입니다.' },
+        { status: 400 }
+      );
+    }
     const body = await request.json();
 
     const event = await prisma.discountEvent.findUnique({
@@ -86,7 +96,13 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    const eventId = parseInt(id);
+    const eventId = safeParseInt(id, 0, 1, 2147483647);
+    if (eventId === 0) {
+      return NextResponse.json(
+        { error: '잘못된 이벤트 ID입니다.' },
+        { status: 400 }
+      );
+    }
 
     const event = await prisma.discountEvent.findUnique({
       where: { id: eventId },

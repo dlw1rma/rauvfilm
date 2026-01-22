@@ -3,7 +3,8 @@
 import { useState } from "react";
 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbznw0NudMiza9wFV9QwcXp6o6UK9qxdIyq1M1ANxupwkPB3AH9nnqieqBzQXquylbsuJw/exec";
-const SECRET_KEY = "aubfilm-2025-!AbC9";
+// SECRET_KEY는 서버 사이드에서 환경변수로 관리되어야 합니다.
+// 클라이언트 사이드에서는 사용하지 않도록 변경 필요
 
 interface FormData {
   weddingDate: string;
@@ -184,7 +185,7 @@ export default function CustomPage() {
       effects: formData.effect,
       contents: formData.content,
       specialRequest: formData.specialRequest,
-      secret: SECRET_KEY,
+      // SECRET_KEY는 서버 사이드 API로 이동 필요
     };
 
     try {

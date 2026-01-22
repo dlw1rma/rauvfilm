@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { rateLimit } from "@/lib/rate-limit";
+import { safeParseInt, normalizePhone, sanitizeString, isValidUrl } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -14,14 +16,44 @@ interface RouteParams {
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    // Rate limiting 적용
+    const rateLimitResponse = rateLimit(request, 10, 15 * 60 * 1000); // 15분에 10회
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const { id } = await params;
-    const reservationId = parseInt(id);
+    const reservationId = safeParseInt(id, 0, 1, 2147483647);
+    if (reservationId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 예약 ID입니다." },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { password, name, phone, reviewLink } = body;
 
-    if (!reviewLink) {
+    if (!reviewLink || typeof reviewLink !== 'string') {
       return NextResponse.json(
         { error: "후기 링크를 입력해주세요." },
+        { status: 400 }
+      );
+    }
+
+    // URL 검증
+    if (!isValidUrl(reviewLink)) {
+      return NextResponse.json(
+        { error: "올바른 URL 형식이 아닙니다." },
+        { status: 400 }
+      );
+    }
+
+    // URL 길이 제한
+    const sanitizedReviewLink = sanitizeString(reviewLink, 2000);
+    if (sanitizedReviewLink.length < 10) {
+      return NextResponse.json(
+        { error: "후기 링크가 너무 짧습니다." },
         { status: 400 }
       );
     }
@@ -48,13 +80,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       isAuthenticated = isPasswordValid;
     } else if (name && phone) {
       // 이름과 전화번호로 인증
-      const normalizedPhone = phone.replace(/[^0-9]/g, "");
-      isAuthenticated =
-        (reservation.author === name ||
-          reservation.brideName === name ||
-          reservation.groomName === name) &&
-        (reservation.bridePhone?.replace(/[^0-9]/g, "") === normalizedPhone ||
-          reservation.groomPhone?.replace(/[^0-9]/g, "") === normalizedPhone);
+      const sanitizedName = sanitizeString(name, 50);
+      const normalizedPhone = normalizePhone(phone);
+      if (normalizedPhone.length < 10) {
+        isAuthenticated = false;
+      } else {
+        isAuthenticated =
+          (reservation.author === sanitizedName ||
+            reservation.brideName === sanitizedName ||
+            reservation.groomName === sanitizedName) &&
+          (reservation.bridePhone?.replace(/[^0-9]/g, "") === normalizedPhone ||
+            reservation.groomPhone?.replace(/[^0-9]/g, "") === normalizedPhone);
+      }
     }
 
     if (!isAuthenticated) {
@@ -83,7 +120,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const updated = await prisma.reservation.update({
       where: { id: reservationId },
       data: {
-        reviewLink: reviewLink,
+        reviewLink: sanitizedReviewLink,
         reviewDiscount: reviewDiscount,
         discountAmount: newDiscountAmount,
         finalBalance: finalBalance,

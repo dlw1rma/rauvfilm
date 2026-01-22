@@ -4,34 +4,53 @@ import { getPrisma } from "@/lib/prisma";
 // POST: 문의 제출
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting 적용
+    const rateLimitResponse = rateLimit(request, 5, 15 * 60 * 1000); // 15분에 5회
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const prisma = getPrisma();
     const body = await request.json();
     const { name, phone, email, weddingDate, message } = body;
 
+    // 입력 검증 및 sanitization
+    const sanitizedName = sanitizeString(name, 50);
+    const normalizedPhone = normalizePhone(phone);
+    const sanitizedEmail = email ? sanitizeString(email, 255) : null;
+    const sanitizedMessage = sanitizeString(message, 5000);
+
     // 유효성 검사
-    if (!name || !phone || !message) {
+    if (!sanitizedName || !normalizedPhone || !sanitizedMessage) {
       return NextResponse.json(
         { error: "필수 항목을 입력해주세요." },
         { status: 400 }
       );
     }
 
-    // 전화번호 형식 검사 (간단한 검증)
-    const phoneRegex = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/;
-    if (!phoneRegex.test(phone.replace(/-/g, ""))) {
+    // 전화번호 길이 검증
+    if (normalizedPhone.length < 10) {
       return NextResponse.json(
         { error: "올바른 전화번호 형식이 아닙니다." },
         { status: 400 }
       );
     }
 
+    // 이메일 검증
+    if (sanitizedEmail && !isValidEmail(sanitizedEmail)) {
+      return NextResponse.json(
+        { error: "올바른 이메일 형식이 아닙니다." },
+        { status: 400 }
+      );
+    }
+
     const contact = await prisma.contact.create({
       data: {
-        name,
-        phone,
-        email: email || null,
+        name: sanitizedName,
+        phone: normalizedPhone,
+        email: sanitizedEmail,
         weddingDate: weddingDate ? new Date(weddingDate) : null,
-        message,
+        message: sanitizedMessage,
       },
     });
 
@@ -52,11 +71,18 @@ export async function POST(request: NextRequest) {
 
 // GET: 문의 목록 조회 (관리자용)
 export async function GET(request: NextRequest) {
+  // 관리자 인증 필수
+  const { requireAdminAuth } = await import("@/lib/auth");
+  const authResponse = await requireAdminAuth(request);
+  if (authResponse) {
+    return authResponse;
+  }
+
   try {
     const prisma = getPrisma();
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const page = safeParseInt(searchParams.get("page"), 1, 1, 1000);
+    const limit = safeParseInt(searchParams.get("limit"), 20, 1, 100);
     const skip = (page - 1) * limit;
 
     // TODO: 관리자 인증 확인 필요

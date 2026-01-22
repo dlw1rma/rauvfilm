@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { rateLimit } from "@/lib/rate-limit";
+import { safeParseInt, sanitizeString, normalizePhone, validateLength } from "@/lib/validation";
 
 // GET: 예약 목록 조회
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting 적용
+    const rateLimitResponse = rateLimit(request, 30, 60 * 1000); // 1분에 30회
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const prisma = getPrisma();
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const page = safeParseInt(searchParams.get("page"), 1, 1, 1000);
+    const limit = safeParseInt(searchParams.get("limit"), 10, 1, 100);
     const skip = (page - 1) * limit;
 
     const [reservations, total] = await Promise.all([
@@ -60,6 +68,12 @@ export async function GET(request: NextRequest) {
 // POST: 예약 작성
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting 적용 (예약 생성은 더 엄격하게)
+    const rateLimitResponse = rateLimit(request, 5, 15 * 60 * 1000); // 15분에 5회
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const prisma = getPrisma();
     const body = await request.json();
     const {
@@ -125,17 +139,39 @@ export async function POST(request: NextRequest) {
       customSpecialRequest,
     } = body;
 
+    // 입력 검증 및 길이 제한
+    const sanitizedTitle = sanitizeString(title, 200);
+    const sanitizedAuthor = sanitizeString(author, 50);
+    const sanitizedBrideName = sanitizeString(brideName, 50);
+    const sanitizedGroomName = sanitizeString(groomName, 50);
+    const normalizedBridePhone = normalizePhone(bridePhone || "");
+    const normalizedGroomPhone = normalizePhone(groomPhone || "");
+
     // 유효성 검사
-    if (!title || !author || !password) {
+    if (!sanitizedTitle || !sanitizedAuthor || !password) {
       return NextResponse.json(
         { error: "제목, 계약자 성함, 비밀번호는 필수 항목입니다." },
         { status: 400 }
       );
     }
 
-    if (!brideName || !bridePhone || !groomName || !groomPhone) {
+    if (!validateLength(password, 4, 100)) {
+      return NextResponse.json(
+        { error: "비밀번호는 4자 이상 100자 이하여야 합니다." },
+        { status: 400 }
+      );
+    }
+
+    if (!sanitizedBrideName || !normalizedBridePhone || !sanitizedGroomName || !normalizedGroomPhone) {
       return NextResponse.json(
         { error: "신부님/신랑님 성함 및 전화번호는 필수 항목입니다." },
+        { status: 400 }
+      );
+    }
+
+    if (normalizedBridePhone.length < 10 || normalizedGroomPhone.length < 10) {
+      return NextResponse.json(
+        { error: "전화번호 형식이 올바르지 않습니다." },
         { status: 400 }
       );
     }
@@ -230,16 +266,16 @@ export async function POST(request: NextRequest) {
 
     const reservation = await prisma.reservation.create({
       data: {
-        title,
-        content: content || "",
-        author,
+        title: sanitizedTitle,
+        content: sanitizeString(content, 5000) || "",
+        author: sanitizedAuthor,
         password: hashedPassword,
         isPrivate: isPrivate !== undefined ? isPrivate : true, // 기본값 true (비밀글만)
         // 필수 작성항목(공통)
-        brideName: brideName || null,
-        bridePhone: bridePhone || null,
-        groomName: groomName || null,
-        groomPhone: groomPhone || null,
+        brideName: sanitizedBrideName || null,
+        bridePhone: normalizedBridePhone || null,
+        groomName: sanitizedGroomName || null,
+        groomPhone: normalizedGroomPhone || null,
         receiptPhone: receiptPhone || null,
         depositName: depositName || null,
         productEmail: productEmail || null,

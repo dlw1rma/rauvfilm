@@ -9,11 +9,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { setCustomPartnerCode } from '@/lib/partnerCode';
+import { validateSessionToken } from '@/lib/auth';
+import { safeParseInt, sanitizeString } from '@/lib/validation';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const adminSession = cookieStore.get('admin_session');
-  return !!adminSession?.value;
+  if (!adminSession?.value) return false;
+  // 서명 검증 추가
+  return validateSessionToken(adminSession.value);
 }
 
 export async function PUT(
@@ -26,11 +30,19 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const bookingId = parseInt(id);
+    const bookingId = safeParseInt(id, 0, 1, 2147483647);
+    if (bookingId === 0) {
+      return NextResponse.json(
+        { error: '잘못된 예약 ID입니다.' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { partnerCode } = body;
+    const sanitizedCode = sanitizeString(partnerCode, 50);
 
-    if (!partnerCode || partnerCode.trim() === '') {
+    if (!sanitizedCode || sanitizedCode.trim() === '') {
       return NextResponse.json(
         { error: '짝꿍 코드를 입력해주세요.' },
         { status: 400 }
@@ -60,7 +72,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      partnerCode: partnerCode.trim(),
+        partnerCode: sanitizedCode.trim(),
       message: '짝꿍 코드가 변경되었습니다.',
     });
   } catch (error) {

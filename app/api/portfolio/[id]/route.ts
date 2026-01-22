@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
+import { safeParseInt, sanitizeString, isValidUrl } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -10,7 +11,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const prisma = getPrisma();
     const { id } = await params;
-    const portfolioId = parseInt(id);
+    const portfolioId = safeParseInt(id, 0, 1, 2147483647);
+    if (portfolioId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 포트폴리오 ID입니다." },
+        { status: 400 }
+      );
+    }
 
     const portfolio = await prisma.portfolio.findUnique({
       where: { id: portfolioId },
@@ -33,21 +40,48 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// PUT: 포트폴리오 수정
+// PUT: 포트폴리오 수정 (관리자만 가능)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  // 관리자 인증 필수
+  const { requireAdminAuth } = await import("@/lib/auth");
+  const authResponse = await requireAdminAuth(request);
+  if (authResponse) {
+    return authResponse;
+  }
+
   try {
     const prisma = getPrisma();
     const { id } = await params;
-    const portfolioId = parseInt(id);
+    const portfolioId = safeParseInt(id, 0, 1, 2147483647);
+    if (portfolioId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 포트폴리오 ID입니다." },
+        { status: 400 }
+      );
+    }
     const body = await request.json();
     const { title, youtubeUrl, thumbnailUrl, category, featured, description, isVisible, order } = body;
+
+    // URL 검증
+    if (youtubeUrl && !isValidUrl(youtubeUrl)) {
+      return NextResponse.json(
+        { error: "올바른 YouTube URL 형식이 아닙니다." },
+        { status: 400 }
+      );
+    }
+    if (thumbnailUrl && !isValidUrl(thumbnailUrl)) {
+      return NextResponse.json(
+        { error: "올바른 썸네일 URL 형식이 아닙니다." },
+        { status: 400 }
+      );
+    }
 
     const portfolio = await prisma.portfolio.update({
       where: { id: portfolioId },
       data: {
-        ...(title && { title }),
-        ...(youtubeUrl && { youtubeUrl }),
-        ...(thumbnailUrl !== undefined && { thumbnailUrl: thumbnailUrl || null }),
+        ...(title && { title: sanitizeString(title, 200) }),
+        ...(youtubeUrl && { youtubeUrl: sanitizeString(youtubeUrl, 2000) }),
+        ...(thumbnailUrl !== undefined && { thumbnailUrl: thumbnailUrl ? sanitizeString(thumbnailUrl, 2000) : null }),
         ...(category && { category }),
         ...(typeof featured === "boolean" && { featured }),
         ...(description !== undefined && { description }),
@@ -66,12 +100,25 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE: 포트폴리오 삭제
+// DELETE: 포트폴리오 삭제 (관리자만 가능)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  // 관리자 인증 필수
+  const { requireAdminAuth } = await import("@/lib/auth");
+  const authResponse = await requireAdminAuth(request);
+  if (authResponse) {
+    return authResponse;
+  }
+
   try {
     const prisma = getPrisma();
     const { id } = await params;
-    const portfolioId = parseInt(id);
+    const portfolioId = safeParseInt(id, 0, 1, 2147483647);
+    if (portfolioId === 0) {
+      return NextResponse.json(
+        { error: "잘못된 포트폴리오 ID입니다." },
+        { status: 400 }
+      );
+    }
 
     await prisma.portfolio.delete({
       where: { id: portfolioId },

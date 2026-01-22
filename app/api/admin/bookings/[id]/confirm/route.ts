@@ -10,11 +10,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { generatePartnerCode, applyReferralDiscount } from '@/lib/partnerCode';
+import { validateSessionToken } from '@/lib/auth';
+import { safeParseInt } from '@/lib/validation';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const adminSession = cookieStore.get('admin_session');
-  return !!adminSession?.value;
+  if (!adminSession?.value) return false;
+  // 서명 검증 추가
+  return validateSessionToken(adminSession.value);
 }
 
 export async function PUT(
@@ -25,9 +29,17 @@ export async function PUT(
     return NextResponse.json({ error: '관리자 로그인이 필요합니다.' }, { status: 401 });
   }
 
+import { safeParseInt } from '@/lib/validation';
+
   try {
     const { id } = await params;
-    const bookingId = parseInt(id);
+    const bookingId = safeParseInt(id, 0, 1, 2147483647);
+    if (bookingId === 0) {
+      return NextResponse.json(
+        { error: '잘못된 예약 ID입니다.' },
+        { status: 400 }
+      );
+    }
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
