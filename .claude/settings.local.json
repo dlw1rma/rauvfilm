@@ -11,7 +11,9 @@
       "WebFetch(domain:www.youtube.com)",
       "WebSearch",
       "Bash(npm run build)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(tree:*)",
+      "Bash(npx prisma db push:*)"
     ]
   }
 }
