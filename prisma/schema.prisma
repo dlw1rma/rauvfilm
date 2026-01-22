@@ -147,10 +147,177 @@ model Review {
 
 // 관리자 계정
 model Admin {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String   // bcrypt 해시
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String    // bcrypt 해시
   name      String?
-  createdAt DateTime @default(now())
+  role      AdminRole @default(STAFF)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// 관리자 권한
+enum AdminRole {
+  SUPER_ADMIN
+  STAFF
+}
+
+// ============================================
+// 라우브필름 예약/정산 시스템 스키마
+// ============================================
+
+// 상품 (촬영 패키지)
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String    // "1인 2캠", "2인 3캠" 등
+  price       Int       // 정가 (원)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bookings    Booking[]
+}
+
+// 할인 이벤트 (신년 할인 등)
+model DiscountEvent {
+  id        Int       @id @default(autoincrement())
+  name      String    // "2025 신년 할인"
+  amount    Int       // 할인 금액 (원)
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  bookings  Booking[]
+}
+
+// 예약 (정산 시스템 핵심 테이블)
+model Booking {
+  id              Int           @id @default(autoincrement())
+
+  // 고객 정보
+  customerName    String        // 계약자 성함
+  customerPhone   String        // 전화번호 (로그인용)
+  customerEmail   String?
+
+  // 예식 정보
+  weddingDate     DateTime
+  weddingVenue    String        // 예식장
+  weddingTime     String?       // 예식 시간
+
+  // 상품 및 가격
+  product         Product       @relation(fields: [productId], references: [id])
+  productId       Int
+  listPrice       Int           // 정가 (예약 시점 기록)
+
+  // 예약금
+  depositAmount   Int           @default(100000)  // 10만원
+  depositPaidAt   DateTime?     // 예약금 입금일
+
+  // 할인 적용
+  discountEvent   DiscountEvent? @relation(fields: [discountEventId], references: [id])
+  discountEventId Int?
+  eventDiscount   Int           @default(0)       // 이벤트 할인 금액
+
+  // 짝꿍 할인
+  referralDiscount Int          @default(0)       // 추천 할인 (1만원)
+  referredBy       String?      // 추천인 짝꿍코드
+
+  // 후기 할인
+  reviewDiscount   Int          @default(0)       // 후기 할인 (1만원)
+
+  // 최종 잔금 (자동 계산됨)
+  finalBalance     Int          @default(0)
+  balancePaidAt    DateTime?    // 잔금 입금일
+
+  // 짝꿍 코드 (이 고객의 코드)
+  partnerCode      String?      @unique  // "250122홍길동"
+
+  // 예약 상태
+  status           BookingStatus @default(PENDING)
+
+  // 관리자 업로드
+  videoUrl         String?      // 영상 링크
+  contractUrl      String?      // 계약서 파일
+  videoUploadedAt  DateTime?    // 영상 업로드일 (5년 파기 기준)
+
+  // 메모
+  adminNote        String?      @db.Text
+
+  // 타임스탬프
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // 개인정보 파기 여부
+  isAnonymized     Boolean      @default(false)
+  anonymizedAt     DateTime?
+
+  // 관계
+  reviewSubmissions ReviewSubmission[]
+  referrals         Booking[]    @relation("ReferralRelation")
+  referrer          Booking?     @relation("ReferralRelation", fields: [referredByBookingId], references: [id])
+  referredByBookingId Int?
+}
+
+// 예약 상태
+enum BookingStatus {
+  PENDING      // 예약 대기
+  CONFIRMED    // 확정 (짝꿍코드 생성)
+  DEPOSIT_PAID // 예약금 입금 완료
+  COMPLETED    // 촬영 완료
+  DELIVERED    // 영상 전달 완료
+  CANCELLED    // 취소
+}
+
+// 후기 제출
+model ReviewSubmission {
+  id              Int            @id @default(autoincrement())
+  booking         Booking        @relation(fields: [bookingId], references: [id])
+  bookingId       Int
+
+  reviewUrl       String         // 후기 링크
+  platform        ReviewPlatform // 플랫폼
+
+  // 자동 검증 결과
+  autoVerified    Boolean        @default(false)
+  titleValid      Boolean?       // 제목 키워드 포함 여부
+  contentValid    Boolean?       // 본문 가이드 준수 여부
+  characterCount  Int?           // 글자 수
+
+  // 승인 상태
+  status          ReviewStatus   @default(PENDING)
+  verifiedAt      DateTime?
+  verifiedBy      String?        // 관리자 ID (수동 승인 시)
+
+  // 거절 사유
+  rejectReason    String?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+// 후기 플랫폼
+enum ReviewPlatform {
+  NAVER_BLOG
+  NAVER_CAFE
+  INSTAGRAM
+  OTHER
+}
+
+// 후기 상태
+enum ReviewStatus {
+  PENDING         // 검토 대기
+  AUTO_APPROVED   // 자동 승인
+  MANUAL_REVIEW   // 수동 검토 필요
+  APPROVED        // 승인 (할인 적용)
+  REJECTED        // 거절
+}
+
+// 시스템 설정
+model SystemSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
   updatedAt DateTime @updatedAt
 }
