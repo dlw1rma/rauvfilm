@@ -1,3 +1,10 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
+import { generatePartnerCode, applyReferralDiscount } from '@/lib/partnerCode';
+import { validateSessionToken } from '@/lib/auth';
+import { safeParseInt } from '@/lib/validation';
+
 /**
  * 관리자 - 예약 확정 API
  * PUT /api/admin/bookings/[id]/confirm
@@ -5,13 +12,6 @@
  * 예약을 확정하고 짝꿍 코드를 생성합니다.
  * 추천인 코드가 있는 경우 양방향 할인을 적용합니다.
  */
-
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import { generatePartnerCode, applyReferralDiscount } from '@/lib/partnerCode';
-import { validateSessionToken } from '@/lib/auth';
-import { safeParseInt } from '@/lib/validation';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();

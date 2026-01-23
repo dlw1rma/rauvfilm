@@ -34,7 +34,7 @@ export function getPrisma(): PrismaClient {
  * PrismaClient 인스턴스를 직접 export
  * API 파일에서 import { prisma } from '@/lib/prisma' 형식으로 사용 가능
  * 
- * 주의: 이 export는 getPrisma()를 호출하므로, 실제 사용 시점에 PrismaClient가 초기화됩니다.
+ * 싱글톤 패턴으로 구현하여 개발 환경에서 Hot Reload 시에도 인스턴스가 재생성되지 않도록 보장합니다.
  */
 export const prisma: PrismaClient = (() => {
   if (!process.env.DATABASE_URL) {
