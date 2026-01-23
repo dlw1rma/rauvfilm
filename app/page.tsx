@@ -1,213 +1,48 @@
-import Link from "next/link";
 import PortfolioSlider from "@/components/home/PortfolioSlider";
 import HeroVideoSlider from "@/components/home/HeroVideoSlider";
-import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import ReviewSection from "@/components/home/ReviewSection";
 import ColorSection from "@/components/home/ColorSection";
-import AboutTabs from "@/components/home/AboutTabs";
-
-// SERVICE 섹션 상단 4개 카드
-const serviceItemsTop = [
-  {
-    title: "상품 구성",
-    titleEn: "Product",
-    href: "/pricing",
-    icon: "dollar",
-  },
-  {
-    title: "예약 절차",
-    titleEn: "Reservation process",
-    href: "/reservation-process",
-    icon: "calendar",
-  },
-  {
-    title: "계약 약관",
-    titleEn: "Contract terms",
-    href: "/terms",
-    icon: "document",
-  },
-  {
-    title: "FAQ",
-    titleEn: "FAQ",
-    href: "/faq",
-    icon: "question",
-  },
-];
-
-// SERVICE 섹션 하단 2개 넓은 카드
-const serviceItemsBottom = [
-  {
-    title: "라우브필름에 대해서 알아보세요.",
-    subtitle: "결혼식 영상에 대한 라우브필름의 철학.",
-    href: "/about",
-    icon: "chart",
-  },
-  {
-    title: "[TIP] 라우브필름 최대로 활용하기.",
-    subtitle: "영상 시청 방법, 커스텀 요청 방법 등등.",
-    href: "/tip",
-    icon: "lightbulb",
-  },
-];
-
-const cameras = [
-  { name: "SONY FX3", desc: "Cinema Line" },
-  { name: "SONY A7S3", desc: "Low Light Master" },
-  { name: "SONY A7M4", desc: "High Resolution" },
-];
+import ServiceSection from "@/components/home/ServiceSection";
+import CameraSection from "@/components/home/CameraSection";
+import DirectorSection from "@/components/home/DirectorSection";
+import CustomSection from "@/components/home/CustomSection";
+import NoticeSection from "@/components/home/NoticeSection";
+import FooterSection from "@/components/home/FooterSection";
 
 export default function Home() {
   return (
-    <div className="flex flex-col">
-      {/* Hero Video Slider Section */}
+    <div className="flex flex-col bg-[#111111]">
+      {/* Section 1: Hero */}
       <HeroVideoSlider />
 
-      {/* Portfolio Slider Section */}
-      <section className="py-16 overflow-hidden">
+      {/* Section 2: Portfolio Slider */}
+      <section className="py-16 md:py-20 overflow-hidden bg-[#111111]">
         <PortfolioSlider />
       </section>
 
-      {/* SERVICE Section */}
-      <section className="py-20 px-4 bg-muted">
-        <div className="mx-auto max-w-6xl">
-          {/* Section Title - Left aligned, Red */}
-          <h2 className="mb-8 text-left text-2xl font-bold tracking-widest text-accent">SERVICE</h2>
+      {/* Section 3: Service */}
+      <ServiceSection />
 
-          {/* Top 4 Cards - 4 columns on desktop, 2 on mobile */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            {serviceItemsTop.map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="group rounded-lg bg-background p-8 md:p-10 border border-border transition-all hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10 min-h-[200px] md:min-h-[220px] flex flex-col items-center justify-center"
-              >
-                <div className="w-16 h-16 md:w-20 md:h-20 mb-6 rounded-full bg-accent/10 flex items-center justify-center">
-                  {item.icon === "dollar" && (
-                    <svg className="w-8 h-8 md:w-9 md:h-9 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  )}
-                  {item.icon === "calendar" && (
-                    <svg className="w-8 h-8 md:w-9 md:h-9 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                    </svg>
-                  )}
-                  {item.icon === "document" && (
-                    <svg className="w-8 h-8 md:w-9 md:h-9 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                    </svg>
-                  )}
-                  {item.icon === "question" && (
-                    <svg className="w-8 h-8 md:w-9 md:h-9 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-                    </svg>
-                  )}
-                </div>
-                <h3 className="text-lg md:text-xl font-bold mb-2 group-hover:text-accent transition-colors text-center">
-                  {item.title}
-                </h3>
-                <p className="text-sm md:text-base text-muted-foreground text-center">{item.titleEn}</p>
-              </Link>
-            ))}
-          </div>
-
-          {/* Bottom 2 Wide Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {serviceItemsBottom.map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="group rounded-lg bg-background p-8 md:p-10 border border-border transition-all hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10 min-h-[160px] md:min-h-[180px]"
-              >
-                <div className="flex items-start gap-6">
-                  <div className="w-14 h-14 md:w-16 md:h-16 flex-shrink-0 rounded-full bg-accent/10 flex items-center justify-center">
-                    {item.icon === "chart" && (
-                      <svg className="w-7 h-7 md:w-8 md:h-8 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                      </svg>
-                    )}
-                    {item.icon === "lightbulb" && (
-                      <svg className="w-7 h-7 md:w-8 md:h-8 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-                      </svg>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-base md:text-lg font-bold mb-2 group-hover:text-accent transition-colors">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm md:text-base text-muted-foreground">{item.subtitle}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* COLOR Section */}
+      {/* Section 4: Color */}
       <ColorSection />
 
-      {/* CAMERA Section */}
-      <section className="py-20 px-4 bg-muted">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="mb-4 text-center text-2xl font-bold tracking-widest">CAMERA</h2>
-          <p className="text-center text-muted-foreground mb-12">SONY 정품 장비만을 사용합니다</p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {cameras.map((camera) => (
-              <div
-                key={camera.name}
-                className="bg-background rounded-xl p-8 border border-border text-center hover:-translate-y-1 transition-transform"
-              >
-                <div className="w-16 h-16 mx-auto mb-4 bg-accent/10 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                  </svg>
-                </div>
-                <h3 className="font-bold mb-1">{camera.name}</h3>
-                <p className="text-xs text-muted-foreground">{camera.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Section 5: Camera */}
+      <CameraSection />
 
-      {/* ABOUT US - DIRECTOR & CUSTOM Tabs */}
-      <AboutTabs />
+      {/* Section 6: Director */}
+      <DirectorSection />
 
-      {/* REVIEW Section */}
+      {/* Section 7: Custom */}
+      <CustomSection />
+
+      {/* Section 8: Review */}
       <ReviewSection />
 
-      {/* NOTICE Section */}
-      <section className="py-16 px-4 bg-muted">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 text-center text-2xl font-bold tracking-widest">NOTICE</h2>
-          <div className="bg-background rounded-xl p-6 border border-border">
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 pb-4 border-b border-border">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">2024.01</span>
-                <div>
-                  <p className="font-medium mb-1">카카오톡 상담 채널 안내</p>
-                  <p className="text-sm text-muted-foreground">
-                    상담은 카카오톡 채널을 통해 진행됩니다. 우측 하단 버튼을 클릭해주세요.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">2024.01</span>
-                <div>
-                  <p className="font-medium mb-1">예약 안내</p>
-                  <p className="text-sm text-muted-foreground">
-                    성수기(4-6월, 9-11월)에는 예약이 빠르게 마감될 수 있습니다. 미리 문의해주세요.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Section 9: Notice */}
+      <NoticeSection />
 
+      {/* Section 10: Footer */}
+      <FooterSection />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
+import { motion } from "framer-motion";
+import { ExternalLink, ImageOff } from "lucide-react";
 
 interface Review {
   id: number;
@@ -17,15 +18,17 @@ interface Review {
 function getSourceLabel(sourceType: string) {
   switch (sourceType) {
     case "naver_blog":
-      return "네이버 블로그";
+      return "Blog";
     case "naver_cafe":
-      return "네이버 카페";
+      return "Cafe";
     case "instagram":
-      return "인스타그램";
+      return "Instagram";
     default:
-      return "리뷰";
+      return "Review";
   }
 }
+
+const reviewLink = "https://search.naver.com/search.naver?query=라우브필름+후기";
 
 export default function ReviewSection() {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -35,18 +38,8 @@ export default function ReviewSection() {
     fetch("/api/reviews")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Reviews data received:", data);
         if (data.reviews) {
-          // 이미지 URL이 있는 리뷰만 로그 출력
-          data.reviews.forEach((review: Review) => {
-            if (review.imageUrl) {
-              console.log(`Review ${review.id} imageUrl:`, review.imageUrl);
-            } else {
-              console.log(`Review ${review.id} has no imageUrl`);
-            }
-          });
-          // 최대 8개만 표시
-          setReviews(data.reviews.slice(0, 8));
+          setReviews(data.reviews.slice(0, 6));
         }
       })
       .catch((error) => {
@@ -59,14 +52,17 @@ export default function ReviewSection() {
 
   if (loading) {
     return (
-      <section className="py-20 px-4">
+      <section className="py-20 md:py-28 px-4 bg-[#111111]">
         <div className="mx-auto max-w-6xl">
-          <h2 className="mb-12 text-center text-2xl font-bold tracking-widest">REVIEW</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <h2 className="mb-4 text-center text-sm font-semibold tracking-[0.2em] text-accent uppercase">
+            Review
+          </h2>
+          <p className="text-center text-white/50 mb-12">Loading...</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="aspect-square bg-muted rounded-lg animate-pulse"
+                className="aspect-square bg-[#1a1a1a] rounded-xl animate-pulse"
               />
             ))}
           </div>
@@ -80,108 +76,121 @@ export default function ReviewSection() {
   }
 
   return (
-    <section className="py-20 px-4">
+    <section className="py-20 md:py-28 px-4 bg-[#111111]">
       <div className="mx-auto max-w-6xl">
-        <h2 className="mb-12 text-center text-2xl font-bold tracking-widest">REVIEW</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {reviews.map((review) => {
-            // 이미지 URL 검증
-            const hasValidImageUrl = review.imageUrl && 
-              review.imageUrl.trim() !== "" && 
+        {/* Section Title */}
+        <motion.h2
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mb-4 text-center text-sm font-semibold tracking-[0.2em] text-accent uppercase"
+        >
+          Review
+        </motion.h2>
+
+        {/* Description */}
+        <motion.p
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-center text-white/70 mb-12 text-base md:text-lg"
+        >
+          많은 신랑신부님들과 함께 하며
+          <br />
+          직접 적어주신 솔직한 후기들입니다.
+        </motion.p>
+
+        {/* Review Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 mb-10">
+          {reviews.map((review, index) => {
+            const hasValidImageUrl = review.imageUrl &&
+              review.imageUrl.trim() !== "" &&
               (review.imageUrl.startsWith("http://") || review.imageUrl.startsWith("https://"));
-            
+
             return (
-            <a
-              key={review.id}
-              href={review.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group aspect-square bg-muted rounded-lg overflow-hidden hover:-translate-y-1 transition-transform cursor-pointer relative"
-            >
-              {hasValidImageUrl && !review.imageError ? (
-                <img
-                  src={review.imageUrl!}
-                  alt={review.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    console.error("❌ Image load error for review", review.id);
-                    console.error("   URL:", review.imageUrl);
-                    console.error("   Natural width:", target.naturalWidth);
-                    console.error("   Natural height:", target.naturalHeight);
-                    setReviews((prev) =>
-                      prev.map((r) => (r.id === review.id ? { ...r, imageError: true } : r))
-                    );
-                  }}
-                  onLoad={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    console.log("✅ Image loaded successfully for review", review.id);
-                    console.log("   URL:", review.imageUrl);
-                    console.log("   Natural width:", target.naturalWidth);
-                    console.log("   Natural height:", target.naturalHeight);
-                  }}
-                />
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted">
-                  <svg className="w-10 h-10 mb-2" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-                    />
-                  </svg>
-                  {review.imageUrl && (
-                    <p className="text-xs text-center px-2">이미지 로드 실패</p>
-                  )}
-                  {!review.imageUrl && (
-                    <p className="text-xs text-center px-2">이미지 없음</p>
-                  )}
-                  {review.imageUrl && !hasValidImageUrl && (
-                    <p className="text-xs text-center px-2">유효하지 않은 URL</p>
+              <motion.a
+                key={review.id}
+                href={review.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
+                className="group aspect-square bg-[#1a1a1a] rounded-xl overflow-hidden border border-[#2a2a2a] transition-all duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10 relative cursor-pointer"
+              >
+                {hasValidImageUrl && !review.imageError ? (
+                  <img
+                    src={review.imageUrl!}
+                    alt={review.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    onError={() => {
+                      setReviews((prev) =>
+                        prev.map((r) => (r.id === review.id ? { ...r, imageError: true } : r))
+                      );
+                    }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-[#888888] bg-[#1a1a1a]">
+                    <ImageOff className="w-8 h-8 mb-2" strokeWidth={1} />
+                    <p className="text-xs text-center px-2">No Image</p>
+                  </div>
+                )}
+
+                {/* Source Label */}
+                <div className="absolute top-3 left-3 px-2 py-1 bg-black/70 rounded-full text-[10px] text-white/80 uppercase tracking-wider">
+                  {getSourceLabel(review.sourceType)}
+                </div>
+
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
+                  <h3 className="text-sm font-medium text-white line-clamp-2 mb-1">
+                    {review.title}
+                  </h3>
+                  {review.author && (
+                    <p className="text-xs text-white/60">
+                      - {review.author}
+                    </p>
                   )}
                 </div>
-              )}
-              {/* Hover Overlay */}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
-                <span className="text-xs text-white mb-2">{getSourceLabel(review.sourceType)}</span>
-                <h3 className="text-sm font-medium text-white line-clamp-2">{review.title}</h3>
-                {review.author && (
-                  <p className="text-xs text-white/80 mt-2">- {review.author}</p>
-                )}
-              </div>
-            </a>
+              </motion.a>
             );
           })}
-          {/* 빈 슬롯 채우기 (8개 미만인 경우) */}
-          {reviews.length < 8 &&
-            Array.from({ length: 8 - reviews.length }).map((_, i) => (
+
+          {/* Fill empty slots */}
+          {reviews.length < 6 &&
+            Array.from({ length: 6 - reviews.length }).map((_, i) => (
               <div
                 key={`empty-${i}`}
-                className="aspect-square bg-muted rounded-lg flex items-center justify-center opacity-30"
+                className="aspect-square bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] flex items-center justify-center opacity-30"
               >
-                <svg className="w-10 h-10 text-muted-foreground" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-                  />
-                </svg>
+                <ImageOff className="w-8 h-8 text-[#888888]" strokeWidth={1} />
               </div>
             ))}
         </div>
-        <div className="text-center">
-          <Link
-            href="/reviews"
-            className="inline-flex items-center text-accent hover:underline"
+
+        {/* More Reviews Button */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="flex justify-center"
+        >
+          <a
+            href={reviewLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-white/80 text-sm font-medium transition-all duration-300 hover:border-accent hover:text-white hover:shadow-lg hover:shadow-accent/10"
           >
-            +REVIEW 더 보기
-            <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-            </svg>
-          </Link>
-        </div>
+            <span>+ 더 많은 후기</span>
+            <ExternalLink className="w-4 h-4 group-hover:text-accent transition-colors" />
+          </a>
+        </motion.div>
       </div>
     </section>
   );

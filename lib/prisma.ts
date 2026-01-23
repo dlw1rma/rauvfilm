@@ -44,5 +44,6 @@ if (!globalForPrisma.prisma) {
   globalForPrisma.prisma = createPrismaClient();
 }
 
+// 명시적으로 PrismaClient 인스턴스 export
 export const prisma: PrismaClient = globalForPrisma.prisma;
 

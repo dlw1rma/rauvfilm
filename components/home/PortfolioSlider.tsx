@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, FreeMode } from "swiper/modules";
+import { Play } from "lucide-react";
+
+import "swiper/css";
+import "swiper/css/free-mode";
 
 interface PortfolioItem {
   id: number;
@@ -23,7 +30,7 @@ function extractVideoId(url: string): string {
   return url;
 }
 
-function getYoutubeThumbnail(youtubeId: string, quality: 'default' | 'hq' | 'mq' | 'sd' | 'maxres' = 'hq'): string {
+function getYoutubeThumbnail(youtubeId: string, quality: 'default' | 'hq' | 'mq' | 'sd' | 'maxres' = 'maxres'): string {
   if (!youtubeId) return '';
   const qualityMap = {
     default: 'default',
@@ -36,12 +43,10 @@ function getYoutubeThumbnail(youtubeId: string, quality: 'default' | 'hq' | 'mq'
 }
 
 export default function PortfolioSlider() {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [portfolios, setPortfolios] = useState<PortfolioItem[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string } | null>(null);
 
   useEffect(() => {
-    // DB에서 포트폴리오 데이터 가져오기
     fetch("/api/portfolio")
       .then((res) => res.json())
       .then((data) => {
@@ -54,107 +59,124 @@ export default function PortfolioSlider() {
       });
   }, []);
 
-  useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer || portfolios.length === 0) return;
-
-    let animationId: number;
-    let scrollPosition = 0;
-    const speed = 0.5;
-
-    const scroll = () => {
-      scrollPosition += speed;
-
-      // Reset when we've scrolled half the content (since we duplicate it)
-      if (scrollPosition >= scrollContainer.scrollWidth / 2) {
-        scrollPosition = 0;
-      }
-
-      scrollContainer.scrollLeft = scrollPosition;
-      animationId = requestAnimationFrame(scroll);
-    };
-
-    // Start scrolling - hover 이벤트 제거하여 항상 스크롤
-    animationId = requestAnimationFrame(scroll);
-
-    return () => {
-      cancelAnimationFrame(animationId);
-    };
-  }, [portfolios]);
-
-  // Duplicate items for seamless infinite scroll
-  const items = portfolios.length > 0 ? [...portfolios, ...portfolios] : [];
-
   if (portfolios.length === 0) {
     return null;
   }
 
+  // Duplicate for seamless infinite scroll
+  const items = [...portfolios, ...portfolios];
+
   return (
     <>
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-hidden py-4"
-        style={{ scrollBehavior: "auto" }}
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="py-4"
       >
-        {items.map((item, index) => {
-          const videoId = extractVideoId(item.youtubeUrl);
-          const thumbnailUrl = item.thumbnailUrl || getYoutubeThumbnail(videoId, 'maxres');
-          
-          return (
-            <div
-              key={`${item.id}-${index}`}
-              className="flex-shrink-0 w-[280px] md:w-[320px] lg:w-[360px] group cursor-pointer"
-              onClick={() => {
-                // 모달 플레이어는 기본 비율 사용 (API 호출 없음)
-                setSelectedVideo({ 
-                  videoId, 
-                  title: item.title
-                });
-              }}
-            >
-              {/* Card with Thumbnail */}
-              <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-2 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-accent/20">
-                {/* Thumbnail Image */}
-                {thumbnailUrl ? (
-                  <img
-                    src={thumbnailUrl}
-                    alt={item.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-muted to-background" />
-                )}
-              </div>
-              {/* Title Below Thumbnail */}
-              <h3 className="text-xs md:text-sm text-muted-foreground text-center line-clamp-2">
-                {item.title}
-              </h3>
-            </div>
-          );
-        })}
-      </div>
+        <Swiper
+          modules={[Autoplay, FreeMode]}
+          slidesPerView="auto"
+          spaceBetween={16}
+          loop={true}
+          freeMode={{
+            enabled: true,
+            momentum: true,
+            momentumRatio: 0.5,
+          }}
+          autoplay={{
+            delay: 0,
+            disableOnInteraction: false,
+            pauseOnMouseEnter: true,
+          }}
+          speed={4000}
+          className="!overflow-visible"
+        >
+          {items.map((item, index) => {
+            const videoId = extractVideoId(item.youtubeUrl);
+            const thumbnailUrl = item.thumbnailUrl || getYoutubeThumbnail(videoId, 'maxres');
+
+            return (
+              <SwiperSlide
+                key={`${item.id}-${index}`}
+                className="!w-[280px] md:!w-[320px] lg:!w-[380px]"
+              >
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.3 }}
+                  className="group cursor-pointer"
+                  onClick={() => {
+                    setSelectedVideo({
+                      videoId,
+                      title: item.title
+                    });
+                  }}
+                >
+                  {/* Card with Thumbnail */}
+                  <div className="relative aspect-video bg-[#1a1a1a] rounded-lg overflow-hidden border border-[#2a2a2a] transition-all duration-300 group-hover:border-accent group-hover:shadow-lg group-hover:shadow-accent/20">
+                    {/* Thumbnail Image */}
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={item.title}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-[#111111]" />
+                    )}
+
+                    {/* Overlay on Hover */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center">
+                      {/* Play Icon */}
+                      <div className="opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all duration-300">
+                        <div className="w-16 h-16 rounded-full bg-accent/90 flex items-center justify-center">
+                          <Play className="w-7 h-7 text-white fill-white ml-1" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Title Below Thumbnail */}
+                  <div className="mt-3 px-1">
+                    <h3 className="text-sm md:text-base text-white font-medium line-clamp-1 group-hover:text-accent transition-colors">
+                      {item.title}
+                    </h3>
+                  </div>
+                </motion.div>
+              </SwiperSlide>
+            );
+          })}
+        </Swiper>
+      </motion.div>
 
       {/* Video Modal */}
       {selectedVideo && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
           onClick={() => setSelectedVideo(null)}
         >
-          <div
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
             className="relative w-full h-full flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
               onClick={() => setSelectedVideo(null)}
-              className="absolute top-4 right-4 z-10 text-white hover:text-accent transition-colors"
-              aria-label="닫기"
+              className="absolute top-4 right-4 z-10 text-white/70 hover:text-accent transition-colors"
+              aria-label="Close"
             >
               <svg
                 className="w-10 h-10"
                 fill="none"
                 viewBox="0 0 24 24"
-                strokeWidth="2"
+                strokeWidth="1.5"
                 stroke="currentColor"
               >
                 <path
@@ -165,10 +187,10 @@ export default function PortfolioSlider() {
               </svg>
             </button>
 
-            {/* Video Player - 모달 플레이어 (기본 비율 유지) */}
-            <div 
+            {/* Video Player */}
+            <div
               className="relative max-w-5xl w-full"
-              style={{ 
+              style={{
                 aspectRatio: "16 / 9",
                 maxHeight: "85vh"
               }}
@@ -179,18 +201,18 @@ export default function PortfolioSlider() {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="absolute inset-0 w-full h-full rounded-lg"
-                style={{ 
+                style={{
                   border: "none"
                 }}
               />
             </div>
 
             {/* Video Title */}
-            <h3 className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white text-lg font-medium max-w-4xl px-4">
+            <h3 className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center text-white text-lg font-medium max-w-4xl px-4">
               {selectedVideo.title}
             </h3>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
     </>
   );

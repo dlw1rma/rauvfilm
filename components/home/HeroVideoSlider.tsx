@@ -1,62 +1,65 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
 export default function HeroVideoSlider() {
   // 데스크톱용 가로형 영상 ID
   const desktopVideoId = "sfKkrvLg_7g";
-  // 모바일용 세로형 영상 ID (필요시 변경)
+  // 모바일용 세로형 영상 ID
   const mobileVideoId = "6GEYb31W9go";
-  
+
   const [desktopVideoDimensions, setDesktopVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [mobileVideoDimensions, setMobileVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // 모바일/데스크톱 감지
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener("resize", checkMobile);
-    
+
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   useEffect(() => {
-    // 데스크톱용 영상 비율 가져오기
     fetch(`/api/youtube/video-details?videoId=${desktopVideoId}`)
       .then((res) => res.json())
       .then((data) => {
         setDesktopVideoDimensions({ width: data.width, height: data.height });
       })
-      .catch((error) => {
-        console.error("Error fetching desktop video dimensions:", error);
+      .catch(() => {
         setDesktopVideoDimensions({ width: 1280, height: 720 });
       });
 
-    // 모바일용 영상 비율 가져오기
     fetch(`/api/youtube/video-details?videoId=${mobileVideoId}`)
       .then((res) => res.json())
       .then((data) => {
         setMobileVideoDimensions({ width: data.width, height: data.height });
       })
-      .catch((error) => {
-        console.error("Error fetching mobile video dimensions:", error);
+      .catch(() => {
         setMobileVideoDimensions({ width: 720, height: 1280 });
       });
   }, [desktopVideoId, mobileVideoId]);
 
-  // 현재 사용할 영상 정보
   const currentVideoId = isMobile ? mobileVideoId : desktopVideoId;
   const currentDimensions = isMobile ? mobileVideoDimensions : desktopVideoDimensions;
 
+  // Scroll to next section
+  const scrollToNext = () => {
+    window.scrollTo({
+      top: window.innerHeight,
+      behavior: "smooth",
+    });
+  };
+
   return (
-    <section className="relative w-full h-[80vh] min-h-[700px] overflow-hidden bg-black flex items-center">
-      {/* Video Background - 배경 비디오 전용 (좌우 밀착 100vw, 수직 중앙 정렬) */}
-      <div 
-        className="bg-video-full absolute inset-0 overflow-hidden flex items-center justify-center"
+    <section className="relative w-full h-screen min-h-[600px] overflow-hidden bg-[#111111] flex items-center justify-center">
+      {/* Video Background */}
+      <div
+        className="absolute inset-0 overflow-hidden"
         style={currentDimensions ? {
           aspectRatio: `${currentDimensions.width} / ${currentDimensions.height}`,
           width: "100vw",
@@ -73,66 +76,96 @@ export default function HeroVideoSlider() {
           minHeight: "100%"
         }}
       >
-        {/* 데스크톱용 영상 (768px 이상) */}
+        {/* Desktop Video */}
         {!isMobile && (
           <iframe
             src={`https://www.youtube.com/embed/${desktopVideoId}?autoplay=1&mute=1&loop=1&playlist=${desktopVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
             title="Hero Video Desktop"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            className="absolute inset-0 w-full h-full"
-            style={{ 
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            style={{
               border: "none",
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)"
             }}
-            allowFullScreen
           />
         )}
-        
-        {/* 모바일용 영상 (768px 미만) */}
+
+        {/* Mobile Video */}
         {isMobile && (
           <iframe
             src={`https://www.youtube.com/embed/${mobileVideoId}?autoplay=1&mute=1&loop=1&playlist=${mobileVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
             title="Hero Video Mobile"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            className="absolute inset-0 w-full h-full"
-            style={{ 
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            style={{
               border: "none",
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)"
             }}
-            allowFullScreen
           />
         )}
-        
-        {/* Dark Overlay */}
-        <div className="absolute inset-0 bg-black/40 z-0" />
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70 z-0" />
       </div>
 
-      {/* Content - Left Aligned */}
-      <div className="relative z-10 h-full flex items-center w-full">
-        <div className="container mx-auto px-6 md:px-12 lg:px-16">
-          <div className="max-w-xl">
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight drop-shadow-lg">
-              소중한 날의 기억들을
-              <br />
-              영원히 간직하세요
-            </h1>
-            <p className="mt-4 text-xs md:text-sm lg:text-base text-white/80">
-              &apos;기록&apos;이 아닌 &apos;기억&apos;을 남기는 영상을 선사합니다.
-            </p>
-          </div>
-        </div>
+      {/* Content - Center Aligned with Animation */}
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-6">
+        <motion.h1
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+          className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight tracking-tight"
+        >
+          소중한 날의 기억들을
+          <br />
+          영원히 간직하세요
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+          className="mt-6 md:mt-8 text-base md:text-lg lg:text-xl text-white/70 font-light tracking-wide"
+        >
+          &apos;기록&apos;이 아닌 &apos;기억&apos;을 남기는 영상을 선사합니다.
+        </motion.p>
       </div>
 
-      {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
-        <svg className="w-6 h-6 text-white/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-        </svg>
-      </div>
+      {/* Scroll Indicator with Bounce Animation */}
+      <motion.button
+        onClick={scrollToNext}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 1 }}
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 cursor-pointer group"
+        aria-label="Scroll down"
+      >
+        <span className="text-xs text-white/50 tracking-widest uppercase group-hover:text-white/70 transition-colors">
+          Scroll
+        </span>
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          <svg
+            className="w-6 h-6 text-white/50 group-hover:text-accent transition-colors"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </motion.div>
+      </motion.button>
     </section>
   );
 }
