@@ -368,14 +368,298 @@ font-family: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-seri
 }
 ```
 
-### 스크롤 애니메이션 (Framer Motion)
+### 스크롤 애니메이션 (Framer Motion) - 뮤자인 스타일
+
+#### 1. 히어로 텍스트 - 글자별 순차 등장
 ```typescript
-const fadeInUp = {
-  initial: { opacity: 0, y: 30 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.6 }
+// 한 글자씩 나타나는 애니메이션
+const letterAnimation = {
+  hidden: { opacity: 0, y: 50 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.05,
+      duration: 0.5,
+      ease: [0.2, 0.65, 0.3, 0.9],
+    },
+  }),
 }
+
+// 사용 예시
+const AnimatedText = ({ text }: { text: string }) => (
+  <motion.h1>
+    {text.split("").map((char, i) => (
+      <motion.span
+        key={i}
+        custom={i}
+        variants={letterAnimation}
+        initial="hidden"
+        animate="visible"
+      >
+        {char === " " ? "\u00A0" : char}
+      </motion.span>
+    ))}
+  </motion.h1>
+)
+```
+
+#### 2. 단어별 순차 등장 (히어로 서브타이틀)
+```typescript
+const wordAnimation = {
+  hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: {
+      delay: 0.8 + i * 0.1,
+      duration: 0.6,
+      ease: "easeOut",
+    },
+  }),
+}
+```
+
+#### 3. 스크롤 유도 아이콘 - 바운스 + 페이드
+```typescript
+const scrollIndicator = {
+  animate: {
+    y: [0, 10, 0],
+    opacity: [0.5, 1, 0.5],
+  },
+  transition: {
+    duration: 2,
+    repeat: Infinity,
+    ease: "easeInOut",
+  },
+}
+```
+
+#### 4. 카드 스태거 효과 (시차 등장)
+```typescript
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.2,
+    },
+  },
+}
+
+const cardVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 60,
+    scale: 0.9,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.6,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+}
+```
+
+#### 5. 가로 슬라이드 인 (좌/우에서 등장)
+```typescript
+const slideInLeft = {
+  hidden: { opacity: 0, x: -100 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.8, ease: "easeOut" },
+  },
+}
+
+const slideInRight = {
+  hidden: { opacity: 0, x: 100 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.8, ease: "easeOut" },
+  },
+}
+```
+
+#### 6. 스케일 업 + 페이드 (이미지용)
+```typescript
+const scaleUp = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] },
+  },
+}
+```
+
+#### 7. 섹션 타이틀 - 라인 확장 애니메이션
+```typescript
+const titleLineExpand = {
+  hidden: { width: 0 },
+  visible: {
+    width: "100%",
+    transition: { duration: 0.8, ease: "easeInOut" },
+  },
+}
+
+// 타이틀 아래 빨간 라인이 확장되는 효과
+<motion.div 
+  className="h-0.5 bg-accent"
+  variants={titleLineExpand}
+  initial="hidden"
+  whileInView="visible"
+/>
+```
+
+#### 8. 숫자 카운트업 애니메이션
+```typescript
+const CountUp = ({ target }: { target: number }) => {
+  const [count, setCount] = useState(0)
+  
+  useEffect(() => {
+    const duration = 2000
+    const steps = 60
+    const increment = target / steps
+    let current = 0
+    
+    const timer = setInterval(() => {
+      current += increment
+      if (current >= target) {
+        setCount(target)
+        clearInterval(timer)
+      } else {
+        setCount(Math.floor(current))
+      }
+    }, duration / steps)
+    
+    return () => clearInterval(timer)
+  }, [target])
+  
+  return <span>{count}</span>
+}
+```
+
+#### 9. 패럴랙스 스크롤 효과
+```typescript
+const { scrollYProgress } = useScroll()
+const y = useTransform(scrollYProgress, [0, 1], [0, -100])
+
+<motion.div style={{ y }}>
+  {/* 배경 이미지 - 스크롤 시 느리게 움직임 */}
+</motion.div>
+```
+
+#### 10. 호버 시 3D 틸트 효과 (카드)
+```typescript
+const Card3D = ({ children }) => {
+  const [rotateX, setRotateX] = useState(0)
+  const [rotateY, setRotateY] = useState(0)
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const centerX = rect.width / 2
+    const centerY = rect.height / 2
+    
+    setRotateX((y - centerY) / 10)
+    setRotateY((centerX - x) / 10)
+  }
+
+  return (
+    <motion.div
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => { setRotateX(0); setRotateY(0) }}
+      style={{
+        rotateX,
+        rotateY,
+        transformStyle: "preserve-3d",
+      }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+```
+
+#### 11. 마우스 따라다니는 커서 효과
+```typescript
+const CustomCursor = () => {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY })
+    }
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
+  }, [])
+
+  return (
+    <motion.div
+      className="fixed w-6 h-6 border-2 border-accent rounded-full pointer-events-none z-50 mix-blend-difference"
+      animate={{ x: mousePos.x - 12, y: mousePos.y - 12 }}
+      transition={{ type: "spring", stiffness: 500, damping: 28 }}
+    />
+  )
+}
+```
+
+#### 12. 텍스트 마스크 reveal 효과
+```typescript
+const textReveal = {
+  hidden: { 
+    clipPath: "inset(0 100% 0 0)",
+  },
+  visible: {
+    clipPath: "inset(0 0% 0 0)",
+    transition: { duration: 0.8, ease: [0.77, 0, 0.175, 1] },
+  },
+}
+```
+
+#### 13. 무한 가로 스크롤 (포트폴리오 슬라이더)
+```typescript
+const infiniteScroll = {
+  animate: {
+    x: [0, -1920],
+    transition: {
+      x: {
+        repeat: Infinity,
+        repeatType: "loop",
+        duration: 30,
+        ease: "linear",
+      },
+    },
+  },
+}
+```
+
+#### 14. 글리치 효과 (호버 시)
+```typescript
+const glitchHover = `
+  .glitch:hover {
+    animation: glitch 0.3s ease;
+  }
+  
+  @keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
+  }
+`
 ```
 
 ---
@@ -383,8 +667,16 @@ const fadeInUp = {
 ## 📦 필요한 패키지
 
 ```bash
-npm install framer-motion swiper react-compare-slider lucide-react
+npm install framer-motion swiper react-compare-slider lucide-react lenis
 ```
+
+| 패키지 | 용도 |
+|--------|------|
+| framer-motion | 모든 애니메이션 |
+| swiper | 포트폴리오 슬라이더 |
+| react-compare-slider | Before/After 비교 |
+| lucide-react | 아이콘 |
+| lenis | 스무스 스크롤 |
 
 ---
 
@@ -400,6 +692,82 @@ npm install framer-motion swiper react-compare-slider lucide-react
 8. **푸터** - SNS + 정보
 9. **스크롤 애니메이션** - 전체 적용
 10. **반응형** - 모바일 최적화
+
+---
+
+## 🎬 섹션별 애니메이션 적용 가이드
+
+### 히어로 섹션
+- **메인 타이틀**: 글자별 순차 등장 (letterAnimation)
+- **서브 타이틀**: 단어별 블러→선명 (wordAnimation)
+- **스크롤 유도**: 바운스 무한 반복 (scrollIndicator)
+- **배경**: 패럴랙스 효과 (scrollYProgress)
+
+### 포트폴리오 섹션
+- **섹션 타이틀**: 라인 확장 애니메이션 (titleLineExpand)
+- **슬라이더**: 무한 가로 스크롤 (infiniteScroll)
+- **카드 호버**: 3D 틸트 효과 (Card3D)
+
+### 서비스 섹션
+- **컨테이너**: 스태거 효과 (containerVariants)
+- **카드**: 순차 등장 + 스케일업 (cardVariants)
+- **아이콘**: 호버 시 회전 또는 바운스
+
+### 컬러 섹션
+- **타이틀**: 텍스트 마스크 reveal (textReveal)
+- **Before/After**: 스케일업으로 등장 (scaleUp)
+
+### 카메라/감독/커스텀 섹션
+- **텍스트 블록**: 좌/우 슬라이드 인 (slideInLeft, slideInRight)
+- **강조 텍스트**: 글리치 효과 (glitchHover)
+- **숫자**: 카운트업 애니메이션 (CountUp)
+
+### 후기 섹션
+- **이미지 그리드**: 스태거 + 스케일업
+- **버튼**: 호버 시 확대 + 그림자
+
+### 푸터
+- **링크**: 호버 시 밑줄 확장
+- **아이콘**: 호버 시 위로 튀어오르기
+
+---
+
+## 🖱️ 추가 인터랙션 (선택사항)
+
+### 커스텀 커서
+```
+전체 페이지에 CustomCursor 컴포넌트 적용
+호버 가능한 요소 위에서 커서 확대
+```
+
+### 스무스 스크롤
+```bash
+npm install lenis
+```
+```typescript
+// 부드러운 스크롤 적용
+import Lenis from 'lenis'
+
+useEffect(() => {
+  const lenis = new Lenis()
+  function raf(time: number) {
+    lenis.raf(time)
+    requestAnimationFrame(raf)
+  }
+  requestAnimationFrame(raf)
+}, [])
+```
+
+### 페이지 로딩 애니메이션
+```typescript
+const pageLoad = {
+  initial: { opacity: 0 },
+  animate: { 
+    opacity: 1,
+    transition: { duration: 0.5, delay: 0.2 }
+  },
+}
+```
 
 ---
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, FreeMode } from "swiper/modules";
 import { Play } from "lucide-react";
@@ -42,6 +42,65 @@ function getYoutubeThumbnail(youtubeId: string, quality: 'default' | 'hq' | 'mq'
   return `https://img.youtube.com/vi/${youtubeId}/${qualityMap[quality]}.jpg`;
 }
 
+// 3D 틸트 카드 컴포넌트
+function Card3D({
+  children,
+  className,
+  onClick,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const mouseXSpring = useSpring(x, { stiffness: 300, damping: 30 });
+  const mouseYSpring = useSpring(y, { stiffness: 300, damping: 30 });
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["8deg", "-8deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-8deg", "8deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!ref.current) return;
+
+    const rect = ref.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    x.set((mouseX / width) - 0.5);
+    y.set((mouseY / height) - 0.5);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onClick={onClick}
+      style={{
+        rotateX,
+        rotateY,
+        transformStyle: "preserve-3d",
+      }}
+      className={className}
+    >
+      <div style={{ transform: "translateZ(30px)", transformStyle: "preserve-3d" }}>
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
 export default function PortfolioSlider() {
   const [portfolios, setPortfolios] = useState<PortfolioItem[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string } | null>(null);
@@ -63,7 +122,6 @@ export default function PortfolioSlider() {
     return null;
   }
 
-  // Duplicate for seamless infinite scroll
   const items = [...portfolios, ...portfolios];
 
   return (
@@ -74,11 +132,12 @@ export default function PortfolioSlider() {
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
         className="py-4"
+        style={{ perspective: 1000 }}
       >
         <Swiper
           modules={[Autoplay, FreeMode]}
           slidesPerView="auto"
-          spaceBetween={16}
+          spaceBetween={20}
           loop={true}
           freeMode={{
             enabled: true,
@@ -101,10 +160,9 @@ export default function PortfolioSlider() {
               <SwiperSlide
                 key={`${item.id}-${index}`}
                 className="!w-[280px] md:!w-[320px] lg:!w-[380px]"
+                style={{ perspective: 1000 }}
               >
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.3 }}
+                <Card3D
                   className="group cursor-pointer"
                   onClick={() => {
                     setSelectedVideo({
@@ -114,7 +172,7 @@ export default function PortfolioSlider() {
                   }}
                 >
                   {/* Card with Thumbnail */}
-                  <div className="relative aspect-video bg-[#1a1a1a] rounded-lg overflow-hidden border border-[#2a2a2a] transition-all duration-300 group-hover:border-accent group-hover:shadow-lg group-hover:shadow-accent/20">
+                  <div className="relative aspect-video bg-[#1a1a1a] rounded-xl overflow-hidden border border-[#2a2a2a] transition-all duration-300 group-hover:border-accent group-hover:shadow-xl group-hover:shadow-accent/30">
                     {/* Thumbnail Image */}
                     {thumbnailUrl ? (
                       <img
@@ -126,50 +184,63 @@ export default function PortfolioSlider() {
                       <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-[#111111]" />
                     )}
 
+                    {/* Shine Effect on Hover */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                    </div>
+
                     {/* Overlay on Hover */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center">
-                      {/* Play Icon */}
-                      <div className="opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all duration-300">
-                        <div className="w-16 h-16 rounded-full bg-accent/90 flex items-center justify-center">
+                      {/* Play Icon with Scale Animation */}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        whileHover={{ scale: 1.1 }}
+                        className="opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all duration-300"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-accent/90 flex items-center justify-center backdrop-blur-sm shadow-lg shadow-accent/50">
                           <Play className="w-7 h-7 text-white fill-white ml-1" />
                         </div>
-                      </div>
+                      </motion.div>
                     </div>
                   </div>
 
                   {/* Title Below Thumbnail */}
                   <div className="mt-3 px-1">
-                    <h3 className="text-sm md:text-base text-white font-medium line-clamp-1 group-hover:text-accent transition-colors">
+                    <h3 className="text-sm md:text-base text-white font-medium line-clamp-1 group-hover:text-accent transition-colors duration-300">
                       {item.title}
                     </h3>
                   </div>
-                </motion.div>
+                </Card3D>
               </SwiperSlide>
             );
           })}
         </Swiper>
       </motion.div>
 
-      {/* Video Modal */}
+      {/* Video Modal with Enhanced Animation */}
       {selectedVideo && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4"
           onClick={() => setSelectedVideo(null)}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3 }}
+            initial={{ scale: 0.8, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 50 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="relative w-full h-full flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
-            <button
+            <motion.button
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
               onClick={() => setSelectedVideo(null)}
-              className="absolute top-4 right-4 z-10 text-white/70 hover:text-accent transition-colors"
+              className="absolute top-4 right-4 z-10 text-white/70 hover:text-accent transition-colors hover:rotate-90 duration-300"
               aria-label="Close"
             >
               <svg
@@ -185,7 +256,7 @@ export default function PortfolioSlider() {
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
+            </motion.button>
 
             {/* Video Player */}
             <div
@@ -200,7 +271,7 @@ export default function PortfolioSlider() {
                 title={selectedVideo.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className="absolute inset-0 w-full h-full rounded-lg"
+                className="absolute inset-0 w-full h-full rounded-xl shadow-2xl"
                 style={{
                   border: "none"
                 }}
@@ -208,9 +279,14 @@ export default function PortfolioSlider() {
             </div>
 
             {/* Video Title */}
-            <h3 className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center text-white text-lg font-medium max-w-4xl px-4">
+            <motion.h3
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center text-white text-lg font-medium max-w-4xl px-4"
+            >
               {selectedVideo.title}
-            </h3>
+            </motion.h3>
           </motion.div>
         </motion.div>
       )}
