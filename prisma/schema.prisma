@@ -19,6 +19,7 @@ model Reservation {
   password    String    // bcrypt 해시
   isPrivate   Boolean   @default(true) // 비밀글만 가능
   viewCount   Int       @default(0)
+  status      String    @default("PENDING") // PENDING, CONFIRMED, COMPLETED
   
   // 필수 작성항목(공통)
   brideName       String?  // 신부님 성함

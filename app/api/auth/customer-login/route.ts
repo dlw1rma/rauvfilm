@@ -2,7 +2,7 @@
  * 고객 로그인 API
  * POST /api/auth/customer-login
  *
- * 성함 + 전화번호로 로그인 (별도 비밀번호 없음)
+ * 성함 + 전화번호로 로그인 (Reservation 테이블 조회)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -36,36 +36,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 예약 조회 (성함 + 전화번호로)
-    const booking = await prisma.booking.findFirst({
+    // Reservation 테이블에서 조회 (계약자 성함 + 전화번호)
+    // 신부 또는 신랑 전화번호로 조회
+    const reservation = await prisma.reservation.findFirst({
       where: {
-        customerName: name.trim(),
-        customerPhone: normalizedPhone,
-        isAnonymized: false, // 개인정보 파기되지 않은 예약만
-      },
-      include: {
-        product: true,
-        discountEvent: true,
-        reviewSubmissions: true,
+        OR: [
+          // 신부 정보로 로그인
+          {
+            brideName: name.trim(),
+            bridePhone: normalizedPhone,
+          },
+          // 신랑 정보로 로그인
+          {
+            groomName: name.trim(),
+            groomPhone: normalizedPhone,
+          },
+          // 계약자 이름 + 신부 전화번호
+          {
+            author: name.trim(),
+            bridePhone: normalizedPhone,
+          },
+          // 계약자 이름 + 신랑 전화번호
+          {
+            author: name.trim(),
+            groomPhone: normalizedPhone,
+          },
+        ],
       },
       orderBy: {
         createdAt: 'desc', // 최신 예약 우선
       },
     });
 
-    if (!booking) {
+    if (!reservation) {
       return NextResponse.json(
-        { error: '일치하는 예약 정보를 찾을 수 없습니다.' },
+        { error: '일치하는 예약 정보를 찾을 수 없습니다.\n성함과 예약 시 입력한 전화번호를 확인해주세요.' },
         { status: 404 }
       );
     }
 
-    // 세션 토큰 생성 (간단한 구현 - 실제로는 JWT 등 사용 권장)
+    // 세션 토큰 생성
     const sessionToken = Buffer.from(
       JSON.stringify({
-        bookingId: booking.id,
-        customerName: booking.customerName,
-        customerPhone: booking.customerPhone,
+        reservationId: reservation.id,
+        customerName: reservation.author,
+        customerPhone: normalizedPhone,
+        referralCode: reservation.referralCode,
         exp: Date.now() + 24 * 60 * 60 * 1000, // 24시간 후 만료
       })
     ).toString('base64');
@@ -83,16 +99,14 @@ export async function POST(request: NextRequest) {
     // 응답 (민감 정보 제외)
     return NextResponse.json({
       success: true,
-      booking: {
-        id: booking.id,
-        customerName: booking.customerName,
-        weddingDate: booking.weddingDate,
-        weddingVenue: booking.weddingVenue,
-        status: booking.status,
-        partnerCode: booking.partnerCode,
-        product: {
-          name: booking.product.name,
-        },
+      reservation: {
+        id: reservation.id,
+        customerName: reservation.author,
+        weddingDate: reservation.weddingDate,
+        venueName: reservation.venueName,
+        status: reservation.status,
+        referralCode: reservation.referralCode,
+        productType: reservation.productType,
       },
     });
   } catch (error) {

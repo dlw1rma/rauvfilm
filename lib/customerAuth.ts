@@ -4,12 +4,13 @@
 
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-import type { Booking } from '@prisma/client';
+import type { Reservation } from '@prisma/client';
 
 export interface CustomerSession {
-  bookingId: number;
+  reservationId: number;
   customerName: string;
   customerPhone: string;
+  referralCode?: string | null;
   exp: number;
 }
 
@@ -43,23 +44,21 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
 /**
  * 현재 로그인된 고객의 예약 정보 가져오기
  */
-export async function getCurrentBooking(): Promise<Booking | null> {
+export async function getCurrentReservation(): Promise<Reservation | null> {
   const session = await getCustomerSession();
 
   if (!session) {
     return null;
   }
 
-  const booking = await prisma.booking.findUnique({
-    where: { id: session.bookingId },
+  const reservation = await prisma.reservation.findUnique({
+    where: { id: session.reservationId },
     include: {
-      product: true,
-      discountEvent: true,
-      reviewSubmissions: true,
+      reply: true,
     },
   });
 
-  return booking;
+  return reservation;
 }
 
 /**

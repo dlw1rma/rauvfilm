@@ -244,26 +244,28 @@ export default function PortfolioPageClient() {
 
         <div className="py-20 px-4">
           <div className="mx-auto max-w-7xl">
-            {/* Category Filter */}
-            <div className="mb-8">
-              <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+            {/* Category Filter - Minimal Underline Style */}
+            <div className="mb-12">
+              <div className="flex items-center justify-center gap-8 md:gap-12 border-b border-border">
                 {categories.map((category) => (
                   <button
                     key={category}
                     onClick={() => setSelectedCategory(category)}
-                    className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all ${
+                    className={`relative pb-4 text-sm md:text-base font-medium tracking-wide transition-colors ${
                       selectedCategory === category
-                        ? category === "가성비형"
-                          ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
-                          : category === "기본형"
-                          ? "bg-green-500 text-white shadow-lg shadow-green-500/30"
-                          : category === "시네마틱형"
-                          ? "bg-purple-500 text-white shadow-lg shadow-purple-500/30"
-                          : "bg-accent text-white shadow-lg shadow-accent/30"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {category}
+                    {/* Active Indicator */}
+                    <span
+                      className={`absolute bottom-0 left-0 w-full h-0.5 transition-transform duration-300 origin-center ${
+                        selectedCategory === category
+                          ? "bg-accent scale-x-100"
+                          : "bg-transparent scale-x-0"
+                      }`}
+                    />
                   </button>
                 ))}
               </div>
@@ -377,12 +379,12 @@ export default function PortfolioPageClient() {
                         </div>
                       )}
                     </div>
-                    {/* Category & Title */}
-                    <div className="space-y-3">
-                      <span className={`inline-block rounded-lg border px-4 py-2 text-sm font-bold ${getCategoryColor(item.category)}`}>
+                    {/* Category & Title - Minimal Style */}
+                    <div className="space-y-2">
+                      <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
                         {item.category}
                       </span>
-                      <h3 className="text-lg font-semibold group-hover:text-accent transition-colors line-clamp-2">
+                      <h3 className="text-base font-medium group-hover:text-accent transition-colors line-clamp-2">
                         {item.title}
                       </h3>
                     </div>

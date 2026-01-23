@@ -6,7 +6,6 @@
 import { NextResponse } from 'next/server';
 import { getCustomerSession } from '@/lib/customerAuth';
 import { prisma } from '@/lib/prisma';
-import { getReferrals } from '@/lib/partnerCode';
 
 export async function GET() {
   try {
@@ -19,17 +18,17 @@ export async function GET() {
       );
     }
 
-    const booking = await prisma.booking.findUnique({
-      where: { id: session.bookingId },
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: session.reservationId },
       select: {
         id: true,
-        partnerCode: true,
+        referralCode: true,
         status: true,
         referralDiscount: true,
       },
     });
 
-    if (!booking) {
+    if (!reservation) {
       return NextResponse.json(
         { error: '예약 정보를 찾을 수 없습니다.' },
         { status: 404 }
@@ -37,34 +36,44 @@ export async function GET() {
     }
 
     // 짝꿍 코드가 아직 생성되지 않은 경우 (예약 확정 전)
-    if (!booking.partnerCode) {
+    if (!reservation.referralCode) {
       return NextResponse.json({
         partnerCode: null,
         message: '예약이 확정되면 짝꿍 코드가 생성됩니다.',
-        status: booking.status,
+        status: reservation.status,
         referrals: [],
+        referralCount: 0,
         totalReferralDiscount: 0,
       });
     }
 
-    // 이 코드로 추천한 고객 목록
-    const referrals = await getReferrals(booking.partnerCode);
+    // 이 코드로 추천받은 고객 목록 조회
+    const referrals = await prisma.reservation.findMany({
+      where: { referredBy: reservation.referralCode },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        author: true,
+        weddingDate: true,
+        createdAt: true,
+      },
+    });
 
     return NextResponse.json({
-      partnerCode: booking.partnerCode,
+      partnerCode: reservation.referralCode,
       message: '아래 코드를 친구에게 공유하시면 양쪽 모두 1만원 할인!',
-      status: booking.status,
+      status: reservation.status,
       referrals: referrals.map((r) => ({
         id: r.id,
         // 이름 마스킹 (홍*동)
-        customerName: r.customerName.length > 2
-          ? r.customerName[0] + '*' + r.customerName.slice(2)
-          : r.customerName[0] + '*',
+        customerName: r.author.length > 2
+          ? r.author[0] + '*' + r.author.slice(2)
+          : r.author[0] + '*',
         weddingDate: r.weddingDate,
         createdAt: r.createdAt,
       })),
       referralCount: referrals.length,
-      totalReferralDiscount: booking.referralDiscount,
+      totalReferralDiscount: reservation.referralDiscount || 0,
     });
   } catch (error) {
     console.error('짝꿍 코드 조회 오류:', error);

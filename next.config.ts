@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.pstatic.net",
       },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        pathname: "/**",
+      },
     ],
   },
 };

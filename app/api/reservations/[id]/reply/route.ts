@@ -54,13 +54,65 @@ export async function POST(
         data: { content },
       });
     } else {
-      // 새 답변 등록
-      reply = await prisma.reply.create({
-      data: {
-        content: sanitizedContent,
-          reservationId,
-        },
-      });
+      // 짝궁코드 생성 (YYYYMMDD + 계약자성함)
+      let referralCode: string | null = null;
+      if (reservation.weddingDate && reservation.author) {
+        try {
+          // weddingDate를 YYYYMMDD 형식으로 변환
+          let dateStr: string;
+          if (typeof reservation.weddingDate === 'string') {
+            // "2025-05-20" 형식 처리
+            dateStr = reservation.weddingDate.replace(/-/g, '').substring(0, 8);
+            if (dateStr.length !== 8) {
+              const date = new Date(reservation.weddingDate);
+              if (!isNaN(date.getTime())) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                dateStr = `${year}${month}${day}`;
+              } else {
+                dateStr = '';
+              }
+            }
+          } else {
+            dateStr = '';
+          }
+
+          if (dateStr) {
+            // 이름에서 공백 제거
+            const cleanName = reservation.author.replace(/\s/g, '');
+            referralCode = `${dateStr}${cleanName}`;
+
+            // 중복 체크
+            let counter = 1;
+            let finalCode = referralCode;
+            while (await prisma.reservation.findUnique({ where: { referralCode: finalCode } })) {
+              finalCode = `${referralCode}${counter}`;
+              counter++;
+            }
+            referralCode = finalCode;
+          }
+        } catch (e) {
+          console.error("Error generating referralCode:", e);
+        }
+      }
+
+      // 새 답변 등록 + 예약 상태를 CONFIRMED로 변경 + 짝궁코드 생성
+      [reply] = await prisma.$transaction([
+        prisma.reply.create({
+          data: {
+            content: sanitizedContent,
+            reservationId,
+          },
+        }),
+        prisma.reservation.update({
+          where: { id: reservationId },
+          data: {
+            status: "CONFIRMED",
+            referralCode: referralCode,
+          },
+        }),
+      ]);
     }
 
     return NextResponse.json(reply);

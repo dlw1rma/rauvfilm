@@ -9,6 +9,14 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+// 작성자 이름 마스킹 함수 (첫 글자만 보이고 나머지는 *)
+const maskAuthorName = (name: string): string => {
+  if (!name || name.length === 0) return "";
+  if (name.length === 1) return name + "*";
+  if (name.length === 2) return name[0] + "*";
+  return name[0] + "*".repeat(name.length - 1);
+};
+
 async function getReservations() {
   try {
     const reservations = await prisma.reservation.findMany({
@@ -18,6 +26,7 @@ async function getReservations() {
         title: true,
         author: true,
         isPrivate: true,
+        status: true,
         createdAt: true,
         reply: {
           select: { id: true },
@@ -28,8 +37,9 @@ async function getReservations() {
     return reservations.map((r) => ({
       id: r.id,
       title: r.title,
-      author: r.author,
+      author: maskAuthorName(r.author),
       isPrivate: r.isPrivate,
+      status: r.status,
       createdAt: r.createdAt.toISOString().split("T")[0],
       hasReply: !!r.reply,
     }));
@@ -114,8 +124,8 @@ export default async function ReservationPage() {
                       )}
                       <span className="font-medium">{post.title}</span>
                       {post.hasReply && (
-                        <span className="rounded bg-accent/10 px-2 py-0.5 text-xs text-accent">
-                          답변완료
+                        <span className="rounded bg-green-500/10 px-2 py-0.5 text-xs text-green-600">
+                          예약확정
                         </span>
                       )}
                     </div>
@@ -159,8 +169,8 @@ export default async function ReservationPage() {
                     </div>
                     <div className="col-span-1 text-center">
                       {post.hasReply ? (
-                        <span className="rounded bg-accent/10 px-2 py-1 text-xs text-accent">
-                          답변완료
+                        <span className="rounded bg-green-500/10 px-2 py-1 text-xs text-green-600">
+                          예약확정
                         </span>
                       ) : (
                         <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">

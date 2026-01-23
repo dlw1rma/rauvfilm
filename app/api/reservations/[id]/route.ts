@@ -116,7 +116,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
     const body = await request.json();
-    const { password, title, content, phone, email, weddingDate, location, isPrivate } = body;
+    const { password } = body;
 
     // 기존 예약 조회
     const reservation = await prisma.reservation.findUnique({
@@ -139,17 +139,61 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // 전화번호 정규화 (하이픈 제거)
+    const normalizePhone = (phone: string | null | undefined): string | null => {
+      if (!phone) return null;
+      return phone.replace(/[^0-9]/g, '');
+    };
+
     // 업데이트
     const updatedReservation = await prisma.reservation.update({
       where: { id: reservationId },
       data: {
-        title,
-        content,
-        phone: phone || null,
-        email: email || null,
-        weddingDate: weddingDate ? String(weddingDate) : null,
-        location: location || null,
-        isPrivate: isPrivate || false,
+        title: body.title || reservation.title,
+        brideName: body.brideName || null,
+        bridePhone: normalizePhone(body.bridePhone),
+        groomName: body.groomName || null,
+        groomPhone: normalizePhone(body.groomPhone),
+        receiptPhone: normalizePhone(body.receiptPhone),
+        depositName: body.depositName || null,
+        productEmail: body.productEmail || null,
+        productType: body.productType || null,
+        partnerCode: body.partnerCode || null,
+        foundPath: body.foundPath || null,
+        weddingDate: body.weddingDate || null,
+        weddingTime: body.weddingTime || null,
+        venueName: body.venueName || null,
+        venueFloor: body.venueFloor || null,
+        guestCount: body.guestCount ? parseInt(body.guestCount) : null,
+        makeupShoot: body.makeupShoot || false,
+        paebaekShoot: body.paebaekShoot || false,
+        receptionShoot: body.receptionShoot || false,
+        mainSnapCompany: body.mainSnapCompany || null,
+        makeupShop: body.makeupShop || null,
+        dressShop: body.dressShop || null,
+        deliveryAddress: body.deliveryAddress || null,
+        usbOption: body.usbOption || false,
+        seonwonpan: body.seonwonpan || false,
+        gimbalShoot: body.gimbalShoot || false,
+        playbackDevice: body.playbackDevice || null,
+        eventType: body.eventType || null,
+        shootLocation: body.shootLocation || null,
+        shootDate: body.shootDate || null,
+        shootTime: body.shootTime || null,
+        shootConcept: body.shootConcept || null,
+        discountCouple: body.discountCouple || false,
+        discountReview: body.discountReview || false,
+        discountNewYear: body.discountNewYear !== undefined ? body.discountNewYear : true,
+        discountReviewBlog: body.discountReviewBlog || false,
+        specialNotes: body.specialNotes || null,
+        customShootingRequest: body.customShootingRequest || false,
+        customStyle: body.customStyle || null,
+        customEditStyle: body.customEditStyle || null,
+        customMusic: body.customMusic || null,
+        customLength: body.customLength || null,
+        customEffect: body.customEffect || null,
+        customContent: body.customContent || null,
+        customSpecialRequest: body.customSpecialRequest || null,
       },
     });
 

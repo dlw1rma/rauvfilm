@@ -314,7 +314,7 @@ export default function ReservationDetailPage() {
             </div>
             <h1 className="text-2xl font-bold mb-4">{reservation.title}</h1>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-              <span>작성자: {reservation.author}</span>
+              <span>작성자: {maskAuthorName(reservation.author)}</span>
               <span>|</span>
               <span>작성일: {reservation.createdAt.split("T")[0]}</span>
             </div>

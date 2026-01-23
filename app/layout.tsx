@@ -6,7 +6,7 @@ import KakaoChannelButton from "@/components/KakaoChannelButton";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://rauvfilm.co.kr"),
-  title: "라우브필름 (Rauvfilm)",
+  title: "라우브필름",
   description: "'기록'이 아닌 '기억'을 남기는 본식DVD를 영상프로덕션 출신 대표의 전문 색보정을 진행합니다. 본식DVD, 웨딩DVD",
   keywords: "본식DVD 가격, 가성비 본식DVD, 본식 DVD 추천, 라우브필름 가격, 라우브필름 후기, 결혼식DVD, 웨딩DVD, 본식DVD사기, 본식영상, 웨딩영상, 식전영상, 르랑필름, 스냅스타, 결혼식영상",
   authors: [{ name: "라우브필름" }],

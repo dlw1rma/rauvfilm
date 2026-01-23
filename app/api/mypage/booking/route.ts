@@ -18,18 +18,14 @@ export async function GET() {
       );
     }
 
-    const booking = await prisma.booking.findUnique({
-      where: { id: session.bookingId },
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: session.reservationId },
       include: {
-        product: true,
-        discountEvent: true,
-        reviewSubmissions: {
-          orderBy: { createdAt: 'desc' },
-        },
+        reply: true,
       },
     });
 
-    if (!booking) {
+    if (!reservation) {
       return NextResponse.json(
         { error: '예약 정보를 찾을 수 없습니다.' },
         { status: 404 }
@@ -40,7 +36,6 @@ export async function GET() {
     const statusLabels: Record<string, string> = {
       PENDING: '예약 대기',
       CONFIRMED: '예약 확정',
-      DEPOSIT_PAID: '예약금 입금 완료',
       COMPLETED: '촬영 완료',
       DELIVERED: '영상 전달 완료',
       CANCELLED: '취소됨',
@@ -48,36 +43,28 @@ export async function GET() {
 
     return NextResponse.json({
       booking: {
-        id: booking.id,
-        customerName: booking.customerName,
-        weddingDate: booking.weddingDate,
-        weddingVenue: booking.weddingVenue,
-        weddingTime: booking.weddingTime,
-        status: booking.status,
-        statusLabel: statusLabels[booking.status] || booking.status,
-        partnerCode: booking.partnerCode,
-        videoUrl: booking.videoUrl,
-        contractUrl: booking.contractUrl,
-        createdAt: booking.createdAt,
+        id: reservation.id,
+        customerName: reservation.author,
+        weddingDate: reservation.weddingDate,
+        weddingVenue: reservation.venueName,
+        weddingTime: reservation.weddingTime,
+        status: reservation.status,
+        statusLabel: statusLabels[reservation.status || 'PENDING'] || '예약 대기',
+        partnerCode: reservation.referralCode,
+        videoUrl: null, // Reservation에는 영상 URL 없음
+        contractUrl: null,
+        createdAt: reservation.createdAt,
         product: {
-          id: booking.product.id,
-          name: booking.product.name,
-          price: booking.product.price,
+          id: null,
+          name: reservation.productType || '미선택',
+          price: reservation.totalAmount || 0,
         },
-        discountEvent: booking.discountEvent
-          ? {
-              id: booking.discountEvent.id,
-              name: booking.discountEvent.name,
-              amount: booking.discountEvent.amount,
-            }
-          : null,
-        reviewSubmissions: booking.reviewSubmissions.map((r) => ({
-          id: r.id,
-          reviewUrl: r.reviewUrl,
-          platform: r.platform,
-          status: r.status,
-          createdAt: r.createdAt,
-        })),
+        discountEvent: reservation.discountNewYear ? {
+          id: 1,
+          name: '2026 신년 할인',
+          amount: 50000,
+        } : null,
+        hasReply: !!reservation.reply,
       },
     });
   } catch (error) {

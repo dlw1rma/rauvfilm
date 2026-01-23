@@ -6,7 +6,11 @@
 import { NextResponse } from 'next/server';
 import { getCustomerSession } from '@/lib/customerAuth';
 import { prisma } from '@/lib/prisma';
-import { calculateBalance, formatKRW } from '@/lib/pricing';
+
+// 금액 포맷팅 함수
+function formatKRW(amount: number): string {
+  return amount.toLocaleString('ko-KR') + '원';
+}
 
 export async function GET() {
   try {
@@ -19,87 +23,77 @@ export async function GET() {
       );
     }
 
-    const booking = await prisma.booking.findUnique({
-      where: { id: session.bookingId },
-      include: {
-        product: true,
-        discountEvent: true,
-        reviewSubmissions: {
-          where: {
-            status: {
-              in: ['AUTO_APPROVED', 'APPROVED'],
-            },
-          },
-        },
-      },
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: session.reservationId },
     });
 
-    if (!booking) {
+    if (!reservation) {
       return NextResponse.json(
         { error: '예약 정보를 찾을 수 없습니다.' },
         { status: 404 }
       );
     }
 
-    // 승인된 후기 수
-    const approvedReviewCount = booking.reviewSubmissions.length;
-
-    // 잔금 계산
-    const calculation = calculateBalance(booking.listPrice, {
-      depositAmount: booking.depositAmount,
-      eventDiscount: booking.eventDiscount,
-      hasReferral: booking.referralDiscount > 0,
-      approvedReviewCount,
-    });
-
-    // 할인 내역
+    // 할인 내역 계산
     const discounts = [];
+    let totalDiscount = 0;
 
-    if (booking.eventDiscount > 0 && booking.discountEvent) {
+    // 신년 할인
+    if (reservation.discountNewYear) {
+      const newYearDiscount = 50000;
       discounts.push({
         type: 'event',
-        label: booking.discountEvent.name,
-        amount: booking.eventDiscount,
-        amountFormatted: formatKRW(booking.eventDiscount),
+        label: '2026 신년 할인',
+        amount: newYearDiscount,
+        amountFormatted: formatKRW(newYearDiscount),
       });
+      totalDiscount += newYearDiscount;
     }
 
-    if (booking.referralDiscount > 0) {
+    // 짝꿍 할인
+    if (reservation.referralDiscount && reservation.referralDiscount > 0) {
       discounts.push({
         type: 'referral',
         label: '짝꿍 할인',
-        amount: booking.referralDiscount,
-        amountFormatted: formatKRW(booking.referralDiscount),
-        referredBy: booking.referredBy,
+        amount: reservation.referralDiscount,
+        amountFormatted: formatKRW(reservation.referralDiscount),
+        referredBy: reservation.referredBy,
       });
+      totalDiscount += reservation.referralDiscount;
     }
 
-    if (calculation.reviewDiscount > 0) {
+    // 후기 할인
+    if (reservation.reviewDiscount && reservation.reviewDiscount > 0) {
       discounts.push({
         type: 'review',
-        label: `후기 할인 (${approvedReviewCount}건)`,
-        amount: calculation.reviewDiscount,
-        amountFormatted: formatKRW(calculation.reviewDiscount),
+        label: '후기 할인',
+        amount: reservation.reviewDiscount,
+        amountFormatted: formatKRW(reservation.reviewDiscount),
       });
+      totalDiscount += reservation.reviewDiscount;
     }
+
+    const listPrice = reservation.totalAmount || 0;
+    const depositAmount = reservation.depositAmount || 100000;
+    const finalBalance = Math.max(0, listPrice - depositAmount - totalDiscount);
 
     return NextResponse.json({
       balance: {
-        listPrice: booking.listPrice,
-        listPriceFormatted: formatKRW(booking.listPrice),
-        depositAmount: booking.depositAmount,
-        depositAmountFormatted: formatKRW(booking.depositAmount),
-        depositPaidAt: booking.depositPaidAt,
-        totalDiscount: calculation.totalDiscount,
-        totalDiscountFormatted: formatKRW(calculation.totalDiscount),
-        finalBalance: calculation.finalBalance,
-        finalBalanceFormatted: formatKRW(calculation.finalBalance),
-        balancePaidAt: booking.balancePaidAt,
+        listPrice: listPrice,
+        listPriceFormatted: formatKRW(listPrice),
+        depositAmount: depositAmount,
+        depositAmountFormatted: formatKRW(depositAmount),
+        depositPaidAt: reservation.depositPaidAt,
+        totalDiscount: totalDiscount,
+        totalDiscountFormatted: formatKRW(totalDiscount),
+        finalBalance: finalBalance,
+        finalBalanceFormatted: formatKRW(finalBalance),
+        balancePaidAt: reservation.balancePaidAt,
         discounts,
         product: {
-          name: booking.product.name,
-          originalPrice: booking.product.price,
-          originalPriceFormatted: formatKRW(booking.product.price),
+          name: reservation.productType || '미선택',
+          originalPrice: listPrice,
+          originalPriceFormatted: formatKRW(listPrice),
         },
       },
     });

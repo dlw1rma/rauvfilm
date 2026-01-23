@@ -44,6 +44,7 @@ export default function MypageDashboard() {
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [balance, setBalance] = useState<BalanceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,10 +79,24 @@ export default function MypageDashboard() {
     router.push('/mypage/login');
   };
 
+  const copyPartnerCode = async () => {
+    if (!booking?.partnerCode) return;
+    try {
+      await navigator.clipboard.writeText(booking.partnerCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full border-2 border-muted border-t-accent animate-spin mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">로딩 중...</p>
+        </div>
       </div>
     );
   }
@@ -90,146 +105,186 @@ export default function MypageDashboard() {
     return null;
   }
 
-  const statusColors: Record<string, string> = {
-    PENDING: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-    CONFIRMED: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-    DEPOSIT_PAID: 'bg-green-500/10 text-green-600 border-green-500/20',
-    COMPLETED: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-    DELIVERED: 'bg-accent/10 text-accent border-accent/20',
-    CANCELLED: 'bg-red-500/10 text-red-600 border-red-500/20',
-  };
+  // D-day 계산
+  const weddingDate = new Date(booking.weddingDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  weddingDate.setHours(0, 0, 0, 0);
+  const diffTime = weddingDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const dDayText = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
 
   return (
-    <div className="space-y-6">
-      {/* 환영 메시지 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{booking.customerName}님, 안녕하세요!</h1>
-          <p className="text-muted-foreground mt-1">
-            라우브필름과 함께해 주셔서 감사합니다
-          </p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          로그아웃
-        </button>
-      </div>
-
-      {/* 예약 상태 카드 */}
-      <div className="bg-background rounded-xl border border-border p-6">
-        <div className="flex items-start justify-between mb-4">
-          <h2 className="text-lg font-semibold">예약 정보</h2>
-          <span className={`px-3 py-1 rounded-full text-sm border ${statusColors[booking.status]}`}>
-            {booking.statusLabel}
-          </span>
+    <div className="min-h-screen py-12 px-4">
+      <div className="mx-auto max-w-4xl">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-10">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">{booking.customerName}님</h1>
+            <p className="text-muted-foreground">라우브필름과 함께하는 특별한 날</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            로그아웃
+          </button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">예식 일시</p>
-            <p className="font-medium">
-              {new Date(booking.weddingDate).toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-              {booking.weddingTime && ` ${booking.weddingTime}`}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">예식장</p>
-            <p className="font-medium">{booking.weddingVenue}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">상품</p>
-            <p className="font-medium">{booking.product.name}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">짝꿍 코드</p>
-            <p className="font-medium">
-              {booking.partnerCode || '예약 확정 후 발급됩니다'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 잔금 카드 */}
-      <div className="bg-background rounded-xl border border-border p-6">
-        <h2 className="text-lg font-semibold mb-4">잔금 안내</h2>
-
-        <div className="space-y-3">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">정가</span>
-            <span>{balance.listPriceFormatted}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">예약금</span>
-            <span className="text-green-600">-{balance.depositAmountFormatted}</span>
-          </div>
-
-          {balance.discounts.map((discount, idx) => (
-            <div key={idx} className="flex justify-between">
-              <span className="text-muted-foreground">{discount.label}</span>
-              <span className="text-green-600">-{discount.amountFormatted}</span>
+        {/* D-Day Hero Card */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent/90 to-accent p-8 mb-8 text-white">
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-white/70 text-sm mb-1">예식일</p>
+                <p className="text-2xl font-bold">
+                  {weddingDate.toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'short',
+                  })}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-5xl font-bold">{dDayText}</span>
+              </div>
             </div>
-          ))}
-
-          <div className="border-t border-border pt-3 mt-3">
-            <div className="flex justify-between text-lg font-bold">
-              <span>최종 잔금</span>
-              <span className="text-accent">{balance.finalBalanceFormatted}</span>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div className="bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+                <span className="text-white/70">장소</span>
+                <p className="font-medium">{booking.weddingVenue || '미정'}</p>
+              </div>
+              <div className="bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+                <span className="text-white/70">상품</span>
+                <p className="font-medium">{booking.product.name}</p>
+              </div>
+              <div className="bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+                <span className="text-white/70">상태</span>
+                <p className="font-medium">{booking.statusLabel}</p>
+              </div>
             </div>
-            {balance.balancePaidAt && (
-              <p className="text-sm text-green-600 mt-1">
-                입금 완료 ({new Date(balance.balancePaidAt).toLocaleDateString('ko-KR')})
+          </div>
+          {/* Background Pattern */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+        </div>
+
+        {/* Two Column Layout */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {/* Partner Code Card */}
+          <div className="rounded-2xl border border-border bg-background p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold">짝꿍 코드</h3>
+                <p className="text-xs text-muted-foreground">친구와 함께 할인받기</p>
+              </div>
+            </div>
+            {booking.partnerCode ? (
+              <div className="flex items-center gap-3">
+                <code className="flex-1 bg-muted rounded-lg px-4 py-3 text-lg font-mono font-bold tracking-wider">
+                  {booking.partnerCode}
+                </code>
+                <button
+                  onClick={copyPartnerCode}
+                  className="shrink-0 px-4 py-3 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
+                >
+                  {copied ? '복사됨!' : '복사'}
+                </button>
+              </div>
+            ) : (
+              <div className="bg-muted rounded-lg px-4 py-3 text-sm text-muted-foreground">
+                예약 확정 후 발급됩니다
+              </div>
+            )}
+          </div>
+
+          {/* Balance Summary Card */}
+          <div className="rounded-2xl border border-border bg-background p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold">잔금</h3>
+                <p className="text-xs text-muted-foreground">결제 예정 금액</p>
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-green-600 mb-2">
+              {balance.finalBalanceFormatted}
+            </div>
+            {balance.discounts.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                총 {balance.totalDiscountFormatted} 할인 적용
               </p>
             )}
           </div>
         </div>
-      </div>
 
-      {/* 빠른 메뉴 */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <Link
-          href="/mypage/partner-code"
-          className="bg-background rounded-xl border border-border p-6 hover:border-accent transition-colors"
-        >
-          <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
+        {/* Balance Detail */}
+        <div className="rounded-2xl border border-border bg-background p-6 mb-8">
+          <h3 className="font-semibold mb-4">금액 상세</h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">정가</span>
+              <span>{balance.listPriceFormatted}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">예약금</span>
+              <span className="text-green-600">-{balance.depositAmountFormatted}</span>
+            </div>
+            {balance.discounts.map((discount, idx) => (
+              <div key={idx} className="flex justify-between">
+                <span className="text-muted-foreground">{discount.label}</span>
+                <span className="text-green-600">-{discount.amountFormatted}</span>
+              </div>
+            ))}
+            <div className="border-t border-border pt-3 mt-3">
+              <div className="flex justify-between font-semibold">
+                <span>최종 잔금</span>
+                <span className="text-accent">{balance.finalBalanceFormatted}</span>
+              </div>
+            </div>
           </div>
-          <h3 className="font-semibold mb-1">짝꿍 코드</h3>
-          <p className="text-sm text-muted-foreground">친구에게 공유하고 할인받기</p>
-        </Link>
+        </div>
 
-        <Link
-          href="/mypage/review"
-          className="bg-background rounded-xl border border-border p-6 hover:border-accent transition-colors"
-        >
-          <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        {/* Quick Menu */}
+        <div className="grid grid-cols-3 gap-4">
+          <Link
+            href="/mypage/partner-code"
+            className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
+          >
+            <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+            </svg>
+            <span className="text-sm font-medium">짝꿍 공유</span>
+          </Link>
+          <Link
+            href="/mypage/review"
+            className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
+          >
+            <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
             </svg>
-          </div>
-          <h3 className="font-semibold mb-1">후기 제출</h3>
-          <p className="text-sm text-muted-foreground">후기 작성하고 할인받기</p>
-        </Link>
-
-        <Link
-          href="/mypage/downloads"
-          className="bg-background rounded-xl border border-border p-6 hover:border-accent transition-colors"
-        >
-          <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+            <span className="text-sm font-medium">후기 작성</span>
+          </Link>
+          <Link
+            href="/mypage/downloads"
+            className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
+          >
+            <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-          </div>
-          <h3 className="font-semibold mb-1">다운로드</h3>
-          <p className="text-sm text-muted-foreground">영상 및 계약서 다운로드</p>
-        </Link>
+            <span className="text-sm font-medium">다운로드</span>
+          </Link>
+        </div>
       </div>
     </div>
   );
