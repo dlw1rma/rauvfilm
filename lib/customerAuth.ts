@@ -8,7 +8,7 @@ import type { Reservation } from '@prisma/client';
 
 export interface CustomerSession {
   reservationId: number;
-  bookingId?: number; // Booking 모델과의 호환성을 위한 선택적 필드
+  bookingId?: number; // Booking 모델과의 호환성을 위한 선택적 필드 (number 타입)
   customerName: string;
   customerPhone: string;
   referralCode?: string | null;

@@ -36,15 +36,13 @@ export function getPrisma(): PrismaClient {
  * 
  * 싱글톤 패턴으로 구현하여 개발 환경에서 Hot Reload 시에도 인스턴스가 재생성되지 않도록 보장합니다.
  */
-export const prisma: PrismaClient = (() => {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("Environment variable not found: DATABASE_URL");
-  }
+if (!process.env.DATABASE_URL) {
+  throw new Error("Environment variable not found: DATABASE_URL");
+}
 
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = createPrismaClient();
-  }
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = createPrismaClient();
+}
 
-  return globalForPrisma.prisma;
-})();
+export const prisma: PrismaClient = globalForPrisma.prisma;
 
