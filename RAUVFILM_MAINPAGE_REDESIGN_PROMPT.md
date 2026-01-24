@@ -15,29 +15,161 @@
 
 ## 📋 메인페이지 섹션 구성
 
-### 섹션 1: 히어로 (Hero)
+### 섹션 1: 히어로 (Hero) - 스크롤 기반 텍스트 등장
 
 ```
+[초기 상태 - 스크롤 0%]
 ┌─────────────────────────────────────────────────────────────┐
-│  [로고]                    ABOUT  PRODUCT  PORTFOLIO  ...   │
 │                                                             │
-│                                                             │
-│         소중한 날의 기억들을                                  │
-│         영원히 간직하세요                                     │
-│                                                             │
-│         '기록'이 아닌 '기억'을 남기는 영상을 선사합니다.         │
+│                    🎬 배경 영상 (100vh)                      │
+│                        (글자 없음)                           │
 │                                                             │
 │                        ↓ 스크롤                              │
+└─────────────────────────────────────────────────────────────┘
+
+[스크롤 25%]
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│              소중한 날의 기억들을                             │
+│                   (페이드인)                                 │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
+
+[스크롤 50%]
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│              소중한 날의 기억들을                             │
+│              영원히 간직하세요                                │
+│                   (페이드인)                                 │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+[스크롤 75%]
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│              소중한 날의 기억들을                             │
+│              영원히 간직하세요                                │
+│                                                             │
+│       '기록'이 아닌 '기억'을 남기는 영상을 선사합니다.          │
+│                   (페이드인)                                 │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+[스크롤 100% - 텍스트 완성 후 다음 섹션으로 스크롤]
 ```
 
 **구현 사항:**
-- 전체 화면 높이 (100vh)
-- 텍스트 중앙 또는 좌측 배치
-- 배경: 그라데이션 또는 영상 (placeholder로 시작)
-- 스크롤 유도 아이콘 (아래 화살표, 부드러운 바운스 애니메이션)
-- 텍스트 등장 애니메이션 (페이드업)
+
+1. **고정 배경 영상**
+   - 전체 화면 (100vh) 고정 (position: sticky)
+   - YouTube 영상 또는 MP4 배경 (음소거, 자동재생, 반복)
+   - 어두운 오버레이 (가독성 확보)
+
+2. **스크롤 기반 텍스트 등장 (Scroll-triggered Animation)**
+   - 히어로 섹션 높이: 300vh (스크롤 공간 확보)
+   - 영상은 sticky로 고정, 텍스트만 스크롤에 따라 등장
+   - 모든 텍스트가 나타난 후 → 다음 섹션으로 자연스럽게 전환
+
+3. **Framer Motion useScroll 활용**
+```typescript
+'use client'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { useRef } from 'react'
+
+export function HeroSection() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"]
+  })
+
+  // 각 텍스트의 opacity를 스크롤 진행도에 따라 제어
+  const line1Opacity = useTransform(scrollYProgress, [0, 0.2, 0.3], [0, 0, 1])
+  const line2Opacity = useTransform(scrollYProgress, [0.2, 0.4, 0.5], [0, 0, 1])
+  const line3Opacity = useTransform(scrollYProgress, [0.4, 0.6, 0.7], [0, 0, 1])
+  
+  // 텍스트 Y 위치 (살짝 위로 올라오는 효과)
+  const line1Y = useTransform(scrollYProgress, [0, 0.2, 0.3], [30, 30, 0])
+  const line2Y = useTransform(scrollYProgress, [0.2, 0.4, 0.5], [30, 30, 0])
+  const line3Y = useTransform(scrollYProgress, [0.4, 0.6, 0.7], [30, 30, 0])
+
+  return (
+    <section ref={containerRef} className="relative h-[300vh]">
+      {/* 고정 배경 영상 */}
+      <div className="sticky top-0 h-screen w-full overflow-hidden">
+        {/* 비디오 배경 */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/videos/hero.mp4" type="video/mp4" />
+        </video>
+        
+        {/* 어두운 오버레이 */}
+        <div className="absolute inset-0 bg-black/50" />
+        
+        {/* 텍스트 컨테이너 */}
+        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
+          <motion.h1 
+            style={{ opacity: line1Opacity, y: line1Y }}
+            className="text-4xl md:text-6xl font-bold text-white mb-4"
+          >
+            소중한 날의 기억들을
+          </motion.h1>
+          
+          <motion.h1 
+            style={{ opacity: line2Opacity, y: line2Y }}
+            className="text-4xl md:text-6xl font-bold text-white mb-8"
+          >
+            영원히 간직하세요
+          </motion.h1>
+          
+          <motion.p 
+            style={{ opacity: line3Opacity, y: line3Y }}
+            className="text-lg md:text-xl text-white/80"
+          >
+            '기록'이 아닌 '기억'을 남기는 영상을 선사합니다.
+          </motion.p>
+        </div>
+        
+        {/* 스크롤 유도 (초반에만 표시) */}
+        <motion.div 
+          style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [1, 0]) }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2"
+        >
+          <motion.div
+            animate={{ y: [0, 10, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="text-white/60 text-sm flex flex-col items-center"
+          >
+            <span>Scroll</span>
+            <ChevronDown className="w-6 h-6 mt-2" />
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+```
+
+4. **비디오 대안 (YouTube 임베드 또는 placeholder)**
+```typescript
+// YouTube 배경 (성능 이슈 있을 수 있음)
+<iframe
+  src="https://www.youtube.com/embed/VIDEO_ID?autoplay=1&mute=1&loop=1&playlist=VIDEO_ID&controls=0&showinfo=0"
+  className="absolute w-[300%] h-[300%] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+  allow="autoplay"
+/>
+
+// 또는 정적 이미지 placeholder
+<div 
+  className="absolute inset-0 bg-cover bg-center"
+  style={{ backgroundImage: "url('/images/hero-bg.jpg')" }}
+/>
+```
 
 ---
 
@@ -197,47 +329,119 @@ npm install react-compare-slider
 
 ---
 
-### 섹션 6: 감독 (Director)
+### 섹션 6: 감독 (Director) - 카드 그리드로 개선
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        DIRECTOR                             │
+│              프로페셔널한 감독진이 함께합니다                   │
 │                                                             │
-│    대표가 인정한 실력을 갖고 있는 감독님들만 있기에            │
-│    예약이 불가능한 일정이 있을 수 있습니다.                    │
+│   ┌─────────────────┐    ┌─────────────────┐               │
+│   │                 │    │                 │               │
+│   │  👨‍💼 검증된 실력  │    │  🎬 대표 직접   │               │
+│   │                 │    │     제작        │               │
+│   │  대표가 인정한   │    │                 │               │
+│   │  실력을 갖춘     │    │  VFX와 유튜브   │               │
+│   │  감독님들만      │    │  프로덕션 출신의 │               │
+│   │  함께합니다.     │    │  대표감독이 직접 │               │
+│   │                 │    │  제작합니다.    │               │
+│   │                 │    │                 │               │
+│   └─────────────────┘    └─────────────────┘               │
 │                                                             │
-│    촬영만큼 중요한 영상보정은 가장 아름답고 멋진 모습을        │
-│    오랫동안 남겨드리기 위해서 VFX와 유튜브 프로덕션 출신의     │
-│    대표감독이 직접 제작하고 있습니다.                         │
+│   ┌─────────────────┐    ┌─────────────────┐               │
+│   │                 │    │                 │               │
+│   │  🖥️ 표준 DI     │    │  ⚡ 전문 장비   │               │
+│   │     작업공간     │    │                 │               │
+│   │                 │    │                 │               │
+│   │  영화, 드라마와  │    │  Sony FX3,     │               │
+│   │  동일한 표준     │    │  A7S3, A7M4    │               │
+│   │  DI 작업환경    │    │  전문 시네마    │               │
+│   │                 │    │  장비 사용      │               │
+│   │                 │    │                 │               │
+│   └─────────────────┘    └─────────────────┘               │
 │                                                             │
-│    ┌────────────────────────────────────────────┐           │
-│    │  ✓ VFX 출신          ✓ 유튜브 프로덕션      │           │
-│    │  ✓ 표준 DI 작업공간   ✓ 대표 직접 제작      │           │
-│    └────────────────────────────────────────────┘           │
+│         ※ 검증된 감독진으로 예약 불가 일정이 있을 수 있습니다.  │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
+```
+
+**구현 사항:**
+- 2x2 카드 그리드 (데스크톱) → 1열 (모바일)
+- 각 카드: 아이콘 + 제목 + 설명
+- 카드 배경: #1a1a1a, 호버 시 테두리 #e50914
+- 스태거 애니메이션 (순차 등장)
+
+```typescript
+const directorFeatures = [
+  {
+    icon: "UserCheck", // Lucide 아이콘
+    title: "검증된 실력",
+    description: "대표가 인정한 실력을 갖춘 감독님들만 함께합니다."
+  },
+  {
+    icon: "Film",
+    title: "대표 직접 제작",
+    description: "VFX와 유튜브 프로덕션 출신의 대표감독이 직접 제작합니다."
+  },
+  {
+    icon: "Monitor",
+    title: "표준 DI 작업공간",
+    description: "영화, 드라마와 동일한 표준 DI 작업환경"
+  },
+  {
+    icon: "Camera",
+    title: "전문 장비",
+    description: "Sony FX3, A7S3, A7M4 전문 시네마 장비 사용"
+  },
+]
 ```
 
 ---
 
-### 섹션 7: 커스텀 (Custom)
+### 섹션 7: 커스텀 (Custom) - 카드 레이아웃으로 개선
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         CUSTOM                              │
+│           나만의 특별한 영상을 원하신다면                       │
 │                                                             │
-│    신랑신부님의 가져가실 소중한 영상을 위해                    │
-│    대표 촬영 한정으로 원하시는 형식의 영상을                   │
-│    최대한 반영하여 작업하고 있습니다.                         │
-│                                                             │
-│    원하시는 형식이 있다면 카카오톡 채널로 상담 후              │
-│    신청서 작성 부탁드립니다.                                  │
-│                                                             │
-│              ┌─────────────────────┐                        │
-│              │   💬 상담 문의하기   │                        │
-│              └─────────────────────┘                        │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │                                                     │   │
+│   │  🎬  대표 촬영 한정 커스텀 서비스                      │   │
+│   │                                                     │   │
+│   │  신랑신부님의 가져가실 소중한 영상을 위해              │   │
+│   │  원하시는 형식의 영상을 최대한 반영하여 작업합니다.     │   │
+│   │                                                     │   │
+│   │  ─────────────────────────────────────────────────  │   │
+│   │                                                     │   │
+│   │  ✓ 시네마틱 하이라이트     ✓ 기록 영상               │   │
+│   │  ✓ 원하시는 BGM 적용      ✓ 특별 요청 반영           │   │
+│   │                                                     │   │
+│   │  ※ 요청에 따라 추가비용이 발생할 수 있습니다.          │   │
+│   │                                                     │   │
+│   │         ┌─────────────────────────┐                 │   │
+│   │         │   💬 카카오톡 상담하기   │                 │   │
+│   │         └─────────────────────────┘                 │   │
+│   │                                                     │   │
+│   └─────────────────────────────────────────────────────┘   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
+```
+
+**구현 사항:**
+- 중앙 정렬 큰 카드 (max-width: 800px)
+- 배경: #1a1a1a, 테두리: #2a2a2a
+- 체크리스트 아이템 2열 그리드
+- CTA 버튼: 카카오 노란색 (#FAE100) 또는 빨간색 (#e50914)
+- 호버 시 카드 테두리 색상 변경
+
+```typescript
+const customFeatures = [
+  "시네마틱 하이라이트",
+  "기록 영상",
+  "원하시는 BGM 적용",
+  "특별 요청 반영",
+]
 ```
 
 ---
@@ -269,26 +473,7 @@ const reviewLink = "https://search.naver.com/search.naver?query=라우브필름+
 
 ---
 
-### 섹션 9: 공지 (Notice)
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         NOTICE                              │
-│                                                             │
-│    📢 카카오톡 상담채널 변경 안내                             │
-│                                                             │
-│    기존 카카오톡 오픈채팅도 유지는 되지만                      │
-│    신규 고객님들께서는 사업자인증이 되어 있는                  │
-│    카카오톡 채널로 문의 부탁드립니다.                         │
-│                                                             │
-│                                          2025. 07. 27.      │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-### 섹션 10: 제휴 + 푸터 (Footer)
+### 섹션 9: 푸터 (Footer) - 심플하게 통합
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -311,6 +496,10 @@ const reviewLink = "https://search.naver.com/search.naver?query=라우브필름+
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**⚠️ 중요: 푸터는 페이지 맨 아래에 한 번만 표시**
+- 다른 섹션에 사업자 정보 중복 넣지 않음
+- 제휴업체 + SNS + 사업자정보 모두 푸터에 통합
 
 **SNS 링크:**
 ```typescript
@@ -682,16 +871,15 @@ npm install framer-motion swiper react-compare-slider lucide-react lenis
 
 ## 🚀 구현 순서
 
-1. **레이아웃 구조** - 섹션별 컴포넌트 분리
-2. **히어로 섹션** - 타이포그래피 + 스크롤 유도
-3. **포트폴리오 슬라이더** - Swiper 적용
-4. **서비스 섹션** - 카드 그리드
-5. **컬러 섹션** - Before/After 슬라이더
-6. **카메라/감독/커스텀** - 텍스트 섹션들
-7. **후기 섹션** - 이미지 그리드 + 링크
-8. **푸터** - SNS + 정보
-9. **스크롤 애니메이션** - 전체 적용
-10. **반응형** - 모바일 최적화
+1. **히어로 섹션** - 스크롤 기반 텍스트 등장 + 배경 영상
+2. **포트폴리오 슬라이더** - Swiper 적용
+3. **서비스 섹션** - 카드 그리드
+4. **컬러 섹션** - Before/After 슬라이더
+5. **카메라 섹션** - 장비 소개
+6. **디렉터 섹션** - 2x2 카드 그리드 (개선됨)
+7. **커스텀 섹션** - 중앙 카드 레이아웃 (개선됨)
+8. **후기 섹션** - 이미지 그리드 + 링크
+9. **푸터** - 제휴 + SNS + 사업자정보 (한 번만)
 
 ---
 

@@ -6,13 +6,12 @@ import ServiceSection from "@/components/home/ServiceSection";
 import CameraSection from "@/components/home/CameraSection";
 import DirectorSection from "@/components/home/DirectorSection";
 import CustomSection from "@/components/home/CustomSection";
-import NoticeSection from "@/components/home/NoticeSection";
 import FooterSection from "@/components/home/FooterSection";
 
 export default function Home() {
   return (
     <div className="flex flex-col bg-[#111111]">
-      {/* Section 1: Hero */}
+      {/* Section 1: Hero - 스크롤 기반 텍스트 등장 */}
       <HeroVideoSlider />
 
       {/* Section 2: Portfolio Slider */}
@@ -29,19 +28,16 @@ export default function Home() {
       {/* Section 5: Camera */}
       <CameraSection />
 
-      {/* Section 6: Director */}
+      {/* Section 6: Director - 2x2 카드 그리드 */}
       <DirectorSection />
 
-      {/* Section 7: Custom */}
+      {/* Section 7: Custom - 중앙 카드 레이아웃 */}
       <CustomSection />
 
       {/* Section 8: Review */}
       <ReviewSection />
 
-      {/* Section 9: Notice */}
-      <NoticeSection />
-
-      {/* Section 10: Footer */}
+      {/* Section 9: Footer - 제휴 + SNS + 사업자정보 통합 */}
       <FooterSection />
     </div>
   );

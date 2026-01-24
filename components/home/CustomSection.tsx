@@ -1,15 +1,46 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MessageCircle } from "lucide-react";
+import { Film, MessageCircle, Check } from "lucide-react";
+
+const customFeatures = [
+  "시네마틱 하이라이트",
+  "기록 영상",
+  "원하시는 BGM 적용",
+  "특별 요청 반영",
+];
 
 // 스케일 업 애니메이션
 const scaleUp = {
-  hidden: { opacity: 0, scale: 0.8 },
+  hidden: { opacity: 0, scale: 0.9 },
   visible: {
     opacity: 1,
     scale: 1,
     transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] as const },
+  },
+};
+
+// 스태거 애니메이션
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.3,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.4,
+      ease: "easeOut" as const,
+    },
   },
 };
 
@@ -28,93 +59,97 @@ export default function CustomSection() {
           Custom
         </motion.h2>
 
-        {/* Main Description with Scale Up */}
+        {/* Subtitle */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-center text-white/70 leading-relaxed text-base md:text-lg mb-12"
+        >
+          나만의 특별한 영상을 원하신다면
+        </motion.p>
+
+        {/* Central Card */}
         <motion.div
           variants={scaleUp}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="text-center mb-6"
+          className="max-w-2xl mx-auto"
         >
-          <p className="text-white/70 leading-relaxed text-base md:text-lg max-w-2xl mx-auto">
-            신랑신부님의 가져가실 소중한 영상을 위해
-            <br className="hidden md:block" />
-            대표 촬영 한정으로 원하시는 형식의 영상을
-            <br className="hidden md:block" />
-            <motion.span
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.5 }}
-              className="text-white font-medium"
-            >
-              최대한 반영하여 작업
-            </motion.span>
-            하고 있습니다.
-          </p>
-        </motion.div>
+          <div className="bg-[#1a1a1a] rounded-xl p-8 md:p-10 border border-[#2a2a2a] transition-all duration-300 hover:border-accent/50">
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                <Film className="w-6 h-6 text-accent" strokeWidth={1.5} />
+              </div>
+              <h3 className="text-xl md:text-2xl font-bold text-white">
+                대표 촬영 한정 커스텀 서비스
+              </h3>
+            </div>
 
-        {/* Sub Description */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="text-center text-white/50 leading-relaxed text-sm md:text-base max-w-xl mx-auto mb-12"
-        >
-          원하시는 형식이 있다면 카카오톡 채널로 상담 후
-          <br className="hidden md:block" />
-          신청서 작성 부탁드립니다.
-        </motion.p>
+            {/* Description */}
+            <p className="text-white/70 leading-relaxed text-base md:text-lg mb-8">
+              신랑신부님의 가져가실 소중한 영상을 위해
+              <br className="hidden md:block" />
+              원하시는 형식의 영상을 최대한 반영하여 작업합니다.
+            </p>
 
-        {/* CTA Button with Hover Animation */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="flex justify-center"
-        >
-          <motion.a
-            href="https://pf.kakao.com/_xlXAin/chat"
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ scale: 1.05, y: -3 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            className="group inline-flex items-center gap-3 px-8 py-4 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-white font-medium transition-all duration-300 hover:border-accent hover:shadow-xl hover:shadow-accent/30"
-          >
+            {/* Divider */}
+            <div className="border-t border-[#2a2a2a] mb-8" />
+
+            {/* Features Grid */}
             <motion.div
-              animate={{ rotate: [0, -10, 10, -10, 0] }}
-              transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 3 }}
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="grid grid-cols-2 gap-4 mb-8"
             >
-              <MessageCircle className="w-5 h-5 text-accent" />
+              {customFeatures.map((feature) => (
+                <motion.div
+                  key={feature}
+                  variants={itemVariants}
+                  className="flex items-center gap-3 group"
+                >
+                  <div className="w-5 h-5 flex-shrink-0 rounded-full bg-accent/20 flex items-center justify-center group-hover:bg-accent/40 transition-colors">
+                    <Check className="w-3 h-3 text-accent" strokeWidth={3} />
+                  </div>
+                  <span className="text-sm md:text-base text-white/80 group-hover:text-white transition-colors">
+                    {feature}
+                  </span>
+                </motion.div>
+              ))}
             </motion.div>
-            <span>상담 문의하기</span>
-            <motion.svg
-              className="w-4 h-4 text-[#888888] group-hover:text-accent"
-              animate={{ x: [0, 5, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </motion.svg>
-          </motion.a>
-        </motion.div>
 
-        {/* Note */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="text-center text-[#666666] text-xs mt-8"
-        >
-          * 요청 형식에 따라 추가비용 발생 또는 반영 불가할 수 있습니다
-        </motion.p>
+            {/* Note */}
+            <p className="text-[#666666] text-sm mb-8">
+              ※ 요청에 따라 추가비용이 발생할 수 있습니다.
+            </p>
+
+            {/* CTA Button */}
+            <div className="flex justify-center">
+              <motion.a
+                href="https://pf.kakao.com/_xlXAin/chat"
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.05, y: -3 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                className="group inline-flex items-center gap-3 px-8 py-4 rounded-full bg-accent text-white font-medium transition-all duration-300 hover:shadow-xl hover:shadow-accent/40"
+              >
+                <motion.div
+                  animate={{ rotate: [0, -10, 10, -10, 0] }}
+                  transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 3 }}
+                >
+                  <MessageCircle className="w-5 h-5" />
+                </motion.div>
+                <span>카카오톡 상담하기</span>
+              </motion.a>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
