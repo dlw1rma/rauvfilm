@@ -2,13 +2,19 @@
  * 개인정보 5년 자동 파기 시스템
  *
  * 파기 규칙:
- * - 기준일: videoUploadedAt (영상 업로드일)
+ * - 기준일: createdAt (계약일/예약 생성일)
  * - 5년 경과 시 자동 마스킹 처리
  *
- * 마스킹 대상:
- * - customerName → "***"
- * - customerPhone → "***-****-****"
- * - customerEmail → "***@***.***"
+ * 파기 대상 (마스킹):
+ * - 신랑/신부 이름 (author, brideName, groomName)
+ * - 전화번호 (bridePhone, groomPhone, receiptPhone)
+ * - 배송주소 (deliveryAddress)
+ * - 예식일정 관련 정보 (weddingDate, weddingTime, venueName, venueFloor 등)
+ * - 짝궁코드 (referralCode) - null 처리
+ *
+ * 보존 대상:
+ * - 후기 링크 (reviewLink) - 영구 보존
+ * - 기타 예약 정보 (상품 종류, 할인 정보 등)
  */
 
 import { prisma } from '../prisma';
@@ -54,40 +60,107 @@ export async function anonymizeOldBookings(): Promise<AnonymizeResult> {
       },
     });
 
-    if (bookingsToAnonymize.length === 0) {
-      console.log('[Anonymize] 파기 대상 예약이 없습니다.');
-      return result;
-    }
+    if (bookingsToAnonymize.length > 0) {
+      console.log(`[Anonymize] 파기 대상 Booking: ${bookingsToAnonymize.length}건`);
 
-    console.log(`[Anonymize] 파기 대상: ${bookingsToAnonymize.length}건`);
+      // 각 예약에 대해 마스킹 처리
+      for (const booking of bookingsToAnonymize) {
+        try {
+          await prisma.booking.update({
+            where: { id: booking.id },
+            data: {
+              customerName: '***',
+              customerPhone: '***-****-****',
+              customerEmail: '***@***.***',
+              isAnonymized: true,
+              anonymizedAt: new Date(),
+              // 관리자 메모에 원본 정보 기록 (선택적)
+              adminNote: `[자동 파기] ${new Date().toISOString()} - 개인정보 보호법에 따라 5년 경과 후 자동 마스킹 처리됨`,
+            },
+          });
 
-    // 각 예약에 대해 마스킹 처리
-    for (const booking of bookingsToAnonymize) {
-      try {
-        await prisma.booking.update({
-          where: { id: booking.id },
-          data: {
-            customerName: '***',
-            customerPhone: '***-****-****',
-            customerEmail: '***@***.***',
-            isAnonymized: true,
-            anonymizedAt: new Date(),
-            // 관리자 메모에 원본 정보 기록 (선택적)
-            adminNote: `[자동 파기] ${new Date().toISOString()} - 개인정보 보호법에 따라 5년 경과 후 자동 마스킹 처리됨`,
-          },
-        });
-
-        result.anonymizedCount++;
-        result.processedIds.push(booking.id);
-        console.log(`[Anonymize] 예약 #${booking.id} 마스킹 완료`);
-      } catch (error) {
-        const errorMessage = `예약 #${booking.id} 마스킹 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
-        result.errors.push(errorMessage);
-        console.error(`[Anonymize] ${errorMessage}`);
+          result.anonymizedCount++;
+          result.processedIds.push(booking.id);
+          console.log(`[Anonymize] Booking #${booking.id} 마스킹 완료`);
+        } catch (error) {
+          const errorMessage = `예약 #${booking.id} 마스킹 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
+          result.errors.push(errorMessage);
+          console.error(`[Anonymize] ${errorMessage}`);
+        }
       }
     }
 
-    console.log(`[Anonymize] 완료: ${result.anonymizedCount}/${bookingsToAnonymize.length}건 처리됨`);
+    // Reservation 모델 파기 처리
+    // createdAt 기준으로 5년 경과된 것 처리
+    // 파기 대상: 신랑/신부 이름, 전화번호, 배송주소, 예식일정 관련 정보만
+    const reservationsToAnonymize = await prisma.reservation.findMany({
+      where: {
+        createdAt: {
+          lte: fiveYearsAgo,
+        },
+      },
+      select: {
+        id: true,
+        // 파기 대상 필드
+        author: true,
+        brideName: true,
+        groomName: true,
+        bridePhone: true,
+        groomPhone: true,
+        receiptPhone: true,
+        deliveryAddress: true,
+        weddingDate: true,
+        weddingTime: true,
+        venueName: true,
+        venueFloor: true,
+        // 보존 대상 필드 (확인용)
+        reviewLink: true,
+        referralCode: true,
+        createdAt: true,
+      },
+    });
+
+    if (reservationsToAnonymize.length > 0) {
+      console.log(`[Anonymize] 파기 대상 Reservation: ${reservationsToAnonymize.length}건`);
+
+      for (const reservation of reservationsToAnonymize) {
+        try {
+          await prisma.reservation.update({
+            where: { id: reservation.id },
+            data: {
+              // 신랑/신부 이름 마스킹
+              author: '***',
+              brideName: '***',
+              groomName: '***',
+              // 전화번호 마스킹
+              bridePhone: '***-****-****',
+              groomPhone: '***-****-****',
+              receiptPhone: '***-****-****',
+              // 배송주소 마스킹
+              deliveryAddress: null,
+              // 예식일정 관련 정보 마스킹
+              weddingDate: null,
+              weddingTime: null,
+              venueName: null,
+              venueFloor: null,
+              // 짝궁코드 파기
+              referralCode: null,
+              // 보존 대상은 그대로 유지 (reviewLink 등)
+            },
+          });
+
+          result.anonymizedCount++;
+          result.processedIds.push(reservation.id);
+          console.log(`[Anonymize] Reservation #${reservation.id} 마스킹 완료`);
+        } catch (error) {
+          const errorMessage = `예약 #${reservation.id} 마스킹 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
+          result.errors.push(errorMessage);
+          console.error(`[Anonymize] ${errorMessage}`);
+        }
+      }
+    }
+
+    console.log(`[Anonymize] 완료: ${result.anonymizedCount}건 처리됨`);
 
     if (result.errors.length > 0) {
       result.success = false;

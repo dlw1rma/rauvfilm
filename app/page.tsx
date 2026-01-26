@@ -6,7 +6,6 @@ import ServiceSection from "@/components/home/ServiceSection";
 import CameraSection from "@/components/home/CameraSection";
 import DirectorSection from "@/components/home/DirectorSection";
 import CustomSection from "@/components/home/CustomSection";
-import FooterSection from "@/components/home/FooterSection";
 
 export default function Home() {
   return (
@@ -34,11 +33,8 @@ export default function Home() {
       {/* Section 7: Custom - 중앙 카드 레이아웃 */}
       <CustomSection />
 
-      {/* Section 8: Review */}
+      {/* Section 8: 고객후기 */}
       <ReviewSection />
-
-      {/* Section 9: Footer - 제휴 + SNS + 사업자정보 통합 */}
-      <FooterSection />
     </div>
   );
 }

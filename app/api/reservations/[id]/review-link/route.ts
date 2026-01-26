@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
 import { safeParseInt, normalizePhone, sanitizeString, isValidUrl } from "@/lib/validation";
 import { verifyReview } from "@/lib/reviewVerification";
+import { decrypt } from "@/lib/encryption";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -86,12 +87,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (normalizedPhone.length < 10) {
         isAuthenticated = false;
       } else {
+        // 개인정보 복호화 후 비교
+        const decryptedAuthor = decrypt(reservation.author);
+        const decryptedBrideName = decrypt(reservation.brideName);
+        const decryptedGroomName = decrypt(reservation.groomName);
+        const decryptedBridePhone = decrypt(reservation.bridePhone);
+        const decryptedGroomPhone = decrypt(reservation.groomPhone);
+        
         isAuthenticated =
-          (reservation.author === sanitizedName ||
-            reservation.brideName === sanitizedName ||
-            reservation.groomName === sanitizedName) &&
-          (reservation.bridePhone?.replace(/[^0-9]/g, "") === normalizedPhone ||
-            reservation.groomPhone?.replace(/[^0-9]/g, "") === normalizedPhone);
+          (decryptedAuthor === sanitizedName ||
+            decryptedBrideName === sanitizedName ||
+            decryptedGroomName === sanitizedName) &&
+          (decryptedBridePhone?.replace(/[^0-9]/g, "") === normalizedPhone ||
+            decryptedGroomPhone?.replace(/[^0-9]/g, "") === normalizedPhone);
       }
     }
 
@@ -99,6 +107,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { error: "인증이 필요합니다. 비밀번호 또는 이름+전화번호를 입력해주세요." },
         { status: 401 }
+      );
+    }
+
+    // 중복 링크 체크: 다른 예약에서 이미 사용된 링크인지 확인
+    const existingReview = await prisma.reservation.findFirst({
+      where: {
+        reviewLink: sanitizedReviewLink,
+        id: { not: reservationId }, // 현재 예약 제외
+      },
+    });
+
+    if (existingReview) {
+      return NextResponse.json(
+        { error: "이미 다른 예약에서 사용된 후기 링크입니다." },
+        { status: 400 }
       );
     }
 

@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
       unreadContacts,
       totalPortfolios,
       totalReviews,
+      pendingReviewSubmissions,
     ] = await Promise.all([
       prisma.reservation.count(),
       prisma.reservation.count({
@@ -29,6 +30,13 @@ export async function GET(request: NextRequest) {
       }),
       prisma.portfolio.count(),
       prisma.review.count(),
+      prisma.reviewSubmission.count({
+        where: {
+          status: {
+            in: ['PENDING', 'MANUAL_REVIEW'],
+          },
+        },
+      }),
     ]);
 
     return NextResponse.json({
@@ -42,6 +50,9 @@ export async function GET(request: NextRequest) {
       },
       portfolios: totalPortfolios,
       reviews: totalReviews,
+      reviewSubmissions: {
+        pending: pendingReviewSubmissions,
+      },
     });
   } catch (error) {
     console.error("Stats fetch error:", error);

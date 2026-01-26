@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { getCustomerSession } from '@/lib/customerAuth';
 import { prisma } from '@/lib/prisma';
+import { decrypt } from '@/lib/encryption';
 
 export async function GET() {
   try {
@@ -25,6 +26,7 @@ export async function GET() {
         referralCode: true,
         status: true,
         referralDiscount: true,
+        discountCouple: true,
       },
     });
 
@@ -33,6 +35,18 @@ export async function GET() {
         { error: '예약 정보를 찾을 수 없습니다.' },
         { status: 404 }
       );
+    }
+
+    // 짝궁할인을 체크하지 않았으면 짝궁코드 표시하지 않음
+    if (!reservation.discountCouple) {
+      return NextResponse.json({
+        partnerCode: null,
+        message: '짝궁할인을 신청하시면 짝꿍 코드가 생성됩니다.',
+        status: reservation.status,
+        referrals: [],
+        referralCount: 0,
+        totalReferralDiscount: 0,
+      });
     }
 
     // 짝꿍 코드가 아직 생성되지 않은 경우 (예약 확정 전)
@@ -63,15 +77,32 @@ export async function GET() {
       partnerCode: reservation.referralCode,
       message: '아래 코드를 친구에게 공유하시면 양쪽 모두 1만원 할인!',
       status: reservation.status,
-      referrals: referrals.map((r) => ({
-        id: r.id,
-        // 이름 마스킹 (홍*동)
-        customerName: r.author.length > 2
-          ? r.author[0] + '*' + r.author.slice(2)
-          : r.author[0] + '*',
-        weddingDate: r.weddingDate,
-        createdAt: r.createdAt,
-      })),
+      referrals: referrals.map((r) => {
+        // 개인정보 복호화 후 마스킹
+        const decryptedAuthor = decrypt(r.author) || '';
+        
+        // 이름 마스킹 로직 개선
+        let maskedName: string;
+        if (decryptedAuthor.length <= 1) {
+          maskedName = '*';
+        } else if (decryptedAuthor.length === 2) {
+          // 2글자: 첫 글자 + '*'
+          maskedName = decryptedAuthor[0] + '*';
+        } else if (decryptedAuthor.length === 3) {
+          // 3글자: 첫 글자 + '*' + 마지막 글자
+          maskedName = decryptedAuthor[0] + '*' + decryptedAuthor[2];
+        } else {
+          // 4글자 이상: 첫 글자 + '**' + 마지막 글자
+          maskedName = decryptedAuthor[0] + '**' + decryptedAuthor[decryptedAuthor.length - 1];
+        }
+        
+        return {
+          id: r.id,
+          customerName: maskedName,
+          weddingDate: r.weddingDate,
+          createdAt: r.createdAt,
+        };
+      }),
       referralCount: referrals.length,
       totalReferralDiscount: reservation.referralDiscount || 0,
     });

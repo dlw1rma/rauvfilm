@@ -44,12 +44,12 @@ async function fetchDataFromAPI(url: string): Promise<ParsedData | null> {
       const data = await response.json();
       console.log("LinkPreview API response data:", JSON.stringify(data, null, 2));
       
-      if (data.title || data.image || data.description) {
+      if (data.title || data.image || data.description || data.author || data.site_name) {
         const result = {
           thumbnailUrl: data.image || null,
           title: data.title || null,
           excerpt: data.description ? truncateText(data.description, 200) : null,
-          author: data.author || null, // linkpreview API가 author를 지원하는 경우
+          author: (data.author || data.site_name || null)?.replace(/네이버 블로그\s*\|\s*/gi, '').replace(/\|\s*네이버 블로그/gi, '').replace(/네이버 블로그/gi, '').replace(/\|/g, '').trim() || null, // linkpreview API가 author를 지원하는 경우, 없으면 site_name 사용, "|" 문자 및 "네이버 블로그" 제거
         };
         console.log("Returning API data:", result);
         return result;
@@ -183,14 +183,14 @@ function extractMetaData(html: string): ParsedData {
   // Open Graph 작성자
   const ogAuthorMatch = html.match(/<meta\s+property=["']og:article:author["']\s+content=["']([^"']+)["']/i);
   if (ogAuthorMatch && ogAuthorMatch[1]) {
-    result.author = ogAuthorMatch[1].trim();
+    result.author = ogAuthorMatch[1].trim().replace(/\|/g, '').trim();
   }
   
   // 일반 메타 작성자
   if (!result.author) {
     const authorMatch = html.match(/<meta\s+name=["']author["']\s+content=["']([^"']+)["']/i);
     if (authorMatch && authorMatch[1]) {
-      result.author = authorMatch[1].trim();
+      result.author = authorMatch[1].trim().replace(/\|/g, '').trim();
     }
   }
   
@@ -198,8 +198,18 @@ function extractMetaData(html: string): ParsedData {
   if (!result.author) {
     const articleAuthorMatch = html.match(/<meta\s+property=["']article:author["']\s+content=["']([^"']+)["']/i);
     if (articleAuthorMatch && articleAuthorMatch[1]) {
-      result.author = articleAuthorMatch[1].trim();
+      result.author = articleAuthorMatch[1].trim().replace(/\|/g, '').trim();
     }
+  }
+  
+  // 최종적으로 "|" 문자 및 "네이버 블로그" 텍스트 제거
+  if (result.author) {
+    result.author = result.author
+      .replace(/네이버 블로그\s*\|\s*/gi, '') // "네이버 블로그 |" 제거
+      .replace(/\|\s*네이버 블로그/gi, '') // "| 네이버 블로그" 제거
+      .replace(/네이버 블로그/gi, '') // "네이버 블로그" 제거
+      .replace(/\|/g, '') // "|" 문자 제거
+      .trim();
   }
 
   return result;
@@ -269,17 +279,36 @@ export async function GET(request: NextRequest) {
 
     // 변환된 URL로 linkpreview.net API에 요청 (가장 정확함)
     console.log("📡 linkpreview.net API 호출 중...");
-    const apiData = await fetchDataFromAPI(finalUrl);
-    if (apiData && (apiData.title || apiData.thumbnailUrl || apiData.excerpt)) {
+    let apiData = await fetchDataFromAPI(finalUrl);
+    let hasApiData = false;
+    let apiAuthor = null;
+    
+    if (apiData && (apiData.title || apiData.thumbnailUrl || apiData.excerpt || apiData.author)) {
+      hasApiData = true;
+      apiAuthor = apiData.author || null;
       console.log("✅ linkpreview.net API에서 데이터 가져옴:", {
         title: apiData.title,
-        author: apiData.author,
+        author: apiData.author || "(없음)",
         thumbnail: apiData.thumbnailUrl ? "있음" : "없음",
         excerpt: apiData.excerpt ? `${apiData.excerpt.substring(0, 50)}...` : "없음",
       });
-      return NextResponse.json(apiData);
+      
+      // 네이버 블로그/카페이고 author가 없으면 직접 파싱으로 작성자 추출 시도
+      if (!apiAuthor && (targetUrl.includes("blog.naver.com") || targetUrl.includes("cafe.naver.com"))) {
+        console.log("⚠️ linkpreview API에서 작성자를 가져오지 못함, 직접 파싱으로 작성자 추출 시도");
+        // apiData는 유지하고 직접 파싱으로 author만 보완
+      } else {
+        // author가 있거나 네이버가 아니면 바로 반환
+        const responseData = {
+          ...apiData,
+          author: apiAuthor,
+        };
+        console.log("Returning linkpreview API response with author:", responseData.author);
+        return NextResponse.json(responseData);
+      }
     } else {
       console.log("⚠️ linkpreview.net API에서 데이터를 가져오지 못함, 직접 파싱 시도");
+      apiData = null; // API 실패 시 null로 설정
     }
 
     // API 실패 시 직접 파싱 시도
@@ -362,24 +391,96 @@ export async function GET(request: NextRequest) {
               }
             }
 
-            // 네이버 카페 작성자 찾기
+            // 네이버 카페 작성자 찾기 (다양한 패턴 시도)
             if (!metaData.author) {
+              // 1. nickname 클래스
               const nicknameMatch = html.match(/<span[^>]*class=["'][^"']*nickname[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
               if (nicknameMatch && nicknameMatch[1]) {
-                metaData.author = extractTextFromHTML(nicknameMatch[1], 50).trim();
+                metaData.author = extractTextFromHTML(nicknameMatch[1], 50).trim().replace(/\|/g, '').trim();
               }
               
+              // 2. writer 클래스
               if (!metaData.author) {
                 const writerMatch = html.match(/<span[^>]*class=["'][^"']*writer[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
                 if (writerMatch && writerMatch[1]) {
-                  metaData.author = extractTextFromHTML(writerMatch[1], 50).trim();
+                  metaData.author = extractTextFromHTML(writerMatch[1], 50).trim().replace(/\|/g, '').trim();
                 }
+              }
+              
+              // 3. author 클래스
+              if (!metaData.author) {
+                const authorMatch = html.match(/<span[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+                if (authorMatch && authorMatch[1]) {
+                  metaData.author = extractTextFromHTML(authorMatch[1], 50).trim().replace(/\|/g, '').trim();
+                }
+              }
+              
+              // 4. 닉네임 데이터 속성
+              if (!metaData.author) {
+                const nicknameDataMatch = html.match(/data-nickname=["']([^"']+)["']/i);
+                if (nicknameDataMatch && nicknameDataMatch[1]) {
+                  metaData.author = nicknameDataMatch[1].trim().replace(/\|/g, '').trim();
+                }
+              }
+              
+              // 5. 작성자 정보가 포함된 div
+              if (!metaData.author) {
+                const authorDivMatch = html.match(/<div[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]{10,200})<\/div>/i);
+                if (authorDivMatch && authorDivMatch[1]) {
+                  const extracted = extractTextFromHTML(authorDivMatch[1], 50);
+                  if (extracted.length > 2) {
+                    metaData.author = extracted.trim().replace(/\|/g, '').trim();
+                  }
+                }
+              }
+              
+              // 6. 작성자 영역 전체 검색
+              if (!metaData.author) {
+                const authorAreaMatch = html.match(/<div[^>]*class=["'][^"']*writer[^"']*["'][^>]*>([\s\S]{10,300})<\/div>/i);
+                if (authorAreaMatch && authorAreaMatch[1]) {
+                  const extracted = extractTextFromHTML(authorAreaMatch[1], 50);
+                  if (extracted.length > 2 && extracted.length < 30) {
+                    metaData.author = extracted.trim().replace(/\|/g, '').trim();
+                  }
+                }
+              }
+              
+              // 최종적으로 "|" 문자 및 "네이버 블로그" 텍스트 제거
+              if (metaData.author) {
+                metaData.author = metaData.author
+                  .replace(/네이버 블로그\s*\|\s*/gi, '') // "네이버 블로그 |" 제거
+                  .replace(/\|\s*네이버 블로그/gi, '') // "| 네이버 블로그" 제거
+                  .replace(/네이버 블로그/gi, '') // "네이버 블로그" 제거
+                  .replace(/\|/g, '') // "|" 문자 제거
+                  .trim();
               }
             }
 
-            if (metaData.title || metaData.thumbnailUrl || metaData.excerpt || metaData.author) {
-              console.log("Found Naver cafe data:", metaData);
-              return NextResponse.json(metaData);
+            // API 데이터와 직접 파싱 데이터 병합 (API 데이터 우선, author는 직접 파싱 결과 사용)
+            let finalAuthor = metaData.author || apiData?.author || null;
+            // 최종적으로 작성자에서 "|" 문자 및 "네이버 블로그" 텍스트 제거
+            if (finalAuthor) {
+              finalAuthor = finalAuthor
+                .replace(/네이버 블로그\s*\|\s*/gi, '') // "네이버 블로그 |" 제거
+                .replace(/\|\s*네이버 블로그/gi, '') // "| 네이버 블로그" 제거
+                .replace(/네이버 블로그/gi, '') // "네이버 블로그" 제거
+                .replace(/\|/g, '') // "|" 문자 제거
+                .trim();
+            }
+            
+            const mergedData = {
+              title: apiData?.title || metaData.title || null,
+              excerpt: apiData?.excerpt || metaData.excerpt || null,
+              thumbnailUrl: apiData?.thumbnailUrl || metaData.thumbnailUrl || null,
+              author: finalAuthor,
+            };
+            
+            if (mergedData.title || mergedData.thumbnailUrl || mergedData.excerpt || mergedData.author) {
+              console.log("Found Naver cafe data (merged):", {
+                ...mergedData,
+                author: mergedData.author || "(없음)",
+              });
+              return NextResponse.json(mergedData);
             }
           }
         } catch (error) {
@@ -485,19 +586,19 @@ export async function GET(request: NextRequest) {
               }
             }
 
-            // 네이버 블로그 작성자 찾기
+            // 네이버 블로그 작성자 찾기 (다양한 패턴 시도)
             if (!metaData.author) {
               // 1. se-nickname 클래스 (네이버 블로그 에디터)
               const seNicknameMatch = html.match(/<span[^>]*class=["'][^"']*se-nickname[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
               if (seNicknameMatch && seNicknameMatch[1]) {
-                metaData.author = extractTextFromHTML(seNicknameMatch[1], 50).trim();
+                metaData.author = extractTextFromHTML(seNicknameMatch[1], 50).trim().replace(/\|/g, '').trim();
               }
               
               // 2. nickname 클래스
               if (!metaData.author) {
                 const nicknameMatch = html.match(/<span[^>]*class=["'][^"']*nickname[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
                 if (nicknameMatch && nicknameMatch[1]) {
-                  metaData.author = extractTextFromHTML(nicknameMatch[1], 50).trim();
+                  metaData.author = extractTextFromHTML(nicknameMatch[1], 50).trim().replace(/\|/g, '').trim();
                 }
               }
               
@@ -505,7 +606,7 @@ export async function GET(request: NextRequest) {
               if (!metaData.author) {
                 const writerMatch = html.match(/<span[^>]*class=["'][^"']*writer[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
                 if (writerMatch && writerMatch[1]) {
-                  metaData.author = extractTextFromHTML(writerMatch[1], 50).trim();
+                  metaData.author = extractTextFromHTML(writerMatch[1], 50).trim().replace(/\|/g, '').trim();
                 }
               }
               
@@ -513,15 +614,84 @@ export async function GET(request: NextRequest) {
               if (!metaData.author) {
                 const authorMatch = html.match(/<span[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
                 if (authorMatch && authorMatch[1]) {
-                  metaData.author = extractTextFromHTML(authorMatch[1], 50).trim();
+                  metaData.author = extractTextFromHTML(authorMatch[1], 50).trim().replace(/\|/g, '').trim();
                 }
               }
               
-              // 5. 블로그 ID에서 추출 (마지막 수단)
+              // 5. se-writer 클래스
+              if (!metaData.author) {
+                const seWriterMatch = html.match(/<span[^>]*class=["'][^"']*se-writer[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+                if (seWriterMatch && seWriterMatch[1]) {
+                  metaData.author = extractTextFromHTML(seWriterMatch[1], 50).trim().replace(/\|/g, '').trim();
+                }
+              }
+              
+              // 6. 블로그 작성자 정보 영역
+              if (!metaData.author) {
+                const blogAuthorMatch = html.match(/<div[^>]*class=["'][^"']*blog_author[^"']*["'][^>]*>([\s\S]{10,200})<\/div>/i);
+                if (blogAuthorMatch && blogAuthorMatch[1]) {
+                  const extracted = extractTextFromHTML(blogAuthorMatch[1], 50);
+                  if (extracted.length > 2 && extracted.length < 30) {
+                    metaData.author = extracted.trim().replace(/\|/g, '').trim();
+                  }
+                }
+              }
+              
+              // 7. 작성자 정보가 포함된 p 태그
+              if (!metaData.author) {
+                const authorPMatch = html.match(/<p[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]{10,200})<\/p>/i);
+                if (authorPMatch && authorPMatch[1]) {
+                  const extracted = extractTextFromHTML(authorPMatch[1], 50);
+                  if (extracted.length > 2 && extracted.length < 30) {
+                    metaData.author = extracted.trim().replace(/\|/g, '').trim();
+                  }
+                }
+              }
+              
+              // 8. data-nickname 속성
+              if (!metaData.author) {
+                const dataNicknameMatch = html.match(/data-nickname=["']([^"']+)["']/i);
+                if (dataNicknameMatch && dataNicknameMatch[1]) {
+                  metaData.author = dataNicknameMatch[1].trim().replace(/\|/g, '').trim();
+                }
+              }
+              
+              // 9. 작성자 정보가 포함된 다양한 div 패턴
+              if (!metaData.author) {
+                const authorDivPatterns = [
+                  /<div[^>]*class=["'][^"']*nickname[^"']*["'][^>]*>([\s\S]{5,100})<\/div>/i,
+                  /<div[^>]*class=["'][^"']*writer[^"']*["'][^>]*>([\s\S]{5,100})<\/div>/i,
+                  /<div[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]{5,100})<\/div>/i,
+                ];
+                for (const pattern of authorDivPatterns) {
+                  const match = html.match(pattern);
+                  if (match && match[1]) {
+                    const extracted = extractTextFromHTML(match[1], 50);
+                    if (extracted.length > 2 && extracted.length < 30 && !extracted.includes("@") && !extracted.includes("http")) {
+                      metaData.author = extracted.trim().replace(/\|/g, '').trim();
+                      break;
+                    }
+                  }
+                }
+              }
+              
+              // 10. 블로그 ID에서 추출 (마지막 수단)
               if (!metaData.author && blogInfo) {
                 // 블로그 ID를 작성자로 사용 (일부 경우)
                 metaData.author = blogInfo.blogId;
               }
+              
+              // 최종적으로 "|" 문자 및 "네이버 블로그" 텍스트 제거
+              if (metaData.author) {
+                metaData.author = metaData.author
+                  .replace(/네이버 블로그\s*\|\s*/gi, '') // "네이버 블로그 |" 제거
+                  .replace(/\|\s*네이버 블로그/gi, '') // "| 네이버 블로그" 제거
+                  .replace(/네이버 블로그/gi, '') // "네이버 블로그" 제거
+                  .replace(/\|/g, '') // "|" 문자 제거
+                  .trim();
+              }
+              
+              console.log("Naver blog author extraction result:", metaData.author);
             }
 
             // 네이버 블로그 본문에서 내용 추출 (여러 패턴 시도)
@@ -577,9 +747,31 @@ export async function GET(request: NextRequest) {
               }
             }
 
-            if (metaData.title || metaData.thumbnailUrl || metaData.excerpt) {
-              console.log("Found Naver blog data:", metaData);
-              return NextResponse.json(metaData);
+            // API 데이터와 직접 파싱 데이터 병합 (API 데이터 우선, author는 직접 파싱 결과 사용)
+            let finalAuthor = metaData.author || apiData?.author || null;
+            // 최종적으로 작성자에서 "|" 문자 및 "네이버 블로그" 텍스트 제거
+            if (finalAuthor) {
+              finalAuthor = finalAuthor
+                .replace(/네이버 블로그\s*\|\s*/gi, '') // "네이버 블로그 |" 제거
+                .replace(/\|\s*네이버 블로그/gi, '') // "| 네이버 블로그" 제거
+                .replace(/네이버 블로그/gi, '') // "네이버 블로그" 제거
+                .replace(/\|/g, '') // "|" 문자 제거
+                .trim();
+            }
+            
+            const mergedData = {
+              title: apiData?.title || metaData.title || null,
+              excerpt: apiData?.excerpt || metaData.excerpt || null,
+              thumbnailUrl: apiData?.thumbnailUrl || metaData.thumbnailUrl || null,
+              author: finalAuthor,
+            };
+            
+            if (mergedData.title || mergedData.thumbnailUrl || mergedData.excerpt || mergedData.author) {
+              console.log("Found Naver blog data (merged):", {
+                ...mergedData,
+                author: mergedData.author || "(없음)",
+              });
+              return NextResponse.json(mergedData);
             }
           }
         } catch (error) {
@@ -621,19 +813,19 @@ export async function GET(request: NextRequest) {
       metaData.thumbnailUrl = findNaverImages(html);
     }
 
-    // 네이버 카페 작성자 찾기
+    // 네이버 카페 작성자 찾기 (다양한 패턴 시도)
     if (targetUrl.includes("cafe.naver.com") && !metaData.author) {
       // 1. 닉네임 클래스 (네이버 카페)
       const nicknameMatch = html.match(/<span[^>]*class=["'][^"']*nickname[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
       if (nicknameMatch && nicknameMatch[1]) {
-        metaData.author = extractTextFromHTML(nicknameMatch[1], 50).trim();
+        metaData.author = extractTextFromHTML(nicknameMatch[1], 50).trim().replace(/\|/g, '').trim();
       }
       
       // 2. writer 클래스
       if (!metaData.author) {
         const writerMatch = html.match(/<span[^>]*class=["'][^"']*writer[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
         if (writerMatch && writerMatch[1]) {
-          metaData.author = extractTextFromHTML(writerMatch[1], 50).trim();
+          metaData.author = extractTextFromHTML(writerMatch[1], 50).trim().replace(/\|/g, '').trim();
         }
       }
       
@@ -641,19 +833,48 @@ export async function GET(request: NextRequest) {
       if (!metaData.author) {
         const authorMatch = html.match(/<span[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
         if (authorMatch && authorMatch[1]) {
-          metaData.author = extractTextFromHTML(authorMatch[1], 50).trim();
+          metaData.author = extractTextFromHTML(authorMatch[1], 50).trim().replace(/\|/g, '').trim();
         }
       }
       
-      // 4. 작성자 정보가 포함된 div 찾기
+      // 4. 닉네임 데이터 속성
+      if (!metaData.author) {
+        const nicknameDataMatch = html.match(/data-nickname=["']([^"']+)["']/i);
+        if (nicknameDataMatch && nicknameDataMatch[1]) {
+          metaData.author = nicknameDataMatch[1].trim().replace(/\|/g, '').trim();
+        }
+      }
+      
+      // 5. 작성자 정보가 포함된 div 찾기
       if (!metaData.author) {
         const authorDivMatch = html.match(/<div[^>]*class=["'][^"']*author[^"']*["'][^>]*>([\s\S]{10,200})<\/div>/i);
         if (authorDivMatch && authorDivMatch[1]) {
           const extracted = extractTextFromHTML(authorDivMatch[1], 50);
-          if (extracted.length > 2) {
-            metaData.author = extracted.trim();
+          if (extracted.length > 2 && extracted.length < 30) {
+            metaData.author = extracted.trim().replace(/\|/g, '').trim();
           }
         }
+      }
+      
+      // 6. 작성자 영역 전체 검색
+      if (!metaData.author) {
+        const writerAreaMatch = html.match(/<div[^>]*class=["'][^"']*writer[^"']*["'][^>]*>([\s\S]{10,300})<\/div>/i);
+        if (writerAreaMatch && writerAreaMatch[1]) {
+          const extracted = extractTextFromHTML(writerAreaMatch[1], 50);
+          if (extracted.length > 2 && extracted.length < 30) {
+            metaData.author = extracted.trim().replace(/\|/g, '').trim();
+          }
+        }
+      }
+      
+      // 최종적으로 "|" 문자 및 "네이버 블로그" 텍스트 제거
+      if (metaData.author) {
+        metaData.author = metaData.author
+          .replace(/네이버 블로그\s*\|\s*/gi, '') // "네이버 블로그 |" 제거
+          .replace(/\|\s*네이버 블로그/gi, '') // "| 네이버 블로그" 제거
+          .replace(/네이버 블로그/gi, '') // "네이버 블로그" 제거
+          .replace(/\|/g, '') // "|" 문자 제거
+          .trim();
       }
     }
 
@@ -695,11 +916,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log("Final parsed data:", JSON.stringify(metaData, null, 2));
+    // 최종적으로 작성자에서 "|" 문자 및 "네이버 블로그" 텍스트 제거
+    if (metaData.author) {
+      metaData.author = metaData.author
+        .replace(/네이버 블로그\s*\|\s*/gi, '') // "네이버 블로그 |" 제거
+        .replace(/\|\s*네이버 블로그/gi, '') // "| 네이버 블로그" 제거
+        .replace(/네이버 블로그/gi, '') // "네이버 블로그" 제거
+        .replace(/\|/g, '') // "|" 문자 제거
+        .trim();
+    }
     
-    // 최소한 하나의 데이터라도 있는지 확인
-    if (metaData.title || metaData.thumbnailUrl || metaData.excerpt) {
-      return NextResponse.json(metaData);
+    console.log("Final parsed data:", JSON.stringify(metaData, null, 2));
+    console.log("Author extracted:", metaData.author, "Type:", typeof metaData.author);
+    
+    // 최소한 하나의 데이터라도 있는지 확인 (작성자 포함)
+    if (metaData.title || metaData.thumbnailUrl || metaData.excerpt || metaData.author) {
+      const responseData = {
+        thumbnailUrl: metaData.thumbnailUrl || null,
+        title: metaData.title || null,
+        excerpt: metaData.excerpt || null,
+        author: metaData.author || null, // 명시적으로 null로 설정
+      };
+      console.log("Returning final parsed response with author:", responseData.author, "Type:", typeof responseData.author);
+      return NextResponse.json(responseData);
     }
     
     // 데이터가 없어도 에러가 아닌 경우 (정상 응답)

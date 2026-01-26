@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth";
 import { safeParseInt } from "@/lib/validation";
+import { decrypt } from "@/lib/encryption";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -42,7 +43,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // 비밀번호 제외하고 반환
     const { password, ...reservationWithoutPassword } = reservation;
 
-    return NextResponse.json(reservationWithoutPassword);
+    // 개인정보 복호화
+    const decryptedReservation = {
+      ...reservationWithoutPassword,
+      author: decrypt(reservation.author),
+      brideName: decrypt(reservation.brideName),
+      groomName: decrypt(reservation.groomName),
+      bridePhone: decrypt(reservation.bridePhone),
+      groomPhone: decrypt(reservation.groomPhone),
+      receiptPhone: decrypt(reservation.receiptPhone),
+      productEmail: decrypt(reservation.productEmail),
+      deliveryAddress: decrypt(reservation.deliveryAddress),
+    };
+
+    return NextResponse.json(decryptedReservation);
   } catch (error) {
     console.error("Error fetching reservation:", error);
     return NextResponse.json(

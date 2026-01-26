@@ -46,7 +46,7 @@ export async function PUT(
 
     const review = await prisma.reviewSubmission.findUnique({
       where: { id: reviewId },
-      include: { booking: true },
+      include: { reservation: true },
     });
 
     if (!review) {
@@ -74,26 +74,37 @@ export async function PUT(
           },
         });
 
-        // 예약에 후기 할인 적용 (이미 적용된 할인이 아닌 경우)
-        if (review.status !== 'AUTO_APPROVED') {
-          await tx.booking.update({
-            where: { id: review.bookingId },
+        // 예약에 후기 할인 적용 (이미 적용된 할인이 아닌 경우, 가성비형이 아닌 경우만)
+        if (review.status !== 'AUTO_APPROVED' && review.reservation.productType !== '가성비형') {
+          const currentDiscount = review.reservation.reviewDiscount || 0;
+          const currentDiscountAmount = review.reservation.discountAmount || 0;
+          const totalAmount = review.reservation.totalAmount || 0;
+          const depositAmount = review.reservation.depositAmount || 100000;
+          const newReviewDiscount = currentDiscount + 10000;
+          const newDiscountAmount = currentDiscountAmount + 10000;
+          const newFinalBalance = Math.max(0, totalAmount - depositAmount - newDiscountAmount);
+          
+          await tx.reservation.update({
+            where: { id: review.reservationId },
             data: {
-              reviewDiscount: {
-                increment: 10000,
-              },
-              finalBalance: {
-                decrement: 10000,
-              },
+              reviewDiscount: newReviewDiscount,
+              discountAmount: newDiscountAmount,
+              finalBalance: newFinalBalance,
             },
           });
         }
+        // 가성비형이면 할인 없이 원본영상만 전달 (할인 적용 안 함)
       });
+
+      // 가성비형이면 원본영상 전달, 아니면 할인 적용
+      const message = review.reservation.productType === '가성비형'
+        ? '후기가 승인되었습니다. 원본영상이 전달됩니다.'
+        : '후기가 승인되었습니다. 1만원 할인이 적용됩니다.';
 
       return NextResponse.json({
         success: true,
         status: 'APPROVED',
-        message: '후기가 승인되었습니다. 1만원 할인이 적용됩니다.',
+        message,
       });
     } else {
       // 후기 거절

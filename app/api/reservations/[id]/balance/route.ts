@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
 import { safeParseInt, sanitizeString, normalizePhone } from "@/lib/validation";
+import { decrypt } from "@/lib/encryption";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -61,12 +62,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       if (normalizedPhone.length < 10) {
         isAuthenticated = false;
       } else {
+        // 개인정보 복호화 후 비교
+        const decryptedAuthor = decrypt(reservation.author);
+        const decryptedBrideName = decrypt(reservation.brideName);
+        const decryptedGroomName = decrypt(reservation.groomName);
+        const decryptedBridePhone = decrypt(reservation.bridePhone);
+        const decryptedGroomPhone = decrypt(reservation.groomPhone);
+        
         isAuthenticated =
-          (reservation.author === nameParam ||
-            reservation.brideName === nameParam ||
-            reservation.groomName === nameParam) &&
-          (reservation.bridePhone?.replace(/[^0-9]/g, "") === normalizedPhone ||
-            reservation.groomPhone?.replace(/[^0-9]/g, "") === normalizedPhone);
+          (decryptedAuthor === nameParam ||
+            decryptedBrideName === nameParam ||
+            decryptedGroomName === nameParam) &&
+          (decryptedBridePhone?.replace(/[^0-9]/g, "") === normalizedPhone ||
+            decryptedGroomPhone?.replace(/[^0-9]/g, "") === normalizedPhone);
       }
     }
 

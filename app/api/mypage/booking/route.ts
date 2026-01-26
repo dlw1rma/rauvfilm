@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { getCustomerSession } from '@/lib/customerAuth';
 import { prisma } from '@/lib/prisma';
+import { decrypt } from '@/lib/encryption';
 
 export async function GET() {
   try {
@@ -41,18 +42,25 @@ export async function GET() {
       CANCELLED: '취소됨',
     };
 
+    // 개인정보 복호화
+    const decryptedAuthor = decrypt(reservation.author) || '';
+
+    // 짝궁할인을 체크하지 않았으면 짝궁코드 표시하지 않음
+    const partnerCode = reservation.discountCouple ? reservation.referralCode : null;
+
     return NextResponse.json({
       booking: {
         id: reservation.id,
-        customerName: reservation.author,
+        customerName: decryptedAuthor,
         weddingDate: reservation.weddingDate,
         weddingVenue: reservation.venueName,
         weddingTime: reservation.weddingTime,
         status: reservation.status,
         statusLabel: statusLabels[reservation.status || 'PENDING'] || '예약 대기',
-        partnerCode: reservation.referralCode,
-        videoUrl: null, // Reservation에는 영상 URL 없음
-        contractUrl: null,
+        partnerCode: partnerCode,
+        discountCouple: reservation.discountCouple,
+        videoUrl: reservation.videoUrl,
+        contractUrl: reservation.pdfUrl, // PDF를 contractUrl로 사용
         createdAt: reservation.createdAt,
         product: {
           id: null,

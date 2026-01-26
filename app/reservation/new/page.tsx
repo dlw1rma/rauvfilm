@@ -51,7 +51,7 @@ export default function NewReservationPage() {
     usbOption: false, // USB 추가 옵션
     seonwonpan: false,
     gimbalShoot: false,
-    playbackDevice: "",
+    playbackDevice: [] as string[],
     
     // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
     eventType: "" as EventType,
@@ -82,6 +82,47 @@ export default function NewReservationPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [partnerCodeSearch, setPartnerCodeSearch] = useState("");
+  const [partnerCodeResults, setPartnerCodeResults] = useState<Array<{ code: string; author: string }>>([]);
+  const [isSearchingPartnerCode, setIsSearchingPartnerCode] = useState(false);
+  const [selectedPartnerCode, setSelectedPartnerCode] = useState("");
+  const [showConfirmPage, setShowConfirmPage] = useState(false);
+  const [lemeGraphyDiscount, setLemeGraphyDiscount] = useState(0);
+
+  // 짝궁코드 검색 함수
+  const searchPartnerCode = async (query: string) => {
+    if (query.length < 2) {
+      setPartnerCodeResults([]);
+      return;
+    }
+
+    setIsSearchingPartnerCode(true);
+    try {
+      const res = await fetch(`/api/reservations/referral-code/search?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPartnerCodeResults(data.results || []);
+      } else {
+        setPartnerCodeResults([]);
+      }
+    } catch (error) {
+      console.error('짝궁코드 검색 오류:', error);
+      setPartnerCodeResults([]);
+    } finally {
+      setIsSearchingPartnerCode(false);
+    }
+  };
+
+  // 짝궁코드 선택 함수 (검색 결과에서 선택 시)
+  const selectPartnerCode = (code: string) => {
+    setSelectedPartnerCode(code);
+    setFormData((prev) => ({ ...prev, partnerCode: code }));
+    setPartnerCodeSearch(code);
+    setPartnerCodeResults([]);
+    setError("");
+    setMissingFields([]);
+  };
 
   // 전화번호 포맷팅 (하이픈 추가)
   const formatPhoneNumber = (value: string): string => {
@@ -146,13 +187,53 @@ export default function NewReservationPage() {
       return;
     }
     
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox"
-          ? (e.target as HTMLInputElement).checked
-          : value,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]:
+          type === "checkbox"
+            ? (e.target as HTMLInputElement).checked
+            : value,
+      };
+      
+      // 상품 종류가 가성비형으로 변경되면 신년할인 해제
+      if (name === "productType" && value === "가성비형") {
+        updated.discountNewYear = false;
+      }
+      
+      // 메인스냅이 르메그라피일 때 처리
+      if (name === "mainSnapCompany") {
+        const isLemeGraphy = value.toLowerCase().includes("르메그라피") || value.toLowerCase().includes("leme");
+        if (isLemeGraphy && (updated.productType === "기본형" || updated.productType === "시네마틱형")) {
+          // 1인 2캠(기본형) 또는 2인 3캠(시네마틱형)에 15만원 할인
+          setLemeGraphyDiscount(150000);
+          updated.discountNewYear = false; // 신년할인 비활성화
+        } else {
+          setLemeGraphyDiscount(0);
+        }
+      }
+      
+      // 상품 타입 변경 시 메인스냅이 르메그라피인지 확인
+      if (name === "productType") {
+        const isLemeGraphy = updated.mainSnapCompany.toLowerCase().includes("르메그라피") || updated.mainSnapCompany.toLowerCase().includes("leme");
+        if (isLemeGraphy && (value === "기본형" || value === "시네마틱형")) {
+          setLemeGraphyDiscount(150000);
+          updated.discountNewYear = false;
+        } else {
+          setLemeGraphyDiscount(0);
+        }
+      }
+      
+      // 짝궁할인 체크 해제 시 짝궁코드 초기화
+      if (name === "discountCouple" && !(e.target as HTMLInputElement).checked) {
+        updated.partnerCode = "";
+        setPartnerCodeSearch("");
+        setSelectedPartnerCode("");
+        setPartnerCodeResults([]);
+      }
+      
+      return updated;
+    });
   };
 
   // 미작성 필드로 스크롤 이동
@@ -165,47 +246,173 @@ export default function NewReservationPage() {
   };
 
   // 다음 섹션으로 이동하는 함수 (제출 로직 없음)
-  const handleNext = () => {
+  const handleNext = async () => {
     // 마지막 섹션이면 다음으로 이동하지 않음
     if (currentSection >= totalSections) {
       return;
     }
 
+    // 섹션 4에서 짝궁코드 검증이 필요한 경우
+    if (currentSection === 4 && formData.discountCouple && formData.partnerCode) {
+      try {
+        // 타임아웃 설정 (30초)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        
+        const res = await fetch(`/api/reservations/referral-code/validate?code=${encodeURIComponent(formData.partnerCode.trim())}`, {
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: '검증 요청 실패' }));
+          setError("짝궁코드가 존재하지 않습니다.");
+          setMissingFields(["짝궁코드가 존재하지 않습니다."]);
+          const element = document.getElementById("partnerCode");
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.focus();
+          }
+          return;
+        }
+        const data = await res.json();
+        if (!data.valid) {
+          setError("짝궁코드가 존재하지 않습니다.");
+          setMissingFields(["짝궁코드가 존재하지 않습니다."]);
+          const element = document.getElementById("partnerCode");
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.focus();
+          }
+          return;
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          setError("요청 시간이 초과되었습니다. 다시 시도해주세요.");
+          setMissingFields(["요청 시간이 초과되었습니다."]);
+        } else {
+          console.error('짝궁코드 검증 오류:', error);
+          setError("짝궁코드 검증 중 오류가 발생했습니다.");
+          setMissingFields(["짝궁코드 검증 중 오류가 발생했습니다."]);
+        }
+        const element = document.getElementById("partnerCode");
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.focus();
+        }
+        return;
+      }
+    }
+
     if (canProceed(currentSection)) {
       setCurrentSection(currentSection + 1);
       setError("");
+      setMissingFields([]);
     } else {
-      // 현재 섹션의 첫 번째 미작성 필드로 스크롤
+      // 현재 섹션의 모든 누락된 필수 항목 찾기
+      const missing: string[] = [];
       let firstErrorId = "";
+
       if (currentSection === 1) {
-        if (!formData.privacyAgreed) firstErrorId = "privacyAgreed";
+        if (!formData.privacyAgreed) {
+          missing.push("개인정보 활용 동의");
+          if (!firstErrorId) firstErrorId = "privacyAgreed";
+        }
       } else if (currentSection === 2) {
-        if (!formData.brideName) firstErrorId = "brideName";
-        else if (!formData.bridePhone) firstErrorId = "bridePhone";
-        else if (!formData.groomName) firstErrorId = "groomName";
-        else if (!formData.groomPhone) firstErrorId = "groomPhone";
-        else if (!formData.isBrideContractor && !formData.isGroomContractor) firstErrorId = "isBrideContractor";
-        else if (!formData.receiptPhone) firstErrorId = "receiptPhone";
-        else if (!formData.depositName) firstErrorId = "depositName";
-        else if (!formData.productEmail) firstErrorId = "productEmail";
-        else if (!formData.productType) firstErrorId = "productType";
-        else if (!formData.foundPath) firstErrorId = "foundPath";
-        else if (!formData.termsAgreed) firstErrorId = "termsAgreed";
-        else if (!formData.faqRead) firstErrorId = "faqRead";
+        if (!formData.brideName) {
+          missing.push("신부님 성함");
+          if (!firstErrorId) firstErrorId = "brideName";
+        }
+        if (!formData.bridePhone) {
+          missing.push("신부님 전화번호");
+          if (!firstErrorId) firstErrorId = "bridePhone";
+        }
+        if (!formData.groomName) {
+          missing.push("신랑님 성함");
+          if (!firstErrorId) firstErrorId = "groomName";
+        }
+        if (!formData.groomPhone) {
+          missing.push("신랑님 전화번호");
+          if (!firstErrorId) firstErrorId = "groomPhone";
+        }
+        if (!formData.isBrideContractor && !formData.isGroomContractor) {
+          missing.push("계약자 선택 (신부님 또는 신랑님)");
+          if (!firstErrorId) firstErrorId = "isBrideContractor";
+        }
+        if (!formData.receiptPhone) {
+          missing.push("현금 영수증 받으실 전화번호");
+          if (!firstErrorId) firstErrorId = "receiptPhone";
+        }
+        if (!formData.depositName) {
+          missing.push("예약금 입금자명");
+          if (!firstErrorId) firstErrorId = "depositName";
+        }
+        if (!formData.productEmail) {
+          missing.push("상품 받으실 E-mail 주소");
+          if (!firstErrorId) firstErrorId = "productEmail";
+        }
+        if (!formData.foundPath) {
+          missing.push("라우브필름 알게된 경로");
+          if (!firstErrorId) firstErrorId = "foundPath";
+        }
+        if (!formData.termsAgreed) {
+          missing.push("홈페이지 규정 안내 및 약관동의서 읽음 및 동의");
+          if (!firstErrorId) firstErrorId = "termsAgreed";
+        }
+        if (!formData.faqRead) {
+          missing.push("홈페이지 FAQ 읽음 및 숙지 여부");
+          if (!firstErrorId) firstErrorId = "faqRead";
+        }
       } else if (currentSection === 3) {
+        // 섹션 3: 상품 종류 필수 체크
+        if (!formData.productType) {
+          missing.push("상품 종류");
+          if (!firstErrorId) firstErrorId = "productType";
+        }
+        // 본식 영상 예약 필수 항목 체크
         if (formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") {
-          if (!formData.weddingDate) firstErrorId = "weddingDate";
-          else if (!formData.weddingTime) firstErrorId = "weddingTime";
-          else if (!formData.venueName) firstErrorId = "venueName";
-          else if (formData.usbOption && !formData.deliveryAddress) firstErrorId = "deliveryAddress";
+          if (!formData.weddingDate) {
+            missing.push("예식 날짜");
+            if (!firstErrorId) firstErrorId = "weddingDate";
+          }
+          if (!formData.weddingTime) {
+            missing.push("예식 시간");
+            if (!firstErrorId) firstErrorId = "weddingTime";
+          }
+          if (!formData.venueName) {
+            missing.push("장소명");
+            if (!firstErrorId) firstErrorId = "venueName";
+          }
+          if (formData.usbOption && !formData.deliveryAddress) {
+            missing.push("(USB)상품받으실 거주지 주소");
+            if (!firstErrorId) firstErrorId = "deliveryAddress";
+          }
+        }
+      } else if (currentSection === 4) {
+        // 짝궁할인 체크 시 짝궁코드 필수 및 DB 검증
+        if (formData.discountCouple) {
+          if (!formData.partnerCode) {
+            missing.push("짝궁코드");
+            if (!firstErrorId) firstErrorId = "partnerCode";
+          } else {
+            // DB에 존재하는지 검증 (비동기)
+            // 검증은 handleNext에서 async로 처리
+          }
         }
       }
       
-      if (firstErrorId) {
-        setError("필수 항목을 모두 입력해주세요.");
+      if (missing.length > 0) {
+        setMissingFields(missing);
+        if (currentSection === 4 && formData.discountCouple && !formData.partnerCode) {
+          setError("짝궁할인을 선택하셨습니다. 다음 필수 항목을 입력해주세요:");
+        } else {
+          setError("다음 필수 항목을 입력해주세요:");
+        }
         setTimeout(() => scrollToFirstError(firstErrorId), 100);
       } else {
         setError("필수 항목을 모두 입력해주세요.");
+        setMissingFields([]);
       }
     }
   };
@@ -218,10 +425,14 @@ export default function NewReservationPage() {
       e.stopPropagation();
     }
     
-    // 안전 장치: 현재 섹션이 마지막 섹션이 아니면 제출하지 않음
+    // 확인 페이지가 아니면 확인 페이지로 이동
     if (currentSection !== totalSections) {
+      setShowConfirmPage(true);
+      setCurrentSection(totalSections);
       return;
     }
+    
+    // 확인 페이지에서 실제 제출
     
     // 이미 제출 중이면 중복 제출 방지
     if (isSubmitting) {
@@ -337,6 +548,15 @@ export default function NewReservationPage() {
       return;
     }
 
+    // 짝궁할인 체크 시 짝궁코드 필수 검증
+    if (formData.discountCouple && !formData.partnerCode) {
+      setError("짝궁할인을 선택하셨습니다. 짝궁코드를 검색하여 선택해주세요.");
+      setCurrentSection(4);
+      setTimeout(() => scrollToFirstError("partnerCode"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
     // 본식 영상 예약 필수 항목 검증
     if (formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") {
       if (!formData.weddingDate) {
@@ -382,7 +602,9 @@ export default function NewReservationPage() {
         body: JSON.stringify({
           ...formData,
           author: contractorName, // 계약자 이름으로 설정
+          lemeGraphyDiscount: lemeGraphyDiscount, // 르메그라피 제휴 할인
           // 배열 필드를 문자열로 변환
+          playbackDevice: Array.isArray(formData.playbackDevice) ? formData.playbackDevice.join(", ") : formData.playbackDevice,
           customStyle: Array.isArray(formData.customStyle) ? formData.customStyle.join(", ") : formData.customStyle,
           customEditStyle: Array.isArray(formData.customEditStyle) ? formData.customEditStyle.join(", ") : formData.customEditStyle,
           customMusic: Array.isArray(formData.customMusic) ? formData.customMusic.join(", ") : formData.customMusic,
@@ -407,17 +629,57 @@ export default function NewReservationPage() {
     }
   };
 
-  const totalSections = 6;
+  const totalSections = 7; // 확인 페이지 추가
   const canProceed = (section: number) => {
     if (section === 1) {
-      // 1번 탭은 개인정보 활용 동의만 체크
+      // 섹션 1: 개인정보 활용 동의만 체크
       return formData.privacyAgreed;
     }
     if (section === 2) {
+      // 섹션 2: 해당 섹션에 표시되는 필수 항목만 체크 (상품 종류는 섹션 3에 있으므로 제외)
       const hasNames = formData.brideName && formData.groomName;
       const hasPhones = formData.bridePhone && formData.groomPhone;
       const hasContractor = formData.isBrideContractor || formData.isGroomContractor;
-      return hasNames && hasPhones && hasContractor;
+      const hasReceiptPhone = formData.receiptPhone;
+      const hasDepositName = formData.depositName;
+      const hasProductEmail = formData.productEmail;
+      const hasFoundPath = formData.foundPath;
+      const hasTermsAgreed = formData.termsAgreed;
+      const hasFaqRead = formData.faqRead;
+      return hasNames && hasPhones && hasContractor && hasReceiptPhone && hasDepositName && hasProductEmail && hasFoundPath && hasTermsAgreed && hasFaqRead;
+    }
+    if (section === 3) {
+      // 섹션 3: 상품 종류 필수 체크 + 본식 영상 예약 필수 항목 체크
+      const hasProductType = formData.productType;
+      if (!hasProductType) {
+        return false;
+      }
+      // 본식 영상 예약 필수 항목만 체크 (해당 상품 타입인 경우에만)
+      if (formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") {
+        const hasWeddingDate = formData.weddingDate;
+        const hasWeddingTime = formData.weddingTime;
+        const hasVenueName = formData.venueName;
+        const hasDeliveryAddress = !formData.usbOption || formData.deliveryAddress;
+        return hasWeddingDate && hasWeddingTime && hasVenueName && hasDeliveryAddress;
+      }
+      // 본식 영상 예약이 아니면 상품 종류만 확인하면 통과
+      return true;
+    }
+    if (section === 4) {
+      // 섹션 4: 짝궁할인 체크 시 짝궁코드만 체크
+      if (formData.discountCouple) {
+        return !!formData.partnerCode;
+      }
+      // 짝궁할인을 체크하지 않으면 통과
+      return true;
+    }
+    if (section === 5) {
+      // 섹션 5: 야외스냅/프리웨딩 (선택사항이므로 항상 통과)
+      return true;
+    }
+    if (section === 6) {
+      // 섹션 6: 특이사항 (선택사항이므로 항상 통과)
+      return true;
     }
     return true;
   };
@@ -473,8 +735,22 @@ export default function NewReservationPage() {
 
         {/* Error */}
         {error && (
-          <div className="mb-6 rounded-lg border border-accent/30 bg-accent/5 p-4">
-            <p className="text-sm text-accent">{error}</p>
+          <div className="mb-6 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4">
+            <div className="flex items-start gap-2">
+              <svg className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground mb-2">{error}</p>
+                {missingFields.length > 0 && (
+                  <ul className="list-disc list-inside space-y-1 text-sm text-foreground/90">
+                    {missingFields.map((field, index) => (
+                      <li key={index}>{field}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -681,20 +957,6 @@ export default function NewReservationPage() {
               />
             </div>
 
-              <div>
-                <label htmlFor="partnerCode" className="mb-2 block text-sm font-medium">
-                  짝궁 코드
-                </label>
-                <input
-                  type="text"
-                  id="partnerCode"
-                  name="partnerCode"
-                  value={formData.partnerCode}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  placeholder="짝궁 코드가 있으시면 입력해주세요"
-                />
-          </div>
 
               <div>
                 <label htmlFor="foundPath" className="mb-2 block text-sm font-medium">
@@ -1010,22 +1272,37 @@ export default function NewReservationPage() {
           </div>
 
                   <div>
-                    <label htmlFor="playbackDevice" className="mb-2 block text-sm font-medium">
+                    <label className="mb-2 block text-sm font-medium">
                       본식 영상 주 재생매체
                     </label>
-                    <select
-                      id="playbackDevice"
-                      name="playbackDevice"
-                      value={formData.playbackDevice}
-                      onChange={handleChange}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                    >
-                      <option value="">선택해주세요</option>
-                      <option value="핸드폰">핸드폰</option>
-                      <option value="LED TV">LED TV</option>
-                      <option value="OLED TV">OLED TV</option>
-                      <option value="빔프로젝터">빔프로젝터</option>
-                    </select>
+                    <div className="space-y-3">
+                      {["핸드폰", "LED TV", "OLED TV", "빔프로젝터"].map((device) => (
+                        <div key={device} className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id={`playbackDevice-${device}`}
+                            checked={formData.playbackDevice.includes(device)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  playbackDevice: [...prev.playbackDevice, device],
+                                }));
+                              } else {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  playbackDevice: prev.playbackDevice.filter((d) => d !== device),
+                                }));
+                              }
+                            }}
+                            className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                          />
+                          <label htmlFor={`playbackDevice-${device}`} className="text-sm cursor-pointer">
+                            {device}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
@@ -1045,14 +1322,19 @@ export default function NewReservationPage() {
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
-                      id="discountNewYear"
-                      name="discountNewYear"
-                      checked={formData.discountNewYear}
+              id="discountNewYear"
+              name="discountNewYear"
+              checked={formData.discountNewYear}
               onChange={handleChange}
-              className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+              disabled={formData.productType === "가성비형" || (formData.mainSnapCompany.toLowerCase().includes("르메그라피") || formData.mainSnapCompany.toLowerCase().includes("leme"))}
+              className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
             />
-                    <label htmlFor="discountNewYear" className="text-sm">
-                      2026년 신년할인 (5만원)
+            <label htmlFor="discountNewYear" className={`text-sm ${formData.productType === "가성비형" || (formData.mainSnapCompany.toLowerCase().includes("르메그라피") || formData.mainSnapCompany.toLowerCase().includes("leme")) ? "text-muted-foreground" : ""}`}>
+              2026년 신년할인 (5만원)
+              {formData.productType === "가성비형" && <span className="ml-2 text-xs">(가성비형은 신년할인 적용 불가)</span>}
+              {(formData.mainSnapCompany.toLowerCase().includes("르메그라피") || formData.mainSnapCompany.toLowerCase().includes("leme")) && (formData.productType === "기본형" || formData.productType === "시네마틱형") && (
+                <span className="ml-2 text-xs">(르메그라피 제휴 시 신년할인 적용 불가)</span>
+              )}
             </label>
           </div>
                   <div className="flex items-center gap-3">
@@ -1081,6 +1363,75 @@ export default function NewReservationPage() {
                       짝궁할인 (소개 받는 분 1만원, 소개 하는 분 무제한)
                     </label>
                   </div>
+                  {formData.discountCouple && (
+                    <div className="mt-4">
+                      <label htmlFor="partnerCode" className="mb-2 block text-sm font-medium">
+                        짝궁 코드 <span className="text-accent">*</span>
+                      </label>
+                      <p className="mb-2 text-xs text-muted-foreground">
+                        ⚠ 짝궁코드는 한번 기입 시 수정이 불가합니다. 신중하게 입력해주세요.
+                      </p>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          id="partnerCode"
+                          name="partnerCode"
+                          value={formData.partnerCode || partnerCodeSearch}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setPartnerCodeSearch(value);
+                            setFormData((prev) => ({ ...prev, partnerCode: value }));
+                            setSelectedPartnerCode(""); // 직접 입력 시 선택 해제
+                            if (value.length >= 2) {
+                              searchPartnerCode(value);
+                            } else {
+                              setPartnerCodeResults([]);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            // Enter 키로 직접 입력 방지
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                            }
+                          }}
+                          onBlur={() => {
+                            // 검색 결과만 닫기
+                            setTimeout(() => {
+                              setPartnerCodeResults([]);
+                            }, 200);
+                          }}
+                          className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                          placeholder="짝궁 코드를 검색하여 선택해주세요"
+                          required
+                        />
+                        {isSearchingPartnerCode && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-accent" />
+                          </div>
+                        )}
+                        {partnerCodeResults.length > 0 && (
+                          <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-background shadow-lg">
+                            {partnerCodeResults.map((result) => (
+                              <button
+                                key={result.code}
+                                type="button"
+                                onClick={() => selectPartnerCode(result.code)}
+                                className={`w-full px-4 py-2 text-left text-sm hover:bg-muted ${
+                                  selectedPartnerCode === result.code ? "bg-muted" : ""
+                                }`}
+                              >
+                                <div className="font-medium">{result.code}</div>
+                                <div className="text-xs text-muted-foreground">추천인: {result.author}</div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {!formData.partnerCode && (
+                        <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400">⚠ 짝궁코드를 검색하여 선택해주세요.</p>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
@@ -1091,7 +1442,9 @@ export default function NewReservationPage() {
                       className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                     />
                     <label htmlFor="discountReviewBlog" className="text-sm">
-                      블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)
+                      {formData.productType === "가성비형" 
+                        ? "블로그와 카페 예약후기 (1건 작성 시 원본 전달)"
+                        : "블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)"}
                     </label>
                   </div>
                 </div>
@@ -1262,7 +1615,7 @@ export default function NewReservationPage() {
                     className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                   />
                   <label htmlFor="customShootingRequest" className="text-sm font-medium">
-                    🎬 커스텀 촬영 요청 (대표지정 or 대표배정 촬영만 해당)
+                    🎬 커스텀 촬영 요청 (대표 또는 수석실장 촬영만 해당)
                   </label>
                 </div>
 
@@ -1505,24 +1858,175 @@ export default function NewReservationPage() {
             </div>
           )}
 
+          {/* Section 7: 확인 페이지 */}
+          {currentSection === 7 && showConfirmPage && (
+            <div className="space-y-6">
+              <div className="border-b border-border pb-4">
+                <h2 className="text-xl font-semibold">7. 작성 내용 확인</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  아래 내용을 정확히 확인하신 후 등록해주세요.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* 기본 정보 */}
+                <div className="rounded-lg border border-border bg-muted p-6">
+                  <h3 className="mb-4 font-semibold">기본 정보</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">계약자:</span>
+                      <span className="font-medium">{formData.isBrideContractor ? formData.brideName : formData.groomName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">신부님 성함:</span>
+                      <span>{formData.brideName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">신부님 전화번호:</span>
+                      <span>{formData.bridePhone}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">신랑님 성함:</span>
+                      <span>{formData.groomName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">신랑님 전화번호:</span>
+                      <span>{formData.groomPhone}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">상품 받으실 E-mail:</span>
+                      <span>{formData.productEmail}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 상품 정보 */}
+                {(formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") && (
+                  <div className="rounded-lg border border-border bg-muted p-6">
+                    <h3 className="mb-4 font-semibold">상품 정보</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">상품 종류:</span>
+                        <span className="font-medium">{formData.productType}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">예식 날짜:</span>
+                        <span>{formData.weddingDate}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">예식 시간:</span>
+                        <span>{formData.weddingTime}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">장소명:</span>
+                        <span>{formData.venueName}</span>
+                      </div>
+                      {formData.mainSnapCompany && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">메인스냅 업체:</span>
+                          <span>{formData.mainSnapCompany}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 할인 정보 */}
+                <div className="rounded-lg border border-border bg-muted p-6">
+                  <h3 className="mb-4 font-semibold">할인 정보</h3>
+                  <div className="space-y-2 text-sm">
+                    {formData.discountNewYear && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">2026년 신년할인:</span>
+                        <span className="text-green-600">-50,000원</span>
+                      </div>
+                    )}
+                    {lemeGraphyDiscount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">르메그라피 제휴 할인:</span>
+                        <span className="text-green-600">-{lemeGraphyDiscount.toLocaleString()}원</span>
+                      </div>
+                    )}
+                    {formData.discountCouple && formData.partnerCode && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">짝궁할인:</span>
+                        <span className="text-green-600">-10,000원</span>
+                      </div>
+                    )}
+                    {formData.discountReview && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">블로그와 카페 촬영후기:</span>
+                        <span className="text-green-600">-20,000원</span>
+                      </div>
+                    )}
+                    {formData.discountReviewBlog && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">블로그와 카페 예약후기:</span>
+                        <span className="text-green-600">
+                          {formData.productType === "가성비형" 
+                            ? "1건 작성 시 원본 전달"
+                            : "-20,000원 + SNS영상 + 원본영상"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 특이사항 */}
+                {formData.specialNotes && (
+                  <div className="rounded-lg border border-border bg-muted p-6">
+                    <h3 className="mb-4 font-semibold">특이사항</h3>
+                    <p className="text-sm whitespace-pre-wrap">{formData.specialNotes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Navigation Buttons */}
           <div className="flex gap-4 pt-6 border-t border-border">
-            {currentSection > 1 && (
+            {currentSection > 1 && !showConfirmPage && (
               <button
                 type="button"
-                onClick={() => setCurrentSection(currentSection - 1)}
+                onClick={() => {
+                  setCurrentSection(currentSection - 1);
+                  setShowConfirmPage(false);
+                }}
               className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
             >
                 이전
               </button>
             )}
-            {currentSection < totalSections ? (
+            {showConfirmPage && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmPage(false);
+                  setCurrentSection(6);
+                }}
+                className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
+              >
+                수정하기
+              </button>
+            )}
+            {currentSection < 6 ? (
             <button
                 type="button"
                 onClick={handleNext}
                 className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover"
               >
                 다음
+              </button>
+            ) : currentSection === 6 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmPage(true);
+                  setCurrentSection(7);
+                }}
+                className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover"
+              >
+                확인하기
               </button>
             ) : (
               <button
@@ -1531,8 +2035,8 @@ export default function NewReservationPage() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  // 마지막 섹션에서만 제출 허용
-                  if (currentSection === totalSections) {
+                  // 확인 페이지에서만 제출 허용
+                  if (currentSection === totalSections && showConfirmPage) {
                     handleSubmit(e as any);
                   }
                 }}

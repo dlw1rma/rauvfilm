@@ -18,7 +18,8 @@
       "Bash(ls -la \"C:\\\\Users\\\\tpgks\\\\OneDrive\\\\바탕 화면\\\\rauvfilm\\\\rauvfilm\\\\components\\\\ui\"\" 2>/dev/null || echo \"Directory does not exist \")",
       "Bash(npm install:*)",
       "Bash(npx prisma generate:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx prisma migrate dev:*)"
     ]
   }
 }

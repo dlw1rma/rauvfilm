@@ -225,10 +225,15 @@ export default function ReservationDetailPage() {
                 <input
                   type="text"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="예약자 전화번호를 입력하세요"
+                  onChange={(e) => {
+                    // 숫자만 입력 가능하고 최대 11자리로 제한
+                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                    setPassword(value);
+                  }}
+                  placeholder="예약자 전화번호를 입력하세요 (숫자만, 최대 11자리)"
                   className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   autoFocus
+                  maxLength={11}
                 />
                   {actionError && (
                     <p className="mb-4 text-sm text-accent">{actionError}</p>
@@ -397,10 +402,15 @@ export default function ReservationDetailPage() {
                 <input
                   type="text"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="예약자 전화번호를 입력하세요"
+                  onChange={(e) => {
+                    // 숫자만 입력 가능하고 최대 11자리로 제한
+                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                    setPassword(value);
+                  }}
+                  placeholder="예약자 전화번호를 입력하세요 (숫자만, 최대 11자리)"
                   className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   autoFocus
+                  maxLength={11}
                 />
                 {actionError && (
                   <p className="mb-4 text-sm text-accent">{actionError}</p>

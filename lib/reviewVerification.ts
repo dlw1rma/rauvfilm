@@ -79,17 +79,81 @@ export async function verifyReview(url: string): Promise<VerificationResult> {
   // 플랫폼 판별
   const platform = detectPlatform(url);
 
-  // 자동 검증 불가능한 플랫폼
+  // 네이버 카페 자동 검증 시도 (공개 설정에 따라 가능할 수 있음)
   if (platform === 'NAVER_CAFE') {
-    return {
-      platform,
-      canAutoVerify: false,
-      titleValid: null,
-      contentValid: null,
-      characterCount: null,
-      status: 'MANUAL_REVIEW',
-      errorMessage: '네이버 카페 후기는 비공개 설정으로 인해 자동 검증이 불가합니다. 관리자가 수동으로 확인합니다.',
-    };
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      });
+
+      if (!response.ok) {
+        return {
+          platform,
+          canAutoVerify: false,
+          titleValid: null,
+          contentValid: null,
+          characterCount: null,
+          status: 'MANUAL_REVIEW',
+          errorMessage: '네이버 카페 후기를 확인할 수 없습니다. 카페 게시글의 공개여부를 "전체공개"로 설정해주세요. 설정 후 다시 제출해주시면 자동으로 확인됩니다.',
+        };
+      }
+
+      const html = await response.text();
+
+      // 제목 추출
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const title = titleMatch ? titleMatch[1] : '';
+      const titleValid = validateTitle(title);
+
+      // 본문 추출 (네이버 카페 특화)
+      let content = '';
+      
+      // 카페 게시글 본문 추출 시도
+      const articleBodyMatch = html.match(/class="se-main-container"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/i) ||
+                                   html.match(/class="article_body"[^>]*>([\s\S]*?)<\/div>/i) ||
+                                   html.match(/id="postContentArea"[^>]*>([\s\S]*?)<\/div>/i);
+      
+      if (articleBodyMatch) {
+        content = articleBodyMatch[1].replace(/<[^>]+>/g, ' ');
+      } else {
+        // 전체 body에서 스크립트/스타일 제거 후 텍스트 추출
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        if (bodyMatch) {
+          content = bodyMatch[1]
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<[^>]+>/g, ' ');
+        }
+      }
+
+      const contentValidation = validateContent(content);
+
+      // 자동 승인 여부 결정
+      const canAutoVerify = titleValid && contentValidation.isValid;
+
+      return {
+        platform,
+        canAutoVerify,
+        titleValid,
+        contentValid: contentValidation.isValid,
+        characterCount: contentValidation.characterCount,
+        status: canAutoVerify ? 'AUTO_APPROVED' : 'MANUAL_REVIEW',
+        errorMessage: canAutoVerify ? undefined : '네이버 카페 후기 검증 결과, 제목 또는 본문 요건을 충족하지 않습니다. 카페 게시글의 공개여부가 "전체공개"로 설정되어 있는지 확인해주세요.',
+      };
+    } catch (error) {
+      console.error('네이버 카페 후기 검증 오류:', error);
+      return {
+        platform,
+        canAutoVerify: false,
+        titleValid: null,
+        contentValid: null,
+        characterCount: null,
+        status: 'MANUAL_REVIEW',
+        errorMessage: '네이버 카페 후기를 확인할 수 없습니다. 카페 게시글의 공개여부를 "전체공개"로 설정해주세요. 설정 후 다시 제출해주시면 자동으로 확인됩니다.',
+      };
+    }
   }
 
   if (platform === 'INSTAGRAM') {

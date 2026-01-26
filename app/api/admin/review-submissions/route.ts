@@ -9,6 +9,7 @@ import { cookies } from 'next/headers';
 import { getPlatformName } from '@/lib/reviewVerification';
 import { validateSessionToken } from '@/lib/auth';
 import { safeParseInt } from '@/lib/validation';
+import { decrypt } from '@/lib/encryption';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const reservationId = searchParams.get('reservationId');
     const page = safeParseInt(searchParams.get('page'), 1, 1, 1000);
     const limit = safeParseInt(searchParams.get('limit'), 20, 1, 100);
 
@@ -36,15 +38,24 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
 
+    // 예약 ID 필터
+    if (reservationId) {
+      const reservationIdNum = safeParseInt(reservationId, 0, 1, 2147483647);
+      if (reservationIdNum > 0) {
+        where.reservationId = reservationIdNum;
+      }
+    }
+
     const [reviews, total] = await Promise.all([
       prisma.reviewSubmission.findMany({
         where,
         include: {
-          booking: {
+          reservation: {
             select: {
               id: true,
-              customerName: true,
-              customerPhone: true,
+              author: true,
+              bridePhone: true,
+              groomPhone: true,
               weddingDate: true,
             },
           },
@@ -94,11 +105,11 @@ export async function GET(request: NextRequest) {
         verifiedAt: r.verifiedAt,
         verifiedBy: r.verifiedBy,
         createdAt: r.createdAt,
-        booking: {
-          id: r.booking.id,
-          customerName: r.booking.customerName,
-          customerPhone: r.booking.customerPhone,
-          weddingDate: r.booking.weddingDate,
+        reservation: {
+          id: r.reservation.id,
+          customerName: decrypt(r.reservation.author) || '',
+          customerPhone: decrypt(r.reservation.bridePhone) || decrypt(r.reservation.groomPhone) || null,
+          weddingDate: r.reservation.weddingDate,
         },
       })),
       pagination: {

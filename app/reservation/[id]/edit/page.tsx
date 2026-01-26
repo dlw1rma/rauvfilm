@@ -92,7 +92,7 @@ export default function EditReservationPage() {
     usbOption: false,
     seonwonpan: false,
     gimbalShoot: false,
-    playbackDevice: "",
+    playbackDevice: [] as string[],
     eventType: "" as EventType,
     shootLocation: "",
     shootDate: "",
@@ -167,7 +167,7 @@ export default function EditReservationPage() {
           usbOption: data.usbOption || false,
           seonwonpan: data.seonwonpan || false,
           gimbalShoot: data.gimbalShoot || false,
-          playbackDevice: data.playbackDevice || "",
+          playbackDevice: parseArrayField(data.playbackDevice),
           eventType: (data.eventType as EventType) || "",
           shootLocation: data.shootLocation || "",
           shootDate: data.shootDate?.split("T")[0] || "",
@@ -234,6 +234,7 @@ export default function EditReservationPage() {
           ...formData,
           password: passwordFromQuery,
           // 배열 필드를 문자열로 변환
+          playbackDevice: Array.isArray(formData.playbackDevice) ? formData.playbackDevice.join(", ") : formData.playbackDevice,
           customStyle: Array.isArray(formData.customStyle) ? formData.customStyle.join(", ") : formData.customStyle,
           customEditStyle: Array.isArray(formData.customEditStyle) ? formData.customEditStyle.join(", ") : formData.customEditStyle,
           customMusic: Array.isArray(formData.customMusic) ? formData.customMusic.join(", ") : formData.customMusic,
@@ -659,22 +660,37 @@ export default function EditReservationPage() {
               </div>
 
               <div>
-                <label htmlFor="playbackDevice" className="mb-2 block text-sm font-medium">
+                <label className="mb-2 block text-sm font-medium">
                   본식 영상 주 재생매체
                 </label>
-                <select
-                  id="playbackDevice"
-                  name="playbackDevice"
-                  value={formData.playbackDevice}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="">선택해주세요</option>
-                  <option value="핸드폰">핸드폰</option>
-                  <option value="LED TV">LED TV</option>
-                  <option value="OLED TV">OLED TV</option>
-                  <option value="빔프로젝터">빔프로젝터</option>
-                </select>
+                <div className="space-y-3">
+                  {["핸드폰", "LED TV", "OLED TV", "빔프로젝터"].map((device) => (
+                    <div key={device} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id={`playbackDevice-${device}`}
+                        checked={formData.playbackDevice.includes(device)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData((prev) => ({
+                              ...prev,
+                              playbackDevice: [...prev.playbackDevice, device],
+                            }));
+                          } else {
+                            setFormData((prev) => ({
+                              ...prev,
+                              playbackDevice: prev.playbackDevice.filter((d) => d !== device),
+                            }));
+                          }
+                        }}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor={`playbackDevice-${device}`} className="text-sm cursor-pointer">
+                        {device}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

@@ -18,6 +18,13 @@ interface ReviewData {
   createdAt: string;
 }
 
+interface ReviewResponse {
+  reviews: ReviewData[];
+  canWriteReview: boolean;
+  maxReviews?: number;
+  productType?: string;
+}
+
 export default function ReviewPage() {
   const router = useRouter();
   const [reviews, setReviews] = useState<ReviewData[]>([]);
@@ -25,6 +32,9 @@ export default function ReviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [reviewUrl, setReviewUrl] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [canWriteReview, setCanWriteReview] = useState(false);
+  const [maxReviews, setMaxReviews] = useState(3);
+  const [productType, setProductType] = useState<string | null>(null);
 
   const fetchReviews = async () => {
     try {
@@ -33,8 +43,11 @@ export default function ReviewPage() {
         router.push('/mypage/login');
         return;
       }
-      const data = await res.json();
+      const data: ReviewResponse = await res.json();
       setReviews(data.reviews);
+      setCanWriteReview(data.canWriteReview || false);
+      setMaxReviews(data.maxReviews || 3);
+      setProductType(data.productType || null);
     } catch {
       router.push('/mypage/login');
     } finally {
@@ -75,6 +88,30 @@ export default function ReviewPage() {
     }
   };
 
+  const handleCancel = async (reviewId: number) => {
+    if (!confirm('후기 제출을 취소하시겠습니까? 자동 승인된 경우 할인도 되돌려집니다.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/mypage/review/${reviewId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage({ type: 'error', text: data.error });
+        return;
+      }
+
+      setMessage({ type: 'success', text: data.message });
+      fetchReviews();
+    } catch {
+      setMessage({ type: 'error', text: '네트워크 오류가 발생했습니다.' });
+    }
+  };
+
   const statusColors: Record<string, string> = {
     PENDING: 'bg-yellow-500/10 text-yellow-600',
     AUTO_APPROVED: 'bg-green-500/10 text-green-600',
@@ -102,10 +139,22 @@ export default function ReviewPage() {
 
       {/* 후기 제출 폼 */}
       <div className="bg-background rounded-xl border border-border p-6">
-        <h1 className="text-2xl font-bold mb-2">후기 제출</h1>
-        <p className="text-muted-foreground mb-6">
-          후기 1건당 1만원 할인! (블로그/카페 각 1건씩 가능)
-        </p>
+        <h1 className="text-2xl font-bold mb-2">예약후기 제출</h1>
+        {!canWriteReview ? (
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-6">
+            <p className="text-yellow-600 text-sm">
+              예약후기 또는 촬영후기 할인을 신청하신 경우에만 후기를 작성할 수 있습니다.
+              <br />
+              예약글 수정 페이지에서 할인 옵션을 체크해주세요.
+            </p>
+          </div>
+        ) : (
+          <p className="text-muted-foreground mb-6">
+            {productType === '가성비형' 
+              ? '후기 1건 작성 시 원본영상 전달 (할인 없음)'
+              : '후기 1건당 1만원 할인! (블로그/카페 각 1건씩 가능, 최대 3건)'}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -118,8 +167,9 @@ export default function ReviewPage() {
               value={reviewUrl}
               onChange={(e) => setReviewUrl(e.target.value)}
               placeholder="https://blog.naver.com/..."
-              className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
               required
+              disabled={!canWriteReview}
             />
           </div>
 
@@ -137,8 +187,8 @@ export default function ReviewPage() {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full py-3 px-4 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+            disabled={submitting || !canWriteReview}
+            className="w-full py-3 px-4 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? '제출 중...' : '후기 제출하기'}
           </button>
@@ -147,18 +197,36 @@ export default function ReviewPage() {
         {/* 안내사항 */}
         <div className="mt-6 p-4 bg-muted rounded-lg">
           <h3 className="font-semibold mb-2">후기 작성 가이드</h3>
-          <ul className="text-sm text-muted-foreground space-y-1">
+          <ul className="text-sm text-muted-foreground space-y-1 mb-4">
             <li>- 제목에 <strong>&apos;라우브필름&apos;</strong> 또는 <strong>&apos;본식DVD&apos;</strong> 포함</li>
             <li>- 본문 500자 이상 작성</li>
             <li>- 네이버 블로그는 자동 검증, 카페는 수동 검토</li>
           </ul>
+          <Link
+            href="/reviews/guide"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+            후기 가이드 보기
+          </Link>
         </div>
       </div>
 
       {/* 제출한 후기 목록 */}
       {reviews.length > 0 && (
         <div className="bg-background rounded-xl border border-border p-6">
-          <h2 className="text-lg font-semibold mb-4">제출한 후기</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">제출한 후기</h2>
+            {productType === '가성비형' && (
+              <span className="text-xs text-muted-foreground">
+                (최대 {maxReviews}건)
+              </span>
+            )}
+          </div>
           <div className="space-y-3">
             {reviews.map((review) => (
               <div
@@ -167,9 +235,20 @@ export default function ReviewPage() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <span className="text-sm font-medium">{review.platformName}</span>
-                  <span className={`px-2 py-1 rounded text-xs ${statusColors[review.status]}`}>
-                    {review.statusLabel}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded text-xs ${statusColors[review.status]}`}>
+                      {review.statusLabel}
+                    </span>
+                    {/* 검토 중인 후기만 취소 가능 */}
+                    {(review.status === 'PENDING' || review.status === 'MANUAL_REVIEW') && (
+                      <button
+                        onClick={() => handleCancel(review.id)}
+                        className="px-2 py-1 text-xs rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                      >
+                        취소
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <a
                   href={review.reviewUrl}

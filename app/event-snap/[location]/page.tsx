@@ -193,18 +193,6 @@ export default async function EventSnapLocationPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* CTA */}
-        <div className="text-center">
-          <p className="mb-6 text-muted-foreground">
-            {location.name}에서 특별한 순간을 담아보세요
-          </p>
-          <a
-            href="/reservation"
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-accent px-8 text-base font-medium text-white transition-all hover:bg-accent-hover hover:-translate-y-1"
-          >
-            예약 문의하기
-          </a>
-        </div>
       </div>
     </div>
   );

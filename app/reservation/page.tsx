@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "예약 문의",
+  title: "예약하기",
   description: "라우브필름 웨딩 영상 촬영 예약 게시판입니다.",
 };
 
@@ -58,9 +58,9 @@ export default async function ReservationPage() {
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">예약 문의</h1>
+            <h1 className="text-3xl font-bold">예약하기</h1>
             <p className="mt-2 text-muted-foreground">
-              촬영 예약 및 문의사항을 남겨주세요.
+              소중한 날의 촬영을 예약해주세요.
             </p>
           </div>
           <Link
@@ -74,9 +74,7 @@ export default async function ReservationPage() {
         {/* Notice */}
         <div className="mb-6 rounded-lg border border-accent/30 bg-accent/5 p-4">
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-accent">안내</span> | 비밀글은
-            작성자와 관리자만 확인할 수 있습니다. 개인정보가 포함된 내용은
-            비밀글로 작성해주세요.
+            <span className="font-medium text-accent">안내</span> | 카카오톡 채널로 상담진행 후에 작성해주세요.
           </p>
         </div>
 
@@ -84,21 +82,19 @@ export default async function ReservationPage() {
         <div className="rounded-xl border border-border overflow-hidden">
           {/* Table Header */}
           <div className="hidden sm:grid sm:grid-cols-12 bg-muted px-6 py-3 text-sm font-medium text-muted-foreground">
-            <div className="col-span-1 text-center">번호</div>
-            <div className="col-span-6">제목</div>
+            <div className="col-span-8">제목</div>
             <div className="col-span-2 text-center">작성자</div>
-            <div className="col-span-2 text-center">작성일</div>
-            <div className="col-span-1 text-center">상태</div>
+            <div className="col-span-2 text-center">상태</div>
           </div>
 
           {/* Table Body */}
           <div className="divide-y divide-border">
             {reservations.length === 0 ? (
               <div className="px-6 py-12 text-center text-muted-foreground">
-                등록된 예약 문의가 없습니다.
+                등록된 예약이 없습니다.
               </div>
             ) : (
-              reservations.map((post, index) => (
+              reservations.map((post) => (
                 <Link
                   key={post.id}
                   href={`/reservation/${post.id}`}
@@ -131,17 +127,12 @@ export default async function ReservationPage() {
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{post.author}</span>
-                      <span>|</span>
-                      <span>{post.createdAt}</span>
                     </div>
                   </div>
 
                   {/* Desktop Layout */}
                   <div className="hidden sm:grid sm:grid-cols-12 sm:items-center">
-                    <div className="col-span-1 text-center text-sm text-muted-foreground">
-                      {reservations.length - index}
-                    </div>
-                    <div className="col-span-6 flex items-center gap-2">
+                    <div className="col-span-8 flex items-center gap-2">
                       {post.isPrivate && (
                         <svg
                           className="h-4 w-4 text-muted-foreground"
@@ -164,10 +155,7 @@ export default async function ReservationPage() {
                     <div className="col-span-2 text-center text-sm text-muted-foreground">
                       {post.author}
                     </div>
-                    <div className="col-span-2 text-center text-sm text-muted-foreground">
-                      {post.createdAt}
-                    </div>
-                    <div className="col-span-1 text-center">
+                    <div className="col-span-2 text-center">
                       {post.hasReply ? (
                         <span className="rounded bg-green-500/10 px-2 py-1 text-xs text-green-600">
                           예약확정

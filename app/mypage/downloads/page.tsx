@@ -92,7 +92,7 @@ export default function DownloadsPage() {
               </div>
             </div>
 
-            {/* 계약서 다운로드 */}
+            {/* PDF 다운로드 */}
             <div className={`p-6 rounded-lg border ${hasContract ? 'border-accent bg-accent/5' : 'border-border bg-muted'}`}>
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasContract ? 'bg-accent/10' : 'bg-muted-foreground/10'}`}>
@@ -101,9 +101,9 @@ export default function DownloadsPage() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold">계약서</h3>
+                  <h3 className="font-semibold">PDF</h3>
                   <p className="text-sm text-muted-foreground">
-                    {hasContract ? '계약서가 준비되었습니다' : '아직 업로드되지 않았습니다'}
+                    {hasContract ? 'PDF가 준비되었습니다' : '아직 업로드되지 않았습니다'}
                   </p>
                 </div>
                 {hasContract && (

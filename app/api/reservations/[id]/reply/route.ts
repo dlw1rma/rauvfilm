@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { safeParseInt, sanitizeString } from "@/lib/validation";
+import { decrypt } from "@/lib/encryption";
 
 // 답변 등록/수정 (관리자만 가능)
 export async function POST(
@@ -58,6 +59,12 @@ export async function POST(
       let referralCode: string | null = null;
       if (reservation.weddingDate && reservation.author) {
         try {
+          // 개인정보 복호화
+          const decryptedAuthor = decrypt(reservation.author);
+          if (!decryptedAuthor) {
+            throw new Error("계약자 이름을 복호화할 수 없습니다.");
+          }
+          
           // weddingDate를 YYYYMMDD 형식으로 변환
           let dateStr: string;
           if (typeof reservation.weddingDate === 'string') {
@@ -79,18 +86,15 @@ export async function POST(
           }
 
           if (dateStr) {
+            // YYMMDD 형식으로 변환 (앞의 20 제거)
+            const yy = dateStr.slice(2, 4);
+            const mmdd = dateStr.slice(4, 8);
             // 이름에서 공백 제거
-            const cleanName = reservation.author.replace(/\s/g, '');
-            referralCode = `${dateStr}${cleanName}`;
+            const cleanName = decryptedAuthor.replace(/\s/g, '');
+            referralCode = `${yy}${mmdd} ${cleanName}`;
 
-            // 중복 체크
-            let counter = 1;
-            let finalCode = referralCode;
-            while (await prisma.reservation.findUnique({ where: { referralCode: finalCode } })) {
-              finalCode = `${referralCode}${counter}`;
-              counter++;
-            }
-            referralCode = finalCode;
+            // 중복 체크 - 중복이 있어도 형식 유지 (숫자 붙이지 않음)
+            // 같은 날짜, 같은 이름이면 같은 코드 사용
           }
         } catch (e) {
           console.error("Error generating referralCode:", e);
@@ -98,7 +102,11 @@ export async function POST(
       }
 
       // 새 답변 등록 + 예약 상태를 CONFIRMED로 변경 + 짝궁코드 생성
-      [reply] = await prisma.$transaction([
+      // 예약이 CONFIRMED 상태로 변경될 때 짝꿍 할인 적용
+      const wasPending = reservation.status === "PENDING";
+      
+      // 트랜잭션으로 처리
+      const [updatedReply, updatedReservation] = await prisma.$transaction([
         prisma.reply.create({
           data: {
             content: sanitizedContent,
@@ -113,6 +121,48 @@ export async function POST(
           },
         }),
       ]);
+
+      // 예약이 PENDING에서 CONFIRMED로 변경되고, referredBy(partnerCode)가 있으면 짝꿍 할인 적용
+      if (wasPending && reservation.referredBy) {
+        try {
+          // 추천인 코드 확인 (CONFIRMED 상태인 예약만)
+          const referrer = await prisma.reservation.findUnique({
+            where: { referralCode: reservation.referredBy },
+            select: { id: true, status: true },
+          });
+
+          if (referrer && referrer.status === "CONFIRMED") {
+            // 추천인에게 할인 적용
+            await prisma.reservation.update({
+              where: { id: referrer.id },
+              data: {
+                referredCount: { increment: 1 },
+                discountAmount: { increment: 10000 },
+                referralDiscount: { increment: 10000 },
+              },
+            });
+
+            // 신규 예약자에게도 짝꿍 할인 1만원 적용
+            const currentDiscount = reservation.referralDiscount || 0;
+            const currentDiscountAmount = reservation.discountAmount || 0;
+            const newFinalBalance = Math.max(0, (reservation.totalAmount || 0) - (reservation.depositAmount || 100000) - currentDiscountAmount - 10000);
+            
+            await prisma.reservation.update({
+              where: { id: reservationId },
+              data: {
+                referralDiscount: 10000,
+                discountAmount: currentDiscountAmount + 10000,
+                finalBalance: newFinalBalance,
+              },
+            });
+          }
+        } catch (error) {
+          console.error("Error applying referral discount:", error);
+          // 할인 적용 실패해도 답변 등록은 성공 처리
+        }
+      }
+
+      reply = updatedReply;
     }
 
     return NextResponse.json(reply);

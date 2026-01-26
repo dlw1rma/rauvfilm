@@ -15,11 +15,11 @@ interface ReviewSubmission {
   characterCount: number | null;
   rejectReason: string | null;
   createdAt: string;
-  booking: {
+  reservation: {
     id: number;
     customerName: string;
-    customerPhone: string;
-    weddingDate: string;
+    customerPhone: string | null;
+    weddingDate: string | null;
   };
 }
 
@@ -155,7 +155,7 @@ export default function AdminReviewSubmissionsPage() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold">{review.booking.customerName}</span>
+                    <span className="font-semibold">{review.reservation.customerName}</span>
                     <span className={`px-2 py-0.5 rounded text-xs ${statusColors[review.status]}`}>
                       {review.statusLabel}
                     </span>
@@ -163,6 +163,11 @@ export default function AdminReviewSubmissionsPage() {
                   <p className="text-sm text-muted-foreground">
                     {review.platformName} | {new Date(review.createdAt).toLocaleDateString('ko-KR')}
                   </p>
+                  {review.reservation.weddingDate && (
+                    <p className="text-xs text-muted-foreground">
+                      예식일: {new Date(review.reservation.weddingDate).toLocaleDateString('ko-KR')}
+                    </p>
+                  )}
                 </div>
               </div>
 

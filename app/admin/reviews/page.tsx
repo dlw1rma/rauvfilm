@@ -32,6 +32,7 @@ export default function AdminReviewsPage() {
     imageUrl: "",
   });
   const [fetchingThumbnail, setFetchingThumbnail] = useState(false);
+  const [lastFetchedUrl, setLastFetchedUrl] = useState<string>("");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -68,6 +69,7 @@ export default function AdminReviewsPage() {
           setIsModalOpen(false);
           setEditingId(null);
           setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "", imageUrl: "" });
+          setLastFetchedUrl("");
         }
       } else {
         const res = await fetch("/api/reviews", {
@@ -80,6 +82,7 @@ export default function AdminReviewsPage() {
           await fetchReviews();
           setIsModalOpen(false);
           setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "", imageUrl: "" });
+          setLastFetchedUrl("");
         }
       }
     } catch (error) {
@@ -100,19 +103,22 @@ export default function AdminReviewsPage() {
       imageUrl: review.imageUrl || "",
     });
     setEditingId(review.id);
+    setLastFetchedUrl(review.sourceUrl);
     setIsModalOpen(true);
   };
 
-  const handleFetchThumbnail = async () => {
-    if (!formData.sourceUrl) {
+  const handleFetchThumbnail = async (url?: string) => {
+    const targetUrl = url || formData.sourceUrl;
+    if (!targetUrl) {
       alert("원본 URL을 먼저 입력해주세요.");
       return;
     }
 
     setFetchingThumbnail(true);
     try {
-      console.log("Fetching data for URL:", formData.sourceUrl);
-      const res = await fetch(`/api/reviews/fetch-thumbnail?url=${encodeURIComponent(formData.sourceUrl)}`);
+      const urlToFetch = url || formData.sourceUrl;
+      console.log("Fetching data for URL:", urlToFetch);
+      const res = await fetch(`/api/reviews/fetch-thumbnail?url=${encodeURIComponent(urlToFetch)}`);
       
       console.log("Response status:", res.status, res.statusText);
       
@@ -125,44 +131,86 @@ export default function AdminReviewsPage() {
       
       const data = await res.json();
       console.log("Fetch response data:", JSON.stringify(data, null, 2));
+      console.log("Author in response:", data.author, "Type:", typeof data.author);
       
       let updatedFields: string[] = [];
       let hasAnyData = false;
       
-      // 제목 업데이트
+      // 모든 필드를 한 번에 업데이트하기 위해 값 준비
+      const newTitle = data.title && data.title.trim() ? data.title.trim() : formData.title;
+      const newExcerpt = data.excerpt && data.excerpt.trim() ? data.excerpt.trim() : formData.excerpt;
+      const newImageUrl = data.thumbnailUrl && data.thumbnailUrl.trim() ? data.thumbnailUrl.trim() : formData.imageUrl;
+      
+      // 작성자 값 처리 (추출된 값이 있으면 무조건 사용)
+      let authorValue = "";
+      if (data.author != null && data.author !== undefined && data.author !== "") {
+        if (typeof data.author === 'string') {
+          authorValue = data.author.trim();
+        } else {
+          authorValue = String(data.author).trim();
+        }
+      }
+      
+      console.log("Author in response:", data.author, "Type:", typeof data.author, "Final value:", authorValue);
+      
+      // 모든 필드를 한 번에 업데이트 (작성자는 추출된 값이 있으면 무조건 사용)
+      setFormData((prev) => {
+        const updated = {
+          title: data.title && data.title.trim() ? data.title.trim() : prev.title,
+          excerpt: data.excerpt && data.excerpt.trim() ? data.excerpt.trim() : prev.excerpt,
+          sourceUrl: prev.sourceUrl,
+          sourceType: prev.sourceType,
+          imageUrl: data.thumbnailUrl && data.thumbnailUrl.trim() ? data.thumbnailUrl.trim() : prev.imageUrl,
+          // 작성자는 추출된 값이 있으면 무조건 업데이트, 없으면 기존 값 유지
+          author: authorValue !== "" ? authorValue : prev.author,
+        };
+        console.log("Updating formData - Author value:", authorValue, "Previous author:", prev.author, "New author:", updated.author);
+        console.log("Updated formData:", JSON.stringify(updated, null, 2));
+        return updated;
+      });
+      
+      // 업데이트된 필드 정보 수집
       if (data.title && data.title.trim()) {
-        setFormData((prev) => ({ ...prev, title: data.title.trim() }));
         updatedFields.push(`제목: ${data.title}`);
         hasAnyData = true;
       }
       
-      // 내용 업데이트
       if (data.excerpt && data.excerpt.trim()) {
-        setFormData((prev) => ({ ...prev, excerpt: data.excerpt.trim() }));
         updatedFields.push(`내용: ${data.excerpt.length > 50 ? data.excerpt.substring(0, 50) + "..." : data.excerpt}`);
         hasAnyData = true;
       }
       
-      // 작성자 업데이트
-      if (data.author && data.author.trim()) {
-        setFormData((prev) => ({ ...prev, author: data.author.trim() }));
-        updatedFields.push(`작성자: ${data.author}`);
+      if (authorValue) {
+        updatedFields.push(`작성자: ${authorValue}`);
         hasAnyData = true;
+      } else {
+        console.log("작성자 추출 실패 - 수동 입력 필요");
+        updatedFields.push(`작성자: (추출되지 않음 - 수동 입력 필요)`);
       }
       
-      // 썸네일 업데이트
       if (data.thumbnailUrl && data.thumbnailUrl.trim()) {
-        setFormData((prev) => ({ ...prev, imageUrl: data.thumbnailUrl.trim() }));
         updatedFields.push(`썸네일: ${data.thumbnailUrl.length > 50 ? data.thumbnailUrl.substring(0, 50) + "..." : data.thumbnailUrl}`);
         hasAnyData = true;
       }
       
-      if (hasAnyData) {
-        alert(`다음 정보를 가져왔습니다:\n\n${updatedFields.join("\n")}`);
+      // 작성자가 추출되었는지 확인 (hasAnyData와 별도로 체크)
+      const authorExtracted = authorValue && authorValue.length > 0;
+      console.log("Author extracted:", authorExtracted, "hasAnyData:", hasAnyData);
+      
+      if (hasAnyData || authorExtracted) {
+        // 자동 추출인 경우 알림 없이 조용히 업데이트
+        if (!url) {
+          // 수동 버튼 클릭인 경우에만 알림
+          alert(`다음 정보를 가져왔습니다:\n\n${updatedFields.join("\n")}`);
+        }
       } else {
-        const errorMsg = data.error || data.message || "정보를 찾을 수 없습니다.";
-        console.error("No data found. Response:", data);
-        alert(`${errorMsg}\n\n브라우저 콘솔(F12)에서 자세한 로그를 확인하세요.\n수동으로 입력해주세요.`);
+        // 자동 추출 실패는 조용히 처리 (수동 입력 가능)
+        if (!url) {
+          // 수동 버튼 클릭인 경우에만 알림
+          const errorMsg = data.error || data.message || "정보를 찾을 수 없습니다.";
+          console.error("No data found. Response:", data);
+          alert(`${errorMsg}\n\n브라우저 콘솔(F12)에서 자세한 로그를 확인하세요.\n수동으로 입력해주세요.`);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -253,9 +301,10 @@ export default function AdminReviewsPage() {
             </div>
             <button
               onClick={() => {
-                setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "", imageUrl: "" });
-                setEditingId(null);
-                setIsModalOpen(true);
+          setFormData({ title: "", excerpt: "", sourceUrl: "", sourceType: "naver_blog", author: "", imageUrl: "" });
+          setEditingId(null);
+          setLastFetchedUrl("");
+          setIsModalOpen(true);
               }}
               className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-all hover:bg-accent-hover"
             >
@@ -351,18 +400,31 @@ export default function AdminReviewsPage() {
                     <input
                       type="url"
                       value={formData.sourceUrl}
-                      onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
+                      onChange={(e) => {
+                        const url = e.target.value;
+                        setFormData({ ...formData, sourceUrl: url });
+                      }}
+                      onBlur={async () => {
+                        // 포커스가 벗어났을 때 URL이 있고 아직 가져오지 않았다면 자동 추출
+                        if (formData.sourceUrl && formData.sourceUrl.startsWith("http") && formData.sourceUrl !== lastFetchedUrl && !fetchingThumbnail) {
+                          setLastFetchedUrl(formData.sourceUrl);
+                          await handleFetchThumbnail(formData.sourceUrl);
+                        }
+                      }}
                       required
-                      placeholder="https://blog.naver.com/..."
+                      placeholder="https://blog.naver.com/... (입력 후 포커스 이동 시 자동 추출)"
                       className="flex-1 rounded-lg border border-border bg-background px-4 py-2 focus:border-accent focus:outline-none"
                     />
                     <button
                       type="button"
-                      onClick={handleFetchThumbnail}
+                      onClick={() => {
+                        setLastFetchedUrl(formData.sourceUrl);
+                        handleFetchThumbnail();
+                      }}
                       disabled={fetchingThumbnail || !formData.sourceUrl}
                       className="rounded-lg border border-accent px-4 py-2 text-sm text-accent transition-colors hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                     >
-                      {fetchingThumbnail ? "가져오는 중..." : "썸네일 가져오기"}
+                      {fetchingThumbnail ? "가져오는 중..." : "메타데이터 가져오기"}
                     </button>
                   </div>
                 </div>

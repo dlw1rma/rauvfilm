@@ -100,9 +100,16 @@ model Reservation {
   // 후기 할인 시스템
   reviewLink        String?   @db.Text // 후기 링크 URL
   
+  // 후기 제출
+  reviewSubmissions ReviewSubmission[]
+  
   // 입금 정보
   depositPaidAt     DateTime? // 예약금 입금일
   balancePaidAt     DateTime? // 잔금 입금일
+  
+  // 다운로드 링크
+  pdfUrl            String?   @db.Text // PDF 다운로드 링크
+  videoUrl          String?   @db.Text // 영상 다운로드 링크
   
   // 기존 필드 (하위 호환성)
   phone       String?  // 기존 필드 (deprecated)
@@ -275,7 +282,6 @@ model Booking {
   anonymizedAt     DateTime?
 
   // 관계
-  reviewSubmissions ReviewSubmission[]
   referrals         Booking[]    @relation("ReferralRelation")
   referrer          Booking?     @relation("ReferralRelation", fields: [referredByBookingId], references: [id])
   referredByBookingId Int?
@@ -294,11 +300,17 @@ enum BookingStatus {
 // 후기 제출
 model ReviewSubmission {
   id              Int            @id @default(autoincrement())
-  booking         Booking        @relation(fields: [bookingId], references: [id])
-  bookingId       Int
+  reservation     Reservation    @relation(fields: [reservationId], references: [id])
+  reservationId   Int
 
   reviewUrl       String         // 후기 링크
   platform        ReviewPlatform // 플랫폼
+
+  // 자동 추출된 메타데이터
+  title           String?        // 후기 제목
+  excerpt         String?        @db.Text // 후기 내용 요약
+  imageUrl        String?        // 썸네일 이미지 URL
+  author          String?        // 작성자명 (블로그/카페 닉네임)
 
   // 자동 검증 결과
   autoVerified    Boolean        @default(false)

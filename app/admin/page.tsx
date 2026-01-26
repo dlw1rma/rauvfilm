@@ -5,9 +5,9 @@ import Link from "next/link";
 
 interface Stats {
   reservations: { total: number; pending: number };
-  contacts: { total: number; unread: number };
   portfolios: number;
   reviews: number;
+  reviewSubmissions?: { pending: number };
 }
 
 export default function AdminPage() {
@@ -29,9 +29,9 @@ export default function AdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [stats, setStats] = useState<Stats>({
     reservations: { total: 0, pending: 0 },
-    contacts: { total: 0, unread: 0 },
     portfolios: 0,
     reviews: 0,
+    reviewSubmissions: { pending: 0 },
   });
 
   // 페이지 로드 시 세션 확인
@@ -74,17 +74,6 @@ export default function AdminPage() {
       description: "예약 문의 확인 및 답변",
     },
     {
-      name: "문의 관리",
-      href: "/admin/contacts",
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-        </svg>
-      ),
-      count: stats.contacts.unread,
-      description: "문의 내역 확인",
-    },
-    {
       name: "포트폴리오 관리",
       href: "/admin/portfolio",
       icon: (
@@ -105,6 +94,28 @@ export default function AdminPage() {
       ),
       count: 0,
       description: "고객 후기 관리",
+    },
+    {
+      name: "후기 할인 승인",
+      href: "/admin/review-submissions",
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      count: stats.reviewSubmissions?.pending || 0,
+      description: "후기 제출 승인 및 할인 적용",
+    },
+    {
+      name: "제공사항 관리",
+      href: "/admin/review-benefits",
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      ),
+      count: 0,
+      description: "고객별 제공사항 및 요청사항 확인",
     },
     {
       name: "이벤트 스냅",
@@ -201,9 +212,9 @@ export default function AdminPage() {
       setIsLoggedIn(false);
       setStats({
         reservations: { total: 0, pending: 0 },
-        contacts: { total: 0, unread: 0 },
         portfolios: 0,
         reviews: 0,
+        reviewSubmissions: { pending: 0 },
       });
     } catch {
       console.error("Logout failed");
@@ -410,18 +421,12 @@ export default function AdminPage() {
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
           <div className="rounded-xl border border-border bg-muted p-6">
-            <p className="text-sm text-muted-foreground">총 예약 문의</p>
+            <p className="text-sm text-muted-foreground">총 예약글 작성</p>
             <p className="text-3xl font-bold mt-1">{stats.reservations.total}</p>
-            <p className="text-xs text-accent mt-2">
-              {stats.reservations.pending}건 대기중
-            </p>
           </div>
           <div className="rounded-xl border border-border bg-muted p-6">
-            <p className="text-sm text-muted-foreground">총 문의</p>
-            <p className="text-3xl font-bold mt-1">{stats.contacts.total}</p>
-            <p className="text-xs text-accent mt-2">
-              {stats.contacts.unread}건 미확인
-            </p>
+            <p className="text-sm text-muted-foreground">대기중</p>
+            <p className="text-3xl font-bold mt-1">{stats.reservations.pending}</p>
           </div>
           <div className="rounded-xl border border-border bg-muted p-6">
             <p className="text-sm text-muted-foreground">포트폴리오</p>

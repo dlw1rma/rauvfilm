@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/encryption';
 
 // 전화번호 정규화 (하이픈 제거)
 function normalizePhone(phone: string): string {
@@ -37,35 +38,42 @@ export async function POST(request: NextRequest) {
     }
 
     // Reservation 테이블에서 조회 (계약자 성함 + 전화번호)
-    // 신부 또는 신랑 전화번호로 조회
-    const reservation = await prisma.reservation.findFirst({
-      where: {
-        OR: [
-          // 신부 정보로 로그인
-          {
-            brideName: name.trim(),
-            bridePhone: normalizedPhone,
-          },
-          // 신랑 정보로 로그인
-          {
-            groomName: name.trim(),
-            groomPhone: normalizedPhone,
-          },
-          // 계약자 이름 + 신부 전화번호
-          {
-            author: name.trim(),
-            bridePhone: normalizedPhone,
-          },
-          // 계약자 이름 + 신랑 전화번호
-          {
-            author: name.trim(),
-            groomPhone: normalizedPhone,
-          },
-        ],
-      },
+    // 암호화된 필드이므로 모든 예약을 가져와서 복호화 후 비교
+    const reservations = await prisma.reservation.findMany({
       orderBy: {
         createdAt: 'desc', // 최신 예약 우선
       },
+      take: 100, // 최근 100개만 조회 (성능 최적화)
+    });
+
+    // 복호화 후 비교
+    const reservation = reservations.find((r) => {
+      const decryptedAuthor = decrypt(r.author) || '';
+      const decryptedBrideName = decrypt(r.brideName) || '';
+      const decryptedGroomName = decrypt(r.groomName) || '';
+      const decryptedBridePhone = decrypt(r.bridePhone) || '';
+      const decryptedGroomPhone = decrypt(r.groomPhone) || '';
+
+      const trimmedName = name.trim();
+      
+      // 신부 정보로 로그인
+      if (decryptedBrideName === trimmedName && decryptedBridePhone.replace(/[^0-9]/g, '') === normalizedPhone) {
+        return true;
+      }
+      // 신랑 정보로 로그인
+      if (decryptedGroomName === trimmedName && decryptedGroomPhone.replace(/[^0-9]/g, '') === normalizedPhone) {
+        return true;
+      }
+      // 계약자 이름 + 신부 전화번호
+      if (decryptedAuthor === trimmedName && decryptedBridePhone.replace(/[^0-9]/g, '') === normalizedPhone) {
+        return true;
+      }
+      // 계약자 이름 + 신랑 전화번호
+      if (decryptedAuthor === trimmedName && decryptedGroomPhone.replace(/[^0-9]/g, '') === normalizedPhone) {
+        return true;
+      }
+      
+      return false;
     });
 
     if (!reservation) {
@@ -76,10 +84,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 세션 토큰 생성
+    const decryptedAuthor = decrypt(reservation.author) || '';
     const sessionToken = Buffer.from(
       JSON.stringify({
         reservationId: reservation.id,
-        customerName: reservation.author,
+        customerName: decryptedAuthor,
         customerPhone: normalizedPhone,
         referralCode: reservation.referralCode,
         exp: Date.now() + 24 * 60 * 60 * 1000, // 24시간 후 만료
@@ -101,7 +110,7 @@ export async function POST(request: NextRequest) {
       success: true,
       reservation: {
         id: reservation.id,
-        customerName: reservation.author,
+        customerName: decryptedAuthor,
         weddingDate: reservation.weddingDate,
         venueName: reservation.venueName,
         status: reservation.status,

@@ -25,6 +25,23 @@ export async function GET() {
 
     const reservation = await prisma.reservation.findUnique({
       where: { id: session.reservationId },
+      select: {
+        id: true,
+        productType: true,
+        totalAmount: true,
+        depositAmount: true,
+        depositPaidAt: true,
+        balancePaidAt: true,
+        discountNewYear: true,
+        discountReviewBlog: true,
+        referralDiscount: true,
+        reviewDiscount: true,
+        referredBy: true,
+        mainSnapCompany: true,
+        makeupShoot: true,
+        paebaekShoot: true,
+        receptionShoot: true,
+      },
     });
 
     if (!reservation) {
@@ -38,8 +55,8 @@ export async function GET() {
     const discounts = [];
     let totalDiscount = 0;
 
-    // 신년 할인
-    if (reservation.discountNewYear) {
+    // 신년 할인 (가성비형이 아니고 discountNewYear가 true인 경우만)
+    if (reservation.discountNewYear && reservation.productType !== '가성비형') {
       const newYearDiscount = 50000;
       discounts.push({
         type: 'event',
@@ -48,6 +65,20 @@ export async function GET() {
         amountFormatted: formatKRW(newYearDiscount),
       });
       totalDiscount += newYearDiscount;
+    }
+
+    // 르메그라피 제휴 할인 (메인스냅이 르메그라피이고 기본형/시네마틱형인 경우)
+    const mainSnapCompany = reservation.mainSnapCompany || '';
+    const isLemeGraphy = mainSnapCompany.toLowerCase().includes('르메그라피') || mainSnapCompany.toLowerCase().includes('leme');
+    if (isLemeGraphy && (reservation.productType === '기본형' || reservation.productType === '시네마틱형')) {
+      const lemeGraphyDiscount = 150000;
+      discounts.push({
+        type: 'event',
+        label: '르메그라피 제휴 할인',
+        amount: lemeGraphyDiscount,
+        amountFormatted: formatKRW(lemeGraphyDiscount),
+      });
+      totalDiscount += lemeGraphyDiscount;
     }
 
     // 짝꿍 할인
@@ -62,8 +93,8 @@ export async function GET() {
       totalDiscount += reservation.referralDiscount;
     }
 
-    // 후기 할인
-    if (reservation.reviewDiscount && reservation.reviewDiscount > 0) {
+    // 후기 할인 (가성비형이 아니고 reviewDiscount가 있는 경우만)
+    if (reservation.reviewDiscount && reservation.reviewDiscount > 0 && reservation.productType !== '가성비형') {
       discounts.push({
         type: 'review',
         label: '후기 할인',
@@ -73,6 +104,54 @@ export async function GET() {
       totalDiscount += reservation.reviewDiscount;
     }
 
+    // 추가 옵션 금액 계산
+    const additionalOptions = [];
+    let additionalTotal = 0;
+    
+    if (reservation.makeupShoot) {
+      const makeupPrice = 200000;
+      additionalOptions.push({
+        type: 'makeup',
+        label: '메이크업 촬영',
+        amount: makeupPrice,
+        amountFormatted: formatKRW(makeupPrice),
+      });
+      additionalTotal += makeupPrice;
+    }
+    
+    if (reservation.paebaekShoot) {
+      const paebaekPrice = 50000;
+      additionalOptions.push({
+        type: 'paebaek',
+        label: '폐백 촬영',
+        amount: paebaekPrice,
+        amountFormatted: formatKRW(paebaekPrice),
+      });
+      additionalTotal += paebaekPrice;
+    }
+    
+    if (reservation.receptionShoot) {
+      const receptionPrice = 50000;
+      additionalOptions.push({
+        type: 'reception',
+        label: '피로연(2부 예식) 촬영',
+        amount: receptionPrice,
+        amountFormatted: formatKRW(receptionPrice),
+      });
+      additionalTotal += receptionPrice;
+    }
+
+    // 기본 상품 가격 계산
+    const getProductBasePrice = (productType: string | null): number => {
+      switch (productType) {
+        case '가성비형': return 340000;
+        case '기본형': return 600000;
+        case '시네마틱형': return 950000;
+        default: return 0;
+      }
+    };
+    
+    const basePrice = getProductBasePrice(reservation.productType);
     const listPrice = reservation.totalAmount || 0;
     const depositAmount = reservation.depositAmount || 100000;
     const finalBalance = Math.max(0, listPrice - depositAmount - totalDiscount);
@@ -90,8 +169,13 @@ export async function GET() {
         finalBalanceFormatted: formatKRW(finalBalance),
         balancePaidAt: reservation.balancePaidAt,
         discounts,
+        additionalOptions,
+        additionalTotal,
+        additionalTotalFormatted: formatKRW(additionalTotal),
         product: {
           name: reservation.productType || '미선택',
+          basePrice: basePrice,
+          basePriceFormatted: formatKRW(basePrice),
           originalPrice: listPrice,
           originalPriceFormatted: formatKRW(listPrice),
         },

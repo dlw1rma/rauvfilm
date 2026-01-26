@@ -8,6 +8,38 @@ import { getCustomerSession } from '@/lib/customerAuth';
 import { prisma } from '@/lib/prisma';
 import { verifyReview, getVerificationMessage, getPlatformName } from '@/lib/reviewVerification';
 
+// 후기 URL에서 메타데이터 추출
+async function fetchReviewMetadata(url: string): Promise<{
+  title: string | null;
+  excerpt: string | null;
+  imageUrl: string | null;
+  author: string | null;
+}> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(
+      `${baseUrl}/api/reviews/fetch-thumbnail?url=${encodeURIComponent(url)}`,
+      { cache: 'no-store' }
+    );
+
+    if (!response.ok) {
+      console.error('메타데이터 추출 실패:', response.status);
+      return { title: null, excerpt: null, imageUrl: null, author: null };
+    }
+
+    const data = await response.json();
+    return {
+      title: data.title || null,
+      excerpt: data.excerpt || null,
+      imageUrl: data.thumbnailUrl || null,
+      author: data.author || null,
+    };
+  } catch (error) {
+    console.error('메타데이터 추출 오류:', error);
+    return { title: null, excerpt: null, imageUrl: null, author: null };
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getCustomerSession();
@@ -39,11 +71,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const booking = await prisma.booking.findUnique({
-      where: { id: session.bookingId },
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: session.reservationId },
     });
 
-    if (!booking) {
+    if (!reservation) {
       return NextResponse.json(
         { error: '예약 정보를 찾을 수 없습니다.' },
         { status: 404 }
@@ -53,7 +85,7 @@ export async function POST(request: NextRequest) {
     // 이미 같은 URL로 제출한 후기가 있는지 확인
     const existingReview = await prisma.reviewSubmission.findFirst({
       where: {
-        bookingId: booking.id,
+        reservationId: session.reservationId,
         reviewUrl: reviewUrl,
       },
     });
@@ -65,15 +97,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 예약 정보 조회 (상품 종류 확인)
+    const reservationInfo = await prisma.reservation.findUnique({
+      where: { id: session.reservationId },
+      select: {
+        productType: true,
+      },
+    });
+
+    // 가성비형이면 1건, 아니면 3건 제한
+    const maxReviews = reservationInfo?.productType === '가성비형' ? 1 : 3;
+    const reviewCount = await prisma.reviewSubmission.count({
+      where: {
+        reservationId: session.reservationId,
+        status: {
+          in: ['PENDING', 'AUTO_APPROVED', 'MANUAL_REVIEW', 'APPROVED'],
+        },
+      },
+    });
+
+    if (reviewCount >= maxReviews) {
+      return NextResponse.json(
+        { error: `후기는 최대 ${maxReviews}건까지만 등록할 수 있습니다.` },
+        { status: 400 }
+      );
+    }
+
     // 후기 자동 검증
     const verification = await verifyReview(reviewUrl);
 
-    // 후기 저장
+    // 후기 URL에서 메타데이터 추출 (썸네일, 제목, 내용, 작성자)
+    const metadata = await fetchReviewMetadata(reviewUrl);
+
+    // 후기 저장 (메타데이터 포함)
     const reviewSubmission = await prisma.reviewSubmission.create({
       data: {
-        bookingId: booking.id,
+        reservationId: session.reservationId,
         reviewUrl,
         platform: verification.platform,
+        // 자동 추출된 메타데이터
+        title: metadata.title,
+        excerpt: metadata.excerpt,
+        imageUrl: metadata.imageUrl,
+        author: metadata.author,
+        // 검증 결과
         autoVerified: verification.canAutoVerify,
         titleValid: verification.titleValid,
         contentValid: verification.contentValid,
@@ -83,16 +150,39 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 자동 승인된 경우 할인 적용
+    // 자동 승인된 경우 할인 적용 (가성비형이 아닌 경우만)
     if (verification.status === 'AUTO_APPROVED') {
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: {
-          reviewDiscount: {
-            increment: 10000, // 후기 1건당 1만원
-          },
+      // 현재 예약 정보 조회
+      const currentReservation = await prisma.reservation.findUnique({
+        where: { id: session.reservationId },
+        select: {
+          productType: true,
+          totalAmount: true,
+          depositAmount: true,
+          reviewDiscount: true,
+          discountAmount: true,
+          referralDiscount: true,
         },
       });
+
+      // 가성비형이 아니면 할인 적용
+      if (currentReservation && currentReservation.productType !== '가성비형') {
+        const newReviewDiscount = (currentReservation.reviewDiscount || 0) + 10000; // 후기 1건당 1만원
+        const newDiscountAmount = (currentReservation.discountAmount || 0) + 10000;
+        const totalAmount = currentReservation.totalAmount || 0;
+        const depositAmount = currentReservation.depositAmount || 100000;
+        const newFinalBalance = Math.max(0, totalAmount - depositAmount - newDiscountAmount);
+
+        await prisma.reservation.update({
+          where: { id: session.reservationId },
+          data: {
+            reviewDiscount: newReviewDiscount,
+            discountAmount: newDiscountAmount,
+            finalBalance: newFinalBalance,
+          },
+        });
+      }
+      // 가성비형이면 할인 없이 원본영상만 전달 (할인 적용 안 함)
     }
 
     return NextResponse.json({
@@ -136,8 +226,18 @@ export async function GET() {
       );
     }
 
+    // 예약 정보 조회 (할인 옵션 확인용)
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: session.reservationId },
+      select: {
+        productType: true,
+        discountReview: true,
+        discountReviewBlog: true,
+      },
+    });
+
     const reviews = await prisma.reviewSubmission.findMany({
-      where: { bookingId: session.bookingId },
+      where: { reservationId: session.reservationId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -148,6 +248,11 @@ export async function GET() {
       APPROVED: '승인됨',
       REJECTED: '거절됨',
     };
+
+    // 후기 작성 가능 여부 확인 (예약후기 또는 촬영후기 할인 체크 여부)
+    const canWriteReview = reservation?.discountReview || reservation?.discountReviewBlog || false;
+    // 가성비형이면 1건, 아니면 3건 제한
+    const maxReviews = reservation?.productType === '가성비형' ? 1 : 3;
 
     return NextResponse.json({
       reviews: reviews.map((r) => ({
@@ -164,6 +269,9 @@ export async function GET() {
         createdAt: r.createdAt,
         verifiedAt: r.verifiedAt,
       })),
+      canWriteReview,
+      maxReviews,
+      productType: reservation?.productType,
     });
   } catch (error) {
     console.error('후기 목록 조회 오류:', error);

@@ -13,6 +13,7 @@ interface BookingData {
   status: string;
   statusLabel: string;
   partnerCode: string | null;
+  discountCouple: boolean;
   videoUrl: string | null;
   contractUrl: string | null;
   product: {
@@ -37,6 +38,21 @@ interface BalanceData {
     amount: number;
     amountFormatted: string;
   }>;
+  additionalOptions: Array<{
+    type: string;
+    label: string;
+    amount: number;
+    amountFormatted: string;
+  }>;
+  additionalTotal: number;
+  additionalTotalFormatted: string;
+  product: {
+    name: string;
+    basePrice: number;
+    basePriceFormatted: string;
+    originalPrice: number;
+    originalPriceFormatted: string;
+  };
 }
 
 export default function MypageDashboard() {
@@ -199,7 +215,9 @@ export default function MypageDashboard() {
               </div>
             ) : (
               <div className="bg-muted rounded-lg px-4 py-3 text-sm text-muted-foreground">
-                예약 확정 후 발급됩니다
+                {booking.discountCouple 
+                  ? '예약 확정 후 발급됩니다' 
+                  : '짝궁코드 참여 시 발급됩니다'}
               </div>
             )}
           </div>
@@ -232,10 +250,30 @@ export default function MypageDashboard() {
         <div className="rounded-2xl border border-border bg-background p-6 mb-8">
           <h3 className="font-semibold mb-4">금액 상세</h3>
           <div className="space-y-3 text-sm">
+            {/* 기본 상품 가격 */}
             <div className="flex justify-between">
-              <span className="text-muted-foreground">정가</span>
+              <span className="text-muted-foreground">{balance.product.name}</span>
+              <span>{balance.product.basePriceFormatted}</span>
+            </div>
+            
+            {/* 추가 옵션 */}
+            {balance.additionalOptions.length > 0 && (
+              <>
+                {balance.additionalOptions.map((option, idx) => (
+                  <div key={idx} className="flex justify-between pl-4">
+                    <span className="text-muted-foreground">+ {option.label}</span>
+                    <span className="text-blue-600">+{option.amountFormatted}</span>
+                  </div>
+                ))}
+              </>
+            )}
+            
+            {/* 총 금액 (기본 + 추가 옵션) */}
+            <div className="flex justify-between font-medium pt-2 border-t border-border">
+              <span>총 금액</span>
               <span>{balance.listPriceFormatted}</span>
             </div>
+            
             <div className="flex justify-between">
               <span className="text-muted-foreground">예약금</span>
               <span className="text-green-600">-{balance.depositAmountFormatted}</span>
@@ -256,7 +294,16 @@ export default function MypageDashboard() {
         </div>
 
         {/* Quick Menu */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link
+            href="/mypage/reservations"
+            className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
+          >
+            <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            </svg>
+            <span className="text-sm font-medium">예약글 조회</span>
+          </Link>
           <Link
             href="/mypage/partner-code"
             className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
