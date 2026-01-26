@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
 export default function HeroVideoSlider() {
@@ -12,46 +12,26 @@ export default function HeroVideoSlider() {
   const [desktopVideoDimensions, setDesktopVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [mobileVideoDimensions, setMobileVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [animationPhase, setAnimationPhase] = useState(0);
-  const [isLocked, setIsLocked] = useState(true);
+  const [initialAnimationDone, setInitialAnimationDone] = useState(false);
 
-  // 애니메이션 시퀀스
+  // 스크롤 기반 애니메이션
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"],
+  });
+
+  // 스크롤에 따른 텍스트 움직임
+  const textY = useTransform(scrollYProgress, [0, 0.5], [0, -100]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
+
+  // 초기 애니메이션 타이머
   useEffect(() => {
-    const timers: NodeJS.Timeout[] = [];
+    const timer = setTimeout(() => {
+      setInitialAnimationDone(true);
+    }, 2500);
 
-    // Phase 1: 첫 번째 줄 시작
-    timers.push(setTimeout(() => setAnimationPhase(1), 500));
-    // Phase 2: 두 번째 줄 시작
-    timers.push(setTimeout(() => setAnimationPhase(2), 1500));
-    // Phase 3: 서브타이틀 시작
-    timers.push(setTimeout(() => setAnimationPhase(3), 2500));
-    // Phase 4: 애니메이션 완료, 스크롤 잠금 해제
-    timers.push(setTimeout(() => {
-      setAnimationPhase(4);
-      setIsLocked(false);
-    }, 4000));
-
-    return () => timers.forEach(clearTimeout);
+    return () => clearTimeout(timer);
   }, []);
-
-  // 스크롤 잠금
-  useEffect(() => {
-    if (!isLocked) return;
-
-    const preventScroll = (e: Event) => {
-      e.preventDefault();
-    };
-
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('wheel', preventScroll, { passive: false });
-    window.addEventListener('touchmove', preventScroll, { passive: false });
-
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('wheel', preventScroll);
-      window.removeEventListener('touchmove', preventScroll);
-    };
-  }, [isLocked]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -98,21 +78,21 @@ export default function HeroVideoSlider() {
   );
 
   // 글자별 애니메이션
-  const AnimatedText = ({ text, isVisible }: { text: string; isVisible: boolean }) => {
+  const AnimatedText = ({ text, delay }: { text: string; delay: number }) => {
     return (
       <span className="inline-block">
         {text.split("").map((char, i) => (
           <motion.span
             key={i}
             initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
-            animate={isVisible ? {
+            animate={{
               opacity: 1,
               y: 0,
               filter: "blur(0px)"
-            } : {}}
+            }}
             transition={{
               duration: 0.5,
-              delay: i * 0.05,
+              delay: delay + i * 0.05,
               ease: "easeOut"
             }}
             className="inline-block"
@@ -218,32 +198,35 @@ export default function HeroVideoSlider() {
         </div>
       </div>
 
-      {/* 텍스트 컨테이너 */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
+      {/* 텍스트 컨테이너 - 스크롤에 따라 움직임 */}
+      <motion.div
+        style={{ y: textY, opacity: textOpacity }}
+        className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4"
+      >
         {/* 첫 번째 라인 */}
         <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-medium text-white mb-2 md:mb-3 tracking-wide">
-          <AnimatedText text="소중한 날의 기억들을" isVisible={animationPhase >= 1} />
+          <AnimatedText text="소중한 날의 기억들을" delay={0.3} />
         </h1>
 
         {/* 두 번째 라인 */}
         <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-medium text-white mb-8 md:mb-10 tracking-wide">
-          <AnimatedText text="영원히 간직하세요" isVisible={animationPhase >= 2} />
+          <AnimatedText text="영원히 간직하세요" delay={1.0} />
         </h1>
 
         {/* 세 번째 라인 - 서브타이틀 */}
         <motion.p
           initial={{ opacity: 0, y: 15 }}
-          animate={animationPhase >= 3 ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1.8, ease: "easeOut" }}
           className="text-sm md:text-base lg:text-lg text-white/60 tracking-wide font-light"
         >
           기록이 아닌 기억을 남기는 영상을 선사합니다
         </motion.p>
-      </div>
+      </motion.div>
 
       {/* 스크롤 유도 */}
       <AnimatePresence>
-        {animationPhase >= 4 && (
+        {initialAnimationDone && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

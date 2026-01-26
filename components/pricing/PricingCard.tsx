@@ -145,22 +145,6 @@ export default function PricingCard({ plan, index = 0 }: PricingCardProps) {
           ))}
         </ul>
 
-        {/* 문의 버튼 */}
-        <motion.a
-          href="https://pf.kakao.com/_xlXAin/chat"
-          target="_blank"
-          rel="noopener noreferrer"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={cn(
-            "mt-8 w-full py-4 rounded-xl font-medium text-center block transition-all duration-300",
-            plan.popular
-              ? "bg-accent text-white hover:bg-accent/90"
-              : "bg-white/10 text-white hover:bg-white/20 border border-white/10"
-          )}
-        >
-          상담 문의하기
-        </motion.a>
       </div>
     </motion.div>
   );
