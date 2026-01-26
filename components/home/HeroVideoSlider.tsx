@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
 export default function HeroVideoSlider() {
@@ -12,26 +12,33 @@ export default function HeroVideoSlider() {
   const [desktopVideoDimensions, setDesktopVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [mobileVideoDimensions, setMobileVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [initialAnimationDone, setInitialAnimationDone] = useState(false);
 
-  // 스크롤 기반 애니메이션
+  // 스크롤 진행도 (0 ~ 1)
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
 
-  // 스크롤에 따른 텍스트 움직임
-  const textY = useTransform(scrollYProgress, [0, 0.5], [0, -100]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
+  // 첫 번째 줄: 스크롤 0% ~ 15%에서 나타남
+  const line1Opacity = useTransform(scrollYProgress, [0, 0.08, 0.15], [0, 1, 1]);
+  const line1Y = useTransform(scrollYProgress, [0, 0.08, 0.15], [30, 0, 0]);
+  const line1Filter = useTransform(scrollYProgress, [0, 0.08], ["blur(8px)", "blur(0px)"]);
 
-  // 초기 애니메이션 타이머
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setInitialAnimationDone(true);
-    }, 2500);
+  // 두 번째 줄: 스크롤 10% ~ 25%에서 나타남
+  const line2Opacity = useTransform(scrollYProgress, [0.08, 0.16, 0.25], [0, 1, 1]);
+  const line2Y = useTransform(scrollYProgress, [0.08, 0.16, 0.25], [30, 0, 0]);
+  const line2Filter = useTransform(scrollYProgress, [0.08, 0.16], ["blur(8px)", "blur(0px)"]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  // 세 번째 줄: 스크롤 20% ~ 35%에서 나타남
+  const line3Opacity = useTransform(scrollYProgress, [0.16, 0.24, 0.35], [0, 1, 1]);
+  const line3Y = useTransform(scrollYProgress, [0.16, 0.24, 0.35], [20, 0, 0]);
+
+  // 전체 텍스트: 스크롤 50% 이후 위로 올라가며 사라짐
+  const textContainerY = useTransform(scrollYProgress, [0.4, 0.7], [0, -150]);
+  const textContainerOpacity = useTransform(scrollYProgress, [0.5, 0.7], [1, 0]);
+
+  // 스크롤 인디케이터: 처음에만 보임
+  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -77,37 +84,10 @@ export default function HeroVideoSlider() {
     })), []
   );
 
-  // 글자별 애니메이션
-  const AnimatedText = ({ text, delay }: { text: string; delay: number }) => {
-    return (
-      <span className="inline-block">
-        {text.split("").map((char, i) => (
-          <motion.span
-            key={i}
-            initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              filter: "blur(0px)"
-            }}
-            transition={{
-              duration: 0.5,
-              delay: delay + i * 0.05,
-              ease: "easeOut"
-            }}
-            className="inline-block"
-          >
-            {char === " " ? "\u00A0" : char}
-          </motion.span>
-        ))}
-      </span>
-    );
-  };
-
   return (
-    <section ref={containerRef} className="relative h-screen">
-      {/* Video Background */}
-      <div className="absolute inset-0 overflow-hidden">
+    <section ref={containerRef} className="relative h-[200vh]">
+      {/* 고정된 비디오 배경 */}
+      <div className="sticky top-0 h-screen overflow-hidden">
         <motion.div
           initial={{ scale: 1 }}
           animate={{ scale: 1.05 }}
@@ -196,64 +176,72 @@ export default function HeroVideoSlider() {
             />
           ))}
         </div>
-      </div>
 
-      {/* 텍스트 컨테이너 - 스크롤에 따라 움직임 */}
-      <motion.div
-        style={{ y: textY, opacity: textOpacity }}
-        className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4"
-      >
-        {/* 첫 번째 라인 */}
-        <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-medium text-white mb-2 md:mb-3 tracking-wide">
-          <AnimatedText text="소중한 날의 기억들을" delay={0.3} />
-        </h1>
-
-        {/* 두 번째 라인 */}
-        <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-medium text-white mb-8 md:mb-10 tracking-wide">
-          <AnimatedText text="영원히 간직하세요" delay={1.0} />
-        </h1>
-
-        {/* 세 번째 라인 - 서브타이틀 */}
-        <motion.p
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.8, ease: "easeOut" }}
-          className="text-sm md:text-base lg:text-lg text-white/60 tracking-wide font-light"
+        {/* 텍스트 컨테이너 - 스크롤에 따라 움직임 */}
+        <motion.div
+          style={{ y: textContainerY, opacity: textContainerOpacity }}
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4"
         >
-          기록이 아닌 기억을 남기는 영상을 선사합니다
-        </motion.p>
-      </motion.div>
-
-      {/* 스크롤 유도 */}
-      <AnimatePresence>
-        {initialAnimationDone && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10"
+          {/* 첫 번째 라인 */}
+          <motion.h1
+            style={{
+              opacity: line1Opacity,
+              y: line1Y,
+              filter: line1Filter,
+            }}
+            className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-medium text-white mb-2 md:mb-3 tracking-wide"
           >
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-              className="flex flex-col items-center cursor-pointer"
-            >
-              <motion.span
-                animate={{ opacity: [0.3, 0.6, 0.3] }}
-                transition={{ duration: 2.5, repeat: Infinity }}
-                className="text-xs text-white/40 tracking-[0.2em] uppercase mb-2"
-              >
-                Scroll
-              </motion.span>
-              <ChevronDown className="w-5 h-5 text-white/40" />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            소중한 날의 기억들을
+          </motion.h1>
 
-      {/* 하단 페이드 */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#111111] to-transparent z-10" />
+          {/* 두 번째 라인 */}
+          <motion.h1
+            style={{
+              opacity: line2Opacity,
+              y: line2Y,
+              filter: line2Filter,
+            }}
+            className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-medium text-white mb-8 md:mb-10 tracking-wide"
+          >
+            영원히 간직하세요
+          </motion.h1>
+
+          {/* 세 번째 라인 - 서브타이틀 */}
+          <motion.p
+            style={{
+              opacity: line3Opacity,
+              y: line3Y,
+            }}
+            className="text-sm md:text-base lg:text-lg text-white/60 tracking-wide font-light"
+          >
+            기록이 아닌 기억을 남기는 영상을 선사합니다
+          </motion.p>
+        </motion.div>
+
+        {/* 스크롤 유도 */}
+        <motion.div
+          style={{ opacity: scrollIndicatorOpacity }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10"
+        >
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            className="flex flex-col items-center cursor-pointer"
+          >
+            <motion.span
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 2.5, repeat: Infinity }}
+              className="text-xs text-white/40 tracking-[0.2em] uppercase mb-2"
+            >
+              Scroll
+            </motion.span>
+            <ChevronDown className="w-5 h-5 text-white/40" />
+          </motion.div>
+        </motion.div>
+
+        {/* 하단 페이드 */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#111111] to-transparent z-10" />
+      </div>
     </section>
   );
 }
