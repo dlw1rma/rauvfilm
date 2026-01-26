@@ -168,3 +168,68 @@ export async function deleteFromCloudinary(publicId: string): Promise<{
   const result = await cloudinary.uploader.destroy(publicId);
   return result;
 }
+
+/**
+ * File 객체를 Cloudinary에 업로드
+ * @param file - 업로드할 File 객체
+ * @param folder - Cloudinary 폴더 경로
+ * @returns 업로드 결과
+ */
+export async function uploadImageFile(
+  file: File,
+  folder: string
+): Promise<{
+  publicId: string;
+  url: string;
+  secureUrl: string;
+  width: number;
+  height: number;
+  format: string;
+}> {
+  const buffer = await file.arrayBuffer();
+  const base64 = Buffer.from(buffer).toString('base64');
+  const mimeType = file.type;
+  const dataUri = `data:${mimeType};base64,${base64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder,
+    resource_type: 'image',
+  });
+
+  return {
+    publicId: result.public_id,
+    url: result.url,
+    secureUrl: result.secure_url,
+    width: result.width,
+    height: result.height,
+    format: result.format,
+  };
+}
+
+/**
+ * 최적화된 Cloudinary URL 생성 (클라이언트용)
+ */
+export function getOptimizedUrl(
+  publicId: string,
+  options?: {
+    width?: number;
+    height?: number;
+    quality?: number;
+    format?: 'auto' | 'webp' | 'jpg' | 'png';
+  }
+): string {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dx8emwxho';
+
+  const transformations: string[] = [];
+
+  if (options?.width) transformations.push(`w_${options.width}`);
+  if (options?.height) transformations.push(`h_${options.height}`);
+  if (options?.quality) transformations.push(`q_${options.quality}`);
+  else transformations.push('q_auto');
+  if (options?.format) transformations.push(`f_${options.format}`);
+  else transformations.push('f_auto');
+
+  const transformation = transformations.join(',');
+
+  return `https://res.cloudinary.com/${cloudName}/image/upload/${transformation}/${publicId}`;
+}

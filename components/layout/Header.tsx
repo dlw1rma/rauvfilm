@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { User } from "lucide-react";
 
 interface NavItem {
   name: string;
@@ -30,7 +31,6 @@ const navigation: NavItem[] = [
     href: "/reservation",
     children: [
       { name: "예약하기", href: "/reservation" },
-      { name: "마이페이지", href: "/mypage" },
       { name: "FAQ", href: "/faq" },
       { name: "제휴", href: "/coalition" },
     ],
@@ -102,15 +102,32 @@ export default function Header() {
                 )}
               </div>
             ))}
+
+            {/* Mypage Icon */}
+            <Link
+              href="/mypage"
+              className="ml-2 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="마이페이지"
+            >
+              <User className="w-5 h-5" />
+            </Link>
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-expanded={isMobileMenuOpen}
-          >
+          {/* Mobile menu buttons */}
+          <div className="md:hidden flex items-center gap-1">
+            <Link
+              href="/mypage"
+              className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="마이페이지"
+            >
+              <User className="w-5 h-5" />
+            </Link>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-expanded={isMobileMenuOpen}
+            >
             <span className="sr-only">메뉴 열기</span>
             {isMobileMenuOpen ? (
               <svg
@@ -141,7 +158,8 @@ export default function Header() {
                 />
               </svg>
             )}
-          </button>
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}

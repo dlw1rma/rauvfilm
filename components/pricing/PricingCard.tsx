@@ -1,4 +1,8 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { Check } from "lucide-react";
 import YouTubeFacade from "@/components/video/YouTubeFacade";
 
 interface PricingCardProps {
@@ -15,6 +19,7 @@ interface PricingCardProps {
     popular?: boolean;
     isNew?: boolean;
   };
+  index?: number;
 }
 
 function extractVideoId(url: string): string {
@@ -29,123 +34,134 @@ function extractVideoId(url: string): string {
   return url;
 }
 
-export default function PricingCard({ plan }: PricingCardProps) {
+export default function PricingCard({ plan, index = 0 }: PricingCardProps) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 50 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
       className={cn(
-        // 기본 카드 스타일 - 미니멀
-        "group relative rounded-xl border p-6 md:p-8",
+        "group relative rounded-2xl border bg-[#1a1a1a] overflow-hidden",
         "transition-all duration-300 ease-out",
-        "hover:-translate-y-2 hover:shadow-2xl hover:shadow-accent/5",
-
-        // 조건부 스타일
-        plan.popular
-          ? "border-accent/50 bg-background"
-          : "border-border/50 bg-background/50 backdrop-blur-sm"
+        "hover:-translate-y-2 hover:shadow-2xl",
+        "border-white/10 hover:border-white/20"
       )}
     >
-      {/* 배지 */}
+      {/* 배지 영역 */}
       {(plan.popular || plan.isNew) && (
-        <div className="absolute -top-3 left-6">
-          <span
+        <div className="absolute -top-0 -right-0 z-10">
+          <div
             className={cn(
-              "inline-flex items-center px-3 py-1 text-xs font-medium rounded-full",
-              plan.popular
-                ? "bg-accent text-white"
-                : "bg-foreground text-background"
+              "px-4 py-1.5 text-xs font-bold rounded-bl-xl",
+              plan.popular ? "bg-accent text-white" : "bg-white/20 text-white"
             )}
           >
             {plan.popular ? "BEST" : "NEW"}
-          </span>
+          </div>
         </div>
       )}
 
-      {/* 상품 타입 라벨 */}
-      <div className="mb-4 pt-2">
-        <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-          {plan.subtitle}
-        </span>
-      </div>
+      <div className="relative p-6 md:p-8">
+        {/* 타입 라벨 */}
+        <div className="mb-6">
+          <span className="text-2xl md:text-3xl font-bold text-white">
+            {plan.subtitle}
+          </span>
+          <h3 className="text-base text-white/50 font-medium mt-1">{plan.name}</h3>
+        </div>
 
-      {/* 상품명 */}
-      <h3 className="text-xl md:text-2xl font-bold mb-2">{plan.name}</h3>
-
-      {/* 가격 영역 */}
-      <div className="mb-6 pb-6 border-b border-border/50">
-        <div className="flex items-baseline gap-2">
+        {/* 가격 영역 */}
+        <div className="mb-6 pb-6 border-b border-white/10">
           {plan.originalPrice && (
-            <span className="text-sm text-muted-foreground/60 line-through">
-              {plan.originalPrice}
-            </span>
-          )}
-          <span className="text-3xl md:text-4xl font-bold tracking-tight">
-            {plan.price}
-          </span>
-          <span className="text-sm text-muted-foreground">원</span>
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
-      </div>
-
-      {/* 미리보기 비디오 */}
-      {plan.videoUrl && (
-        <div className="mb-6 rounded-lg overflow-hidden">
-          <YouTubeFacade
-            videoId={extractVideoId(plan.videoUrl)}
-            title={`${plan.name} 영상`}
-          />
-        </div>
-      )}
-
-      {/* 추천 대상 */}
-      {plan.recommendations && plan.recommendations.length > 0 && (
-        <div className="mb-6 p-4 rounded-lg bg-muted/50">
-          <h4 className="text-xs font-medium text-accent mb-3 uppercase tracking-wider">
-            Recommended for
-          </h4>
-          <ul className="space-y-2">
-            {plan.recommendations.map((rec, index) => (
-              <li
-                key={index}
-                className="flex items-start gap-2 text-sm text-muted-foreground"
-              >
-                <span className="text-accent mt-0.5">-</span>
-                <span>{rec}</span>
-              </li>
-            ))}
-          </ul>
-          {plan.gimbalNote && (
-            <p className="mt-3 text-xs text-muted-foreground/70 italic">
-              {plan.gimbalNote}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* 기능 목록 */}
-      <ul className="space-y-3">
-        {plan.features.map((feature, index) => (
-          <li key={index} className="flex items-start gap-3 text-sm">
-            <div className="w-4 h-4 mt-0.5 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
-              <svg
-                className="w-2.5 h-2.5 text-accent"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="3"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm text-white/40 line-through">
+                {plan.originalPrice}원
+              </span>
+              <span className="text-xs font-medium text-accent">할인</span>
             </div>
-            <span className="text-muted-foreground whitespace-pre-line">
-              {feature}
+          )}
+          <div className="flex items-baseline gap-1">
+            <span className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+              {plan.price}
             </span>
-          </li>
-        ))}
-      </ul>
-    </div>
+            <span className="text-lg text-white/60">원</span>
+          </div>
+          <p className="mt-3 text-sm text-white/50">{plan.description}</p>
+        </div>
+
+        {/* 미리보기 비디오 */}
+        {plan.videoUrl && (
+          <div className="mb-6 rounded-xl overflow-hidden border border-white/10">
+            <YouTubeFacade
+              videoId={extractVideoId(plan.videoUrl)}
+              title={`${plan.name} 영상`}
+            />
+          </div>
+        )}
+
+        {/* 추천 대상 */}
+        {plan.recommendations && plan.recommendations.length > 0 && (
+          <div className="mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+            <h4 className="text-xs font-bold mb-3 uppercase tracking-wider text-white/40">
+              이런 분께 추천
+            </h4>
+            <ul className="space-y-2">
+              {plan.recommendations.map((rec, idx) => (
+                <li
+                  key={idx}
+                  className="flex items-start gap-2 text-sm text-white/70"
+                >
+                  <span className="mt-0.5 text-white/40">•</span>
+                  <span>{rec}</span>
+                </li>
+              ))}
+            </ul>
+            {plan.gimbalNote && (
+              <p className="mt-3 text-xs text-white/40 italic">
+                {plan.gimbalNote}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 기능 목록 */}
+        <ul className="space-y-3">
+          {plan.features.map((feature, idx) => (
+            <li key={idx} className="flex items-start gap-3 text-sm">
+              <div className={cn(
+                "w-5 h-5 mt-0.5 rounded-full flex items-center justify-center flex-shrink-0",
+                plan.popular ? "bg-accent/20" : "bg-white/10"
+              )}>
+                <Check className={cn(
+                  "w-3 h-3",
+                  plan.popular ? "text-accent" : "text-white/60"
+                )} strokeWidth={3} />
+              </div>
+              <span className="text-white/70 whitespace-pre-line">
+                {feature}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {/* 문의 버튼 */}
+        <motion.a
+          href="https://pf.kakao.com/_xlXAin/chat"
+          target="_blank"
+          rel="noopener noreferrer"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={cn(
+            "mt-8 w-full py-4 rounded-xl font-medium text-center block transition-all duration-300",
+            plan.popular
+              ? "bg-accent text-white hover:bg-accent/90"
+              : "bg-white/10 text-white hover:bg-white/20 border border-white/10"
+          )}
+        >
+          상담 문의하기
+        </motion.a>
+      </div>
+    </motion.div>
   );
 }
