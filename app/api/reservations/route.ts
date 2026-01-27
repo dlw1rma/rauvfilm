@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: sanitizedTitle,
         content: sanitizeString(content, 5000) || "",
-        author: encrypt(sanitizedAuthor), // 암호화
+        author: encrypt(sanitizedAuthor) ?? sanitizedAuthor, // 암호화 (실패 시 원본, author 필수)
         password: hashedPassword,
         isPrivate: isPrivate !== undefined ? isPrivate : true, // 기본값 true (비밀글만)
         // 필수 작성항목(공통) - 개인정보 암호화

@@ -41,41 +41,39 @@ async function encryptExistingData() {
           return field.includes(':') && field.split(':').length === 3;
         };
 
-        // 암호화가 필요한 필드만 업데이트
-        const updateData: {
-          author?: string | null;
-          brideName?: string | null;
-          groomName?: string | null;
-          bridePhone?: string | null;
-          groomPhone?: string | null;
-          receiptPhone?: string | null;
-          productEmail?: string | null;
-          deliveryAddress?: string | null;
-        } = {};
-
+        // 암호화가 필요한 필드만 업데이트 (encrypt가 null이면 제외해 Prisma 타입 만족)
+        const updateData: Record<string, string> = {};
         if (reservation.author && !isAlreadyEncrypted(reservation.author)) {
-          updateData.author = encrypt(reservation.author);
+          const enc = encrypt(reservation.author);
+          if (enc != null) updateData.author = enc;
         }
         if (reservation.brideName && !isAlreadyEncrypted(reservation.brideName)) {
-          updateData.brideName = encrypt(reservation.brideName);
+          const enc = encrypt(reservation.brideName);
+          if (enc != null) updateData.brideName = enc;
         }
         if (reservation.groomName && !isAlreadyEncrypted(reservation.groomName)) {
-          updateData.groomName = encrypt(reservation.groomName);
+          const enc = encrypt(reservation.groomName);
+          if (enc != null) updateData.groomName = enc;
         }
         if (reservation.bridePhone && !isAlreadyEncrypted(reservation.bridePhone)) {
-          updateData.bridePhone = encrypt(reservation.bridePhone);
+          const enc = encrypt(reservation.bridePhone);
+          if (enc != null) updateData.bridePhone = enc;
         }
         if (reservation.groomPhone && !isAlreadyEncrypted(reservation.groomPhone)) {
-          updateData.groomPhone = encrypt(reservation.groomPhone);
+          const enc = encrypt(reservation.groomPhone);
+          if (enc != null) updateData.groomPhone = enc;
         }
         if (reservation.receiptPhone && !isAlreadyEncrypted(reservation.receiptPhone)) {
-          updateData.receiptPhone = encrypt(reservation.receiptPhone);
+          const enc = encrypt(reservation.receiptPhone);
+          if (enc != null) updateData.receiptPhone = enc;
         }
         if (reservation.productEmail && !isAlreadyEncrypted(reservation.productEmail)) {
-          updateData.productEmail = encrypt(reservation.productEmail);
+          const enc = encrypt(reservation.productEmail);
+          if (enc != null) updateData.productEmail = enc;
         }
         if (reservation.deliveryAddress && !isAlreadyEncrypted(reservation.deliveryAddress)) {
-          updateData.deliveryAddress = encrypt(reservation.deliveryAddress);
+          const enc = encrypt(reservation.deliveryAddress);
+          if (enc != null) updateData.deliveryAddress = enc;
         }
 
         // 업데이트할 필드가 있으면 업데이트

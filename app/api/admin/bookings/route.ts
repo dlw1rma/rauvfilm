@@ -59,7 +59,6 @@ export async function GET(request: NextRequest) {
         include: {
           product: true,
           discountEvent: true,
-          reviewSubmissions: true,
         },
         orderBy: { weddingDate: 'asc' },
         skip: (page - 1) * limit,
@@ -108,7 +107,7 @@ export async function GET(request: NextRequest) {
         balancePaidAt: b.balancePaidAt,
         videoUrl: b.videoUrl,
         contractUrl: b.contractUrl,
-        reviewCount: b.reviewSubmissions.length,
+        reviewCount: 0,
         createdAt: b.createdAt,
       })),
       pagination: {

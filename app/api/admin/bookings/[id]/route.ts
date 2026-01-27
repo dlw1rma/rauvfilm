@@ -46,9 +46,6 @@ export async function GET(
       include: {
         product: true,
         discountEvent: true,
-        reviewSubmissions: {
-          orderBy: { createdAt: 'desc' },
-        },
         referrals: {
           select: {
             id: true,
@@ -71,10 +68,8 @@ export async function GET(
       return NextResponse.json({ error: '예약을 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    // 승인된 후기 수
-    const approvedReviewCount = booking.reviewSubmissions.filter(
-      (r) => r.status === 'AUTO_APPROVED' || r.status === 'APPROVED'
-    ).length;
+    // Booking에는 reviewSubmissions 관계 없음 (ReviewSubmission은 Reservation에 연결됨). 할인 계산용으로 0 사용
+    const approvedReviewCount = 0;
 
     // 잔금 재계산
     const calculation = calculateBalance(booking.listPrice, {
