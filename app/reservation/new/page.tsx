@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+// import { useRef, useEffect } from "react"; // 예식장 네이버 지도 검색용 (잠시 비활성화)
 
 type ProductType = "가성비형" | "기본형" | "시네마틱형" | "야외스냅" | "프리웨딩" | "";
 type EventType = "야외스냅" | "프리웨딩" | "";
@@ -90,6 +91,24 @@ export default function NewReservationPage() {
   const [showConfirmPage, setShowConfirmPage] = useState(false);
   const [lemeGraphyDiscount, setLemeGraphyDiscount] = useState(0);
 
+  /* 예식장 네이버 지도 검색 (잠시 비활성화)
+  const [venueSearchQuery, setVenueSearchQuery] = useState("");
+  const [venueSearchResults, setVenueSearchResults] = useState<Array<{ title: string; address: string; roadAddress: string; category: string }>>([]);
+  const [isSearchingVenue, setIsSearchingVenue] = useState(false);
+  const [showVenueDropdown, setShowVenueDropdown] = useState(false);
+  const [venueSearchError, setVenueSearchError] = useState<string | null>(null);
+  const venueSearchRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (showVenueDropdown && venueSearchRef.current && !venueSearchRef.current.contains(e.target as Node)) {
+        setShowVenueDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showVenueDropdown]);
+  */
+
   // 짝궁코드 검색 함수
   const searchPartnerCode = async (query: string) => {
     if (query.length < 2) {
@@ -113,6 +132,25 @@ export default function NewReservationPage() {
       setIsSearchingPartnerCode(false);
     }
   };
+
+  /* 예식장 네이버 지도 검색 (잠시 비활성화)
+  const searchVenue = async () => {
+    const q = venueSearchQuery.trim();
+    if (q.length < 2) { setVenueSearchResults([]); setVenueSearchError(null); return; }
+    setIsSearchingVenue(true); setShowVenueDropdown(true); setVenueSearchError(null);
+    try {
+      const res = await fetch(`/api/naver/local-search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.items)) setVenueSearchResults(data.items);
+      else { setVenueSearchResults([]); setVenueSearchError(typeof data?.error === "string" ? data.error : "검색에 실패했습니다."); }
+    } catch { setVenueSearchResults([]); setVenueSearchError("검색 중 오류가 발생했습니다."); }
+    finally { setIsSearchingVenue(false); }
+  };
+  const selectVenue = (item: { title: string; roadAddress?: string; address?: string }) => {
+    setFormData((prev) => ({ ...prev, venueName: item.title }));
+    setShowVenueDropdown(false); setVenueSearchResults([]); setVenueSearchQuery(""); setVenueSearchError(null);
+  };
+  */
 
   // 짝궁코드 선택 함수 (검색 결과에서 선택 시)
   const selectPartnerCode = (code: string) => {
@@ -1082,6 +1120,41 @@ export default function NewReservationPage() {
                     </div>
                   </div>
 
+                  {/* 예식장 네이버 지도 검색 (잠시 비활성화)
+                  <div className="relative" ref={venueSearchRef}>
+                    <label className="mb-2 block text-sm font-medium">예식장 검색 (네이버 지도)</label>
+                    <div className="flex gap-2">
+                      <input type="text" value={venueSearchQuery} onChange={(e) => setVenueSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), searchVenue())}
+                        placeholder="예식장명 또는 지역명으로 검색 (2자 이상)"
+                        className="flex-1 rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent" />
+                      <button type="button" onClick={searchVenue}
+                        disabled={isSearchingVenue || venueSearchQuery.trim().length < 2}
+                        className="shrink-0 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {isSearchingVenue ? "검색 중..." : "검색"}
+                      </button>
+                    </div>
+                    {showVenueDropdown && venueSearchResults.length > 0 && (
+                      <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-background py-1 shadow-lg sm:max-w-md">
+                        {venueSearchResults.map((item, i) => (
+                          <li key={i}>
+                            <button type="button" onClick={() => selectVenue(item)}
+                              className="w-full px-4 py-3 text-left hover:bg-muted focus:bg-muted focus:outline-none">
+                              <span className="block font-medium text-foreground">{item.title}</span>
+                              {(item.roadAddress || item.address) && (
+                                <span className="block text-xs text-muted-foreground">{item.roadAddress || item.address}</span>
+                              )}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {showVenueDropdown && !isSearchingVenue && venueSearchQuery.trim().length >= 2 && venueSearchResults.length === 0 && (
+                      <p className="mt-1 text-sm text-muted-foreground">{venueSearchError || "검색 결과가 없습니다."}</p>
+                    )}
+                  </div>
+                  */}
+
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
                       <label htmlFor="venueName" className="mb-2 block text-sm font-medium">
@@ -1094,6 +1167,7 @@ export default function NewReservationPage() {
                         required
                         value={formData.venueName}
                 onChange={handleChange}
+                        placeholder="예: 그랜드컨벤션, 롯데호텔"
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                       />
                     </div>
@@ -1108,6 +1182,7 @@ export default function NewReservationPage() {
                         value={formData.venueFloor}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        placeholder="예: 3층 그랜드홀"
               />
             </div>
           </div>
