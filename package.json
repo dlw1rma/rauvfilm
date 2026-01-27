@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "prisma:generate": "node scripts/prisma-generate.js",
+    "clean": "node -e \"const fs=require('fs'); ['.next','out'].forEach(d=>{try{fs.rmSync(d,{recursive:true});console.log('Removed '+d)}catch(e){}})\"",
     "build": "npm run prisma:generate && next build",
     "dev": "next dev",
     "start": "next start",
