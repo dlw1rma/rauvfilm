@@ -13,8 +13,13 @@ if (typeof process.env.CLOUDINARY_CLOUD_NAME === 'string') {
 }
 
 // 활성화된 사이트 이미지 조회
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const authResponse = await requireAdminAuth(request);
+    if (authResponse) {
+      return authResponse;
+    }
+
     const images = await prisma.siteImage.findMany({
       where: { isActive: true },
       orderBy: { createdAt: 'desc' },
@@ -23,7 +28,7 @@ export async function GET() {
     return NextResponse.json(images);
   } catch (error) {
     console.error('Fetch site images error:', error);
-    return NextResponse.json({ error: 'Failed to fetch images' }, { status: 500 });
+    return NextResponse.json({ error: '이미지 목록을 불러오는데 실패했습니다.' }, { status: 500 });
   }
 }
 

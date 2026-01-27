@@ -24,6 +24,13 @@ export async function GET(request: NextRequest) {
       return authResponse;
     }
 
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      return NextResponse.json(
+        { error: 'Cloudinary 설정이 되어 있지 않습니다. .env에 CLOUDINARY_* 변수를 설정해주세요.' },
+        { status: 503 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const folder = searchParams.get('folder') || '';
     const maxResults = parseInt(searchParams.get('max_results') || '500');

@@ -49,12 +49,23 @@ export default function SiteImagesAdminPage() {
   const [loadingCloudinary, setLoadingCloudinary] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('all');
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchImages = async () => {
+    setFetchError(null);
     try {
       const res = await fetch('/api/admin/site-images');
       const data = await res.json();
-      // 카테고리별로 정리
+      if (!res.ok) {
+        setFetchError((data?.error as string) || '이미지 목록을 불러오는데 실패했습니다.');
+        setImages({});
+        return;
+      }
+      if (!Array.isArray(data)) {
+        setFetchError('이미지 목록 형식이 올바르지 않습니다.');
+        setImages({});
+        return;
+      }
       const byCategory: Record<string, SiteImage> = {};
       data.forEach((img: SiteImage) => {
         byCategory[img.category] = img;
@@ -62,6 +73,8 @@ export default function SiteImagesAdminPage() {
       setImages(byCategory);
     } catch (error) {
       console.error('Failed to fetch images:', error);
+      setFetchError('이미지 목록을 불러오는데 실패했습니다.');
+      setImages({});
     } finally {
       setLoading(false);
     }
@@ -160,6 +173,20 @@ export default function SiteImagesAdminPage() {
         <h1 className="text-2xl font-bold">사이트 이미지 관리</h1>
         <p className="text-muted-foreground mt-1">사이트 전반에 사용되는 이미지를 관리합니다</p>
       </div>
+
+      {/* 에러 메시지 */}
+      {fetchError && (
+        <div className="rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3">
+          {fetchError}
+          <button
+            type="button"
+            onClick={() => { setFetchError(null); fetchImages(); }}
+            className="ml-4 underline hover:no-underline"
+          >
+            다시 시도
+          </button>
+        </div>
+      )}
 
       {/* 이미지 카드 그리드 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
