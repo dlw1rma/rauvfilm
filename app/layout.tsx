@@ -24,13 +24,22 @@ export const metadata: Metadata = {
     siteName: "라우브필름",
     title: "라우브필름",
     description: "'기록'이 아닌 '기억'을 남기는 본식DVD를 영상프로덕션 출신 대표의 전문 색보정을 진행합니다. 본식DVD, 웨딩DVD",
-    // Next.js가 app/opengraph-image.jpg를 자동으로 인식합니다
+    images: [
+      {
+        url: "https://res.cloudinary.com/dx8emwxho/image/upload/v1769157046/%EC%82%AC%EC%9D%B4%ED%8A%B8_%EB%8C%84%ED%91%9C_%EC%9D%B4%EB%AF%B8%EC%A7%80_rktosg.png",
+        width: 1200,
+        height: 630,
+        alt: "라우브필름 사이트 대표 이미지",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "라우브필름",
     description: "'기록'이 아닌 '기억'을 남기는 본식DVD를 영상프로덕션 출신 대표의 전문 색보정을 진행합니다. 본식DVD, 웨딩DVD",
-    // Next.js가 app/opengraph-image.jpg를 자동으로 인식합니다
+    images: [
+      "https://res.cloudinary.com/dx8emwxho/image/upload/v1769157046/%EC%82%AC%EC%9D%B4%ED%8A%B8_%EB%8C%84%ED%91%9C_%EC%9D%B4%EB%AF%B8%EC%A7%80_rktosg.png",
+    ],
   },
   robots: {
     index: true,
