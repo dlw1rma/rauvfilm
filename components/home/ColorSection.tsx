@@ -13,11 +13,20 @@ export default function ColorSection() {
   const [pcVideoDimensions, setPcVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [mobileVideoDimensions, setMobileVideoDimensions] = useState<{ width: number; height: number } | null>(null);
 
-  // Before/After 이미지 (placeholder - 나중에 교체)
-  const beforeImage = "https://via.placeholder.com/800x450/1a1a1a/666666?text=Before";
-  const afterImage = "https://via.placeholder.com/800x450/1a1a1a/e50914?text=After";
+  const defaultBefore = "https://via.placeholder.com/800x450/1a1a1a/666666?text=Before";
+  const defaultAfter = "https://via.placeholder.com/800x450/1a1a1a/e50914?text=After";
+  const [beforeImage, setBeforeImage] = useState(defaultBefore);
+  const [afterImage, setAfterImage] = useState(defaultAfter);
 
   useEffect(() => {
+    fetch("/api/site-images")
+      .then((res) => res.json())
+      .then((data: Record<string, { secureUrl?: string }>) => {
+        if (data["color-before"]?.secureUrl) setBeforeImage(data["color-before"].secureUrl);
+        if (data["color-after"]?.secureUrl) setAfterImage(data["color-after"].secureUrl);
+      })
+      .catch(() => {});
+
     fetch(`/api/youtube/video-details?videoId=${pcVideoId}`)
       .then((res) => res.json())
       .then((data) => {

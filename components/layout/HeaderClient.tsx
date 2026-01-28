@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { User } from "lucide-react";
 
@@ -20,6 +20,18 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileOpenDropdown, setMobileOpenDropdown] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoMobileUrl, setLogoMobileUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/site-images")
+      .then((res) => res.json())
+      .then((data: Record<string, { secureUrl?: string }>) => {
+        if (data.logo?.secureUrl) setLogoUrl(data.logo.secureUrl);
+        if (data["logo-mobile"]?.secureUrl) setLogoMobileUrl(data["logo-mobile"].secureUrl);
+      })
+      .catch(() => {});
+  }, []);
 
   const navigation: NavItem[] = [
     { name: "ABOUT", href: "/about" },
@@ -51,7 +63,7 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/logo.png"
+              src={logoUrl || "/logo.png"}
               alt="라우브필름"
               width={120}
               height={32}
@@ -60,7 +72,7 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
               style={{ width: "120px", height: "32px", objectFit: "contain" }}
             />
             <Image
-              src="/logo-mobile.png"
+              src={logoMobileUrl || "/logo-mobile.png"}
               alt="라우브필름"
               width={100}
               height={30}

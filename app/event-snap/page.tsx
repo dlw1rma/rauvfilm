@@ -19,8 +19,8 @@ async function getLocations() {
       include: {
         images: {
           where: { isVisible: true },
-          orderBy: { order: 'asc' },
-          take: 1, // 대표 이미지 1장만
+          orderBy: [{ isFeatured: 'desc' }, { order: 'asc' }],
+          take: 1, // 대표 이미지 1장 (isFeatured 우선)
         },
       },
       orderBy: { order: 'asc' },
@@ -64,7 +64,7 @@ export default async function EventSnapPage() {
                       src={location.images[0].secureUrl}
                       alt={location.images[0].alt || location.name}
                       fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-contain transition-transform duration-500 group-hover:scale-105"
                       sizes="(max-width: 640px) 100vw, 50vw"
                     />
                   ) : (

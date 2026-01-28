@@ -15,7 +15,7 @@ async function getLocation(slug: string) {
       include: {
         images: {
           where: { isVisible: true },
-          orderBy: { order: 'asc' },
+          orderBy: [{ isFeatured: 'desc' }, { order: 'asc' }],
         },
       },
     });
@@ -105,7 +105,7 @@ export default async function EventSnapLocationPage({ params }: PageProps) {
               src={featuredImage.secureUrl}
               alt={featuredImage.alt || location.name}
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="(max-width: 896px) 100vw, 896px"
               priority
             />
@@ -149,13 +149,13 @@ export default async function EventSnapLocationPage({ params }: PageProps) {
               {galleryImages.map((image) => (
                 <div
                   key={image.id}
-                  className="relative aspect-square bg-muted rounded-lg overflow-hidden group"
+                  className="relative aspect-[4/3] bg-muted rounded-lg overflow-hidden group"
                 >
                   <Image
                     src={image.secureUrl}
                     alt={image.alt || `${location.name} 갤러리`}
                     fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="object-contain transition-transform duration-300 group-hover:scale-105"
                     sizes="(max-width: 768px) 50vw, 33vw"
                   />
                 </div>
@@ -172,7 +172,7 @@ export default async function EventSnapLocationPage({ params }: PageProps) {
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
-                  className="aspect-square bg-muted rounded-lg flex items-center justify-center"
+                  className="aspect-[4/3] bg-muted rounded-lg flex items-center justify-center"
                 >
                   <svg
                     className="h-10 w-10 text-muted-foreground"

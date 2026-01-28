@@ -10,6 +10,15 @@ interface Stats {
   reviewSubmissions?: { pending: number };
 }
 
+interface QuickBooking {
+  id: number;
+  customerName: string;
+  weddingDate: string;
+  weddingVenue: string;
+  status: string;
+  product?: { name: string };
+}
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,19 +42,28 @@ export default function AdminPage() {
     reviews: 0,
     reviewSubmissions: { pending: 0 },
   });
+  const [upcomingBookings, setUpcomingBookings] = useState<QuickBooking[]>([]);
+  const [thisWeekBookings, setThisWeekBookings] = useState<QuickBooking[]>([]);
 
   // 페이지 로드 시 세션 확인
   useEffect(() => {
     checkSession();
   }, []);
 
-  // 로그인 후 통계 불러오기
+  // 로그인 후 통계·빠른 작업 데이터 불러오기
   useEffect(() => {
     if (isLoggedIn) {
       fetch("/api/admin/stats")
         .then((res) => res.json())
         .then((data) => setStats(data))
         .catch(console.error);
+      Promise.all([
+        fetch("/api/admin/bookings?upcoming_days=7&limit=10").then((r) => r.json()),
+        fetch("/api/admin/bookings?this_week=1&limit=10").then((r) => r.json()),
+      ]).then(([up, week]) => {
+        setUpcomingBookings(up.bookings || []);
+        setThisWeekBookings(week.bookings || []);
+      }).catch(console.error);
     }
   }, [isLoggedIn]);
 
@@ -63,7 +81,7 @@ export default function AdminPage() {
 
   const menuItems = [
     {
-      name: "예약 관리",
+      name: "예약글 관리",
       href: "/admin/reservations",
       icon: (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
@@ -72,6 +90,17 @@ export default function AdminPage() {
       ),
       count: stats.reservations.pending,
       description: "예약 문의 확인 및 답변",
+    },
+    {
+      name: "예약(북킹)",
+      href: "/admin/bookings",
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+        </svg>
+      ),
+      count: 0,
+      description: "예약 목록 및 결제·촬영 관리",
     },
     {
       name: "포트폴리오 관리",
@@ -484,25 +513,69 @@ export default function AdminPage() {
         {/* Quick Actions */}
         <div className="mt-8 rounded-xl border border-border bg-muted p-6">
           <h2 className="font-semibold mb-4">빠른 작업</h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 mb-6">
             <Link
-              href="/admin/portfolio/new"
+              href="/admin/bookings?upcoming_days=7"
               className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-all hover:bg-accent-hover"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              포트폴리오 추가
+              기한 임박 예약 (7일 이내)
             </Link>
             <Link
-              href="/admin/reviews/new"
+              href="/admin/bookings?this_week=1"
               className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-all hover:bg-background"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
               </svg>
-              후기 추가
+              금주 예약
             </Link>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">기한 얼마 안 남은 예약 (7일 이내)</h3>
+              <ul className="space-y-1.5">
+                {upcomingBookings.length === 0 ? (
+                  <li className="text-sm text-muted-foreground">없음</li>
+                ) : (
+                  upcomingBookings.slice(0, 5).map((b) => (
+                    <li key={b.id}>
+                      <Link href={`/admin/bookings/${b.id}`} className="text-sm text-accent hover:underline block truncate">
+                        {new Date(b.weddingDate).toLocaleDateString("ko-KR")} {b.weddingVenue} · {b.customerName}
+                      </Link>
+                    </li>
+                  ))
+                )}
+              </ul>
+              {upcomingBookings.length > 0 && (
+                <Link href="/admin/bookings?upcoming_days=7" className="text-xs text-muted-foreground hover:text-accent mt-1 inline-block">
+                  전체 보기 →
+                </Link>
+              )}
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">금주 예약</h3>
+              <ul className="space-y-1.5">
+                {thisWeekBookings.length === 0 ? (
+                  <li className="text-sm text-muted-foreground">없음</li>
+                ) : (
+                  thisWeekBookings.slice(0, 5).map((b) => (
+                    <li key={b.id}>
+                      <Link href={`/admin/bookings/${b.id}`} className="text-sm text-accent hover:underline block truncate">
+                        {new Date(b.weddingDate).toLocaleDateString("ko-KR")} {b.weddingVenue} · {b.customerName}
+                      </Link>
+                    </li>
+                  ))
+                )}
+              </ul>
+              {thisWeekBookings.length > 0 && (
+                <Link href="/admin/bookings?this_week=1" className="text-xs text-muted-foreground hover:text-accent mt-1 inline-block">
+                  전체 보기 →
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>
