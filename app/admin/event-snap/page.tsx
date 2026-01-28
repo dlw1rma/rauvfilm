@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Image from 'next/image';
-import { Trash2, Upload, Plus, X, ImageIcon } from 'lucide-react';
+import { Trash2, Upload, Plus, X, ImageIcon, Cloud } from 'lucide-react';
 
 interface EventSnapImage {
   id: number;
@@ -39,6 +39,11 @@ export default function EventSnapAdminPage() {
     slug: '',
     description: '',
   });
+  const [showCloudinary, setShowCloudinary] = useState(false);
+  const [cloudinaryImages, setCloudinaryImages] = useState<{ publicId: string; secureUrl: string }[]>([]);
+  const [loadingCloudinary, setLoadingCloudinary] = useState(false);
+  const [cloudinaryFolder, setCloudinaryFolder] = useState('');
+  const [addingPublicId, setAddingPublicId] = useState<string | null>(null);
 
   const fetchLocations = async () => {
     try {
@@ -95,6 +100,40 @@ export default function EventSnapAdminPage() {
     accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
     multiple: true,
   });
+
+  const fetchCloudinaryImages = async () => {
+    setLoadingCloudinary(true);
+    try {
+      const folderParam = cloudinaryFolder.trim() ? `folder=${encodeURIComponent(cloudinaryFolder.trim())}` : 'folder=all';
+      const res = await fetch(`/api/admin/cloudinary/images?${folderParam}&max_results=200`);
+      const data = await res.json();
+      setCloudinaryImages(data.images || []);
+    } catch (e) {
+      console.error(e);
+      setCloudinaryImages([]);
+    } finally {
+      setLoadingCloudinary(false);
+    }
+  };
+
+  const handleSelectFromCloudinary = async (publicId: string, secureUrl: string) => {
+    if (!selectedLocation) return;
+    setAddingPublicId(publicId);
+    try {
+      const res = await fetch('/api/admin/event-snap/add-from-cloudinary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locationId: selectedLocation, publicId, secureUrl }),
+      });
+      if (res.ok) {
+        fetchLocations();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAddingPublicId(null);
+    }
+  };
 
   const handleDelete = async (imageId: number) => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
@@ -242,6 +281,78 @@ export default function EventSnapAdminPage() {
           <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>아직 등록된 촬영 장소가 없습니다.</p>
           <p className="text-sm mt-1">새 장소 추가 버튼을 클릭하여 시작하세요.</p>
+        </div>
+      )}
+
+      {/* Cloudinary에서 선택 */}
+      {selectedLocation && (
+        <div className="flex flex-wrap gap-3 mb-4">
+          <button
+            type="button"
+            onClick={() => { setShowCloudinary(true); setCloudinaryImages([]); setCloudinaryFolder(''); }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/20 bg-[#1a1a1a] text-white/80 hover:border-accent hover:text-accent transition-colors"
+          >
+            <Cloud className="w-4 h-4" />
+            Cloudinary에서 선택
+          </button>
+        </div>
+      )}
+
+      {showCloudinary && selectedLocation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+          <div className="bg-[#1a1a1a] rounded-2xl border border-white/10 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h3 className="text-lg font-semibold text-white">Cloudinary에서 이미지 선택</h3>
+              <button onClick={() => setShowCloudinary(false)} className="p-2 text-white/50 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 border-b border-white/10 flex flex-wrap gap-2 items-center">
+              <input
+                type="text"
+                value={cloudinaryFolder}
+                onChange={(e) => setCloudinaryFolder(e.target.value)}
+                placeholder="폴더 경로 (비우면 전체)"
+                className="flex-1 min-w-[200px] px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/30"
+              />
+              <button
+                type="button"
+                onClick={() => fetchCloudinaryImages()}
+                disabled={loadingCloudinary}
+                className="px-4 py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 disabled:opacity-50"
+              >
+                {loadingCloudinary ? '불러오는 중...' : '이미지 불러오기'}
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              {loadingCloudinary ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-2 border-accent border-t-transparent" />
+                </div>
+              ) : cloudinaryImages.length === 0 ? (
+                <p className="text-center text-white/50 py-8">폴더를 입력하고 이미지 불러오기를 누르거나, 비운 뒤 불러오면 전체 이미지가 표시됩니다.</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  {cloudinaryImages.map((img) => (
+                    <button
+                      key={img.publicId}
+                      type="button"
+                      onClick={() => handleSelectFromCloudinary(img.publicId, img.secureUrl)}
+                      disabled={addingPublicId === img.publicId}
+                      className="relative aspect-[3/4] rounded-xl overflow-hidden border border-white/10 hover:border-accent transition-colors"
+                    >
+                      <Image src={img.secureUrl} alt="" fill className="object-cover" sizes="120px" />
+                      {addingPublicId === img.publicId && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                          <span className="text-sm text-white">등록 중...</span>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

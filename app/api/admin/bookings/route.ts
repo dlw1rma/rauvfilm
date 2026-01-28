@@ -35,8 +35,31 @@ export async function GET(request: NextRequest) {
     const search = sanitizeString(searchParams.get('search'), 100);
     const page = safeParseInt(searchParams.get('page'), 1, 1, 1000);
     const limit = safeParseInt(searchParams.get('limit'), 20, 1, 100);
+    const upcomingDays = searchParams.get('upcoming_days');
+    const thisWeek = searchParams.get('this_week') === '1';
 
     const where: Record<string, unknown> = {};
+
+    if (upcomingDays) {
+      const days = safeParseInt(upcomingDays, 7, 1, 90);
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + days);
+      where.weddingDate = { gte: start, lte: end };
+    }
+    if (thisWeek && !upcomingDays) {
+      const now = new Date();
+      const day = now.getDay();
+      const monOffset = day === 0 ? -6 : 1 - day;
+      const mon = new Date(now);
+      mon.setDate(mon.getDate() + monOffset);
+      mon.setHours(0, 0, 0, 0);
+      const sun = new Date(mon);
+      sun.setDate(sun.getDate() + 6);
+      sun.setHours(23, 59, 59, 999);
+      where.weddingDate = { gte: mon, lte: sun };
+    }
 
     // 상태 필터
     if (status && status !== 'all') {
