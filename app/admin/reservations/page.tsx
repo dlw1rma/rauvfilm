@@ -42,6 +42,7 @@ interface Reservation {
   makeupShop: string | null;
   dressShop: string | null;
   deliveryAddress: string | null;
+  usbOption: boolean | null;
   seonwonpan: boolean | null;
   gimbalShoot: boolean | null;
   playbackDevice: string | null;

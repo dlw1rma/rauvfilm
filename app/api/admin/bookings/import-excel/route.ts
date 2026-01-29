@@ -58,10 +58,6 @@ function parseDate(val: unknown): Date | null {
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function normalizePhone(val: unknown): string {
-  return String(val ?? '').replace(/[^0-9]/g, '') || '';
-}
-
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: '관리자 로그인이 필요합니다.' }, { status: 401 });
@@ -120,15 +116,15 @@ export async function POST(request: Request) {
       const row = rows[r] ?? [];
       const author = sanitizeString(row[authorCol], 50);
       const brideName = sanitizeString(row[brideNameCol], 50);
-      const bridePhone = normalizePhone(row[bridePhoneCol]);
+      const bridePhone = normalizePhone(String(row[bridePhoneCol] ?? ''));
       const groomName = sanitizeString(row[groomNameCol], 50);
-      const groomPhone = normalizePhone(row[groomPhoneCol]);
+      const groomPhone = normalizePhone(String(row[groomPhoneCol] ?? ''));
       const weddingDate = parseDate(row[dateCol]);
       const weddingTime = String(row[timeCol] ?? '').trim();
       const weddingVenue = String(row[venueCol] ?? '').trim();
       const venueFloor = String(row[venueFloorCol] ?? '').trim();
       const productType = String(row[productTypeCol] ?? '').trim();
-      const receiptPhone = normalizePhone(row[receiptPhoneCol]);
+      const receiptPhone = normalizePhone(String(row[receiptPhoneCol] ?? ''));
       const depositName = String(row[depositNameCol] ?? '').trim();
       const productEmail = String(row[productEmailCol] ?? '').trim();
       const partnerCode = String(row[partnerCodeCol] ?? '').trim();

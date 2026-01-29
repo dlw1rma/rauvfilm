@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       JSON.stringify({
         reservationId: reservation.id,
         customerName: decryptedAuthor,
-        customerPhone: reservation.overseasResident ? decryptedEmail : normalizedPhone,
+        customerPhone: reservation.overseasResident ? decryptedEmail : loginPhone,
         referralCode: reservation.referralCode,
         exp: Date.now() + 24 * 60 * 60 * 1000, // 24시간 후 만료
       })

@@ -271,6 +271,14 @@ export async function DELETE(
       );
     }
 
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { reservationId: true },
+    });
+    if (!booking) {
+      return NextResponse.json({ error: '예약을 찾을 수 없습니다.' }, { status: 404 });
+    }
+
     // 연결된 예약글(Reservation)도 삭제
     if (booking.reservationId) {
       try {

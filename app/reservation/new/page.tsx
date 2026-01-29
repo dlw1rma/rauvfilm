@@ -171,6 +171,13 @@ export default function NewReservationPage() {
     gimbalShoot: false,
     playbackDevice: [] as string[],
     
+    // 이벤트 예약
+    eventType: "",
+    shootLocation: "",
+    shootDate: "",
+    shootTime: "",
+    shootConcept: "",
+    
     // 할인사항 (체크박스)
     discountNewYear: true, // 신년할인 (항상 체크)
     discountReview: false, // 블로그와 카페 촬영후기 (총 2만원 페이백)
