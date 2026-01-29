@@ -55,8 +55,16 @@ export async function GET() {
     const discounts = [];
     let totalDiscount = 0;
 
-    // 신년 할인 (가성비형이 아니고 discountNewYear가 true인 경우만)
-    if (reservation.discountNewYear && reservation.productType !== '가성비형') {
+    // 르메그라피 제휴 할인 (메인스냅이 르메그라피이고 기본형/시네마틱형인 경우) - 신년할인과 동시 적용 불가
+    const mainSnapCompany = reservation.mainSnapCompany || '';
+    const isLemeGraphy = mainSnapCompany.toLowerCase().includes('르메그라피') || mainSnapCompany.toLowerCase().includes('leme');
+    const lemeProduct = reservation.productType === '기본형' || reservation.productType === '시네마틱형';
+
+    // 신년 할인 (가성비형 X, 르메그라피 제휴 할인 적용 시에는 적용 불가)
+    const canApplyNewYear = reservation.discountNewYear
+      && reservation.productType !== '가성비형'
+      && !(isLemeGraphy && lemeProduct);
+    if (canApplyNewYear) {
       const newYearDiscount = 50000;
       discounts.push({
         type: 'event',
@@ -67,10 +75,7 @@ export async function GET() {
       totalDiscount += newYearDiscount;
     }
 
-    // 르메그라피 제휴 할인 (메인스냅이 르메그라피이고 기본형/시네마틱형인 경우)
-    const mainSnapCompany = reservation.mainSnapCompany || '';
-    const isLemeGraphy = mainSnapCompany.toLowerCase().includes('르메그라피') || mainSnapCompany.toLowerCase().includes('leme');
-    if (isLemeGraphy && (reservation.productType === '기본형' || reservation.productType === '시네마틱형')) {
+    if (isLemeGraphy && lemeProduct) {
       const lemeGraphyDiscount = 150000;
       discounts.push({
         type: 'event',

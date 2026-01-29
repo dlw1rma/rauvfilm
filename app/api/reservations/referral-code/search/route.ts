@@ -27,17 +27,22 @@ export async function GET(request: NextRequest) {
 
     const searchTerm = query.trim();
 
-    // Reservation에서 CONFIRMED 상태이고 referralCode가 있는 것만 검색
-    // 예식 날짜가 지나지 않은 것만 검색
+    // 오늘 날짜 문자열 (YYYY-MM-DD) - 예식일이 지난 짝꿍코드는 검색에서 제외
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+    // Reservation에서 CONFIRMED, referralCode 있음, 예식일 >= 오늘 인 것만 검색
     const reservations = await prisma.reservation.findMany({
       where: {
-        status: 'CONFIRMED',
+        status: "CONFIRMED",
         referralCode: {
           not: null,
           contains: searchTerm,
+        },
+        weddingDate: {
+          not: null,
+          gte: todayStr, // 예식일이 오늘 이후인 것만 (문자열 비교로 YYYY-MM-DD)
         },
       },
       select: {
@@ -45,40 +50,13 @@ export async function GET(request: NextRequest) {
         author: true,
         weddingDate: true,
       },
-      take: 10, // 최대 10개 결과
-      orderBy: {
-        createdAt: 'desc',
-      },
+      take: 10,
+      orderBy: { createdAt: "desc" },
     });
 
-    // 결과 포맷팅 (이름 마스킹) 및 예식 날짜 필터링
+    // 결과 포맷팅 (이름 마스킹)
     const results = reservations
-      .filter((reservation) => {
-        // 예식 날짜가 없으면 제외 (예식일이 없으면 사용 불가)
-        if (!reservation.weddingDate) return false;
-        
-        try {
-          let weddingDate: Date;
-          if (typeof reservation.weddingDate === 'string') {
-            const dateStr = reservation.weddingDate.replace(/-/g, '').substring(0, 8);
-            if (dateStr.length === 8) {
-              const year = parseInt(dateStr.slice(0, 4));
-              const month = parseInt(dateStr.slice(4, 6)) - 1;
-              const day = parseInt(dateStr.slice(6, 8));
-              weddingDate = new Date(year, month, day);
-            } else {
-              return false; // 날짜 형식이 올바르지 않으면 제외
-            }
-          } else {
-            weddingDate = new Date(reservation.weddingDate);
-          }
-          
-          weddingDate.setHours(0, 0, 0, 0);
-          return weddingDate >= today; // 오늘 이후 날짜만 포함
-        } catch {
-          return false; // 파싱 실패 시 제외
-        }
-      })
+      .filter((reservation) => !!reservation.weddingDate)
       .map((reservation) => {
         // 개인정보 복호화 후 마스킹
         const decryptedAuthor = decrypt(reservation.author) || '';

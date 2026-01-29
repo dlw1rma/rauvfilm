@@ -8,7 +8,8 @@
     "build": "npm run prisma:generate && next build",
     "dev": "next dev",
     "start": "next start",
-    "db:seed": "npx tsx prisma/seed.ts"
+    "db:seed": "npx tsx prisma/seed.ts",
+    "create-partner-code": "npx tsx scripts/create-partner-code.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 interface Reservation {
   id: number;
+  bookingId: number | null;
   title: string;
   content: string | null;
   author: string;
@@ -21,6 +23,8 @@ interface Reservation {
   productEmail: string | null;
   productType: string | null;
   partnerCode: string | null;
+  referredBy: string | null;
+  referralDiscount: number | null;
   foundPath: string | null;
   termsAgreed: boolean | null;
   faqRead: boolean | null;
@@ -76,6 +80,7 @@ interface Reservation {
 }
 
 export default function AdminReservationsPage() {
+  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading: authLoading } = useAdminAuth();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +95,8 @@ export default function AdminReservationsPage() {
   const [searchName, setSearchName] = useState("");
   const [specialDiscount, setSpecialDiscount] = useState("");
   const [updatingDiscount, setUpdatingDiscount] = useState(false);
+  const [referredByEdit, setReferredByEdit] = useState("");
+  const [updatingReferral, setUpdatingReferral] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -97,6 +104,14 @@ export default function AdminReservationsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
+
+  const reservationIdParam = searchParams.get("reservationId");
+  useEffect(() => {
+    if (isAuthenticated && reservationIdParam) {
+      const id = parseInt(reservationIdParam, 10);
+      if (Number.isInteger(id) && id > 0) setSelectedId(id);
+    }
+  }, [isAuthenticated, reservationIdParam]);
   
   // 검색어 변경 시 자동 검색 (디바운스) - 날짜는 즉시, 이름은 500ms 후
   useEffect(() => {
@@ -171,9 +186,36 @@ export default function AdminReservationsPage() {
         const otherDiscounts = eventDiscount + referralDiscount + reviewDiscount + lemeGraphyDiscount;
         const specialDiscountAmount = (data.discountAmount || 0) - otherDiscounts;
         setSpecialDiscount(specialDiscountAmount > 0 ? specialDiscountAmount.toString() : "");
+        setReferredByEdit(data.referredBy ?? "");
       }
     } catch (error) {
       console.error("Failed to fetch reservation detail:", error);
+    }
+  };
+
+  const handleUpdateReferral = async () => {
+    if (!selectedId || selectedReservation == null) return;
+    setUpdatingReferral(true);
+    try {
+      const res = await fetch(`/api/admin/reservations/${selectedId}/referral`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          referredBy: referredByEdit.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await fetchReservationDetail(selectedId);
+        alert("짝꿍코드 적용 대상이 변경되었습니다.");
+      } else {
+        alert(data.error || "변경에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Failed to update referral:", error);
+      alert("변경 중 오류가 발생했습니다.");
+    } finally {
+      setUpdatingReferral(false);
     }
   };
 
@@ -538,14 +580,30 @@ export default function AdminReservationsPage() {
             </div>
             {selectedReservation ? (
               <div className="p-4 max-h-[600px] overflow-y-auto">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <h3 className="font-bold text-lg">{selectedReservation.title}</h3>
-                  <button
-                    onClick={() => handleDelete(selectedReservation.id)}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    삭제
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {selectedReservation.bookingId != null && (
+                      <Link
+                        href={`/admin/bookings/${selectedReservation.bookingId}`}
+                        className="text-sm text-accent hover:underline"
+                      >
+                        연결된 예약(북킹) 보기
+                      </Link>
+                    )}
+                    <Link
+                      href={`/admin/reservations/${selectedReservation.id}/edit`}
+                      className="text-sm px-3 py-1.5 rounded-lg bg-accent text-white hover:bg-accent/90"
+                    >
+                      예약글 편집
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(selectedReservation.id)}
+                      className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
 
                 {/* 기본 정보 */}
@@ -608,7 +666,7 @@ export default function AdminReservationsPage() {
                       <p className="font-medium">{selectedReservation.productType || "-"}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">짝궁 코드</p>
+                      <p className="text-muted-foreground">짝궁 코드 (이 고객의 코드)</p>
                       <p className="font-medium">{selectedReservation.partnerCode || "-"}</p>
                     </div>
                     <div>
@@ -616,6 +674,38 @@ export default function AdminReservationsPage() {
                       <p className="font-medium">{selectedReservation.foundPath || "-"}</p>
                     </div>
                   </div>
+                </div>
+
+                {/* 짝꿍코드 적용 대상 (관리자 변경) */}
+                <div className="mb-6">
+                  <h4 className="font-semibold mb-3 text-accent">짝꿍코드 적용 대상</h4>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    이 예약에 적용된 짝꿍 코드(추천인 코드)를 변경할 수 있습니다. 다른 고객의 확정된 짝꿍 코드를 입력하세요.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      value={referredByEdit}
+                      onChange={(e) => setReferredByEdit(e.target.value)}
+                      placeholder="예: 260126 홍길동 (비우면 적용 해제)"
+                      className="flex-1 min-w-[200px] rounded-lg border border-border bg-background px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                    <button
+                      onClick={handleUpdateReferral}
+                      disabled={updatingReferral}
+                      className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-50"
+                    >
+                      {updatingReferral ? "저장 중…" : "적용"}
+                    </button>
+                  </div>
+                  {selectedReservation.referredBy && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      현재 적용: {selectedReservation.referredBy}
+                      {selectedReservation.referralDiscount != null && selectedReservation.referralDiscount > 0 && (
+                        <span className="ml-2 text-green-600">(1만원 할인)</span>
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 {/* 본식 영상 예약 정보 */}
@@ -819,9 +909,15 @@ export default function AdminReservationsPage() {
                   </div>
                 </div>
 
-                {/* 다운로드 링크 관리 */}
+                {/* 제공 사항 / 다운로드 링크 관리 */}
                 <div className="mb-6">
-                  <h4 className="font-semibold mb-3 text-accent">다운로드 링크 관리</h4>
+                  <h4 className="font-semibold mb-3 text-accent">제공 사항 / 다운로드 링크 관리</h4>
+                  {selectedReservation.usbOption && selectedReservation.deliveryAddress && (
+                    <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
+                      <p className="text-sm font-medium text-muted-foreground mb-1">USB 배송지</p>
+                      <p className="text-sm whitespace-pre-wrap">{selectedReservation.deliveryAddress}</p>
+                    </div>
+                  )}
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">

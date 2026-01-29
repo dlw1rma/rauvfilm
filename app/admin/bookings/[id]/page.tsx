@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 interface BookingDetail {
   id: number;
+  reservationId: number | null;
   customerName: string;
   customerPhone: string;
   customerEmail: string | null;
@@ -223,6 +224,14 @@ export default function AdminBookingDetailPage() {
             </svg>
           </Link>
           <h1 className="text-2xl font-bold">예약 상세</h1>
+          {booking.reservationId != null && (
+            <Link
+              href={`/admin/reservations?reservationId=${booking.reservationId}`}
+              className="text-sm text-accent hover:underline"
+            >
+              연결된 예약글 보기
+            </Link>
+          )}
         </div>
         <button
           onClick={handleDelete}

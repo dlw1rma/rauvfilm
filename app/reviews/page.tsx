@@ -12,14 +12,41 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+function platformToSourceType(platform: string): string {
+  switch (platform) {
+    case "NAVER_BLOG": return "naver_blog";
+    case "NAVER_CAFE": return "naver_cafe";
+    case "INSTAGRAM": return "instagram";
+    default: return "other";
+  }
+}
+
 async function getReviews() {
   try {
-    const reviews = await prisma.review.findMany({
+    // 1. 관리자 등록 후기
+    const adminReviews = await prisma.review.findMany({
       where: { isVisible: true },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     });
 
-    return reviews.map((r) => ({
+    // 2. 고객 제출 후 승인된 후기 (APPROVED, AUTO_APPROVED)
+    const approvedSubmissions = await prisma.reviewSubmission.findMany({
+      where: { status: { in: ["APPROVED", "AUTO_APPROVED"] } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const customerReviews = approvedSubmissions.map((submission) => ({
+      id: submission.id + 100000,
+      title: submission.title || "라우브필름 촬영 후기",
+      excerpt: submission.excerpt || null,
+      sourceUrl: submission.reviewUrl,
+      sourceType: platformToSourceType(submission.platform),
+      author: submission.author || null,
+      imageUrl: submission.imageUrl || null,
+      createdAt: submission.createdAt,
+    }));
+
+    const adminMapped = adminReviews.map((r) => ({
       id: r.id,
       title: r.title,
       excerpt: r.excerpt,
@@ -29,6 +56,8 @@ async function getReviews() {
       imageUrl: r.imageUrl,
       createdAt: r.createdAt,
     }));
+
+    return [...adminMapped, ...customerReviews];
   } catch (error) {
     console.error("Error fetching reviews:", error);
     return [];

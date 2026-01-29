@@ -37,7 +37,10 @@ model Reservation {
   
   // 개인정보 활용 동의
   privacyAgreed   Boolean? @default(false) // 개인정보 수집 이용 동의
-  
+
+  // 해외 거주 (한국 번호 없음) - 비밀번호=이메일, SMS 미발송
+  overseasResident Boolean? @default(false)
+
   // 본식DVD 예약 고객님 필수 추가 작성 항목
   weddingDate     String?   // 예식 날짜 (텍스트)
   weddingTime     String?   // 예식 시간 (텍스트)
@@ -116,6 +119,9 @@ model Reservation {
   email       String?  // 기존 필드 (deprecated)
   location    String?  // 기존 필드 (deprecated)
   
+  // 예약관리(Booking)와 동기화
+  bookingId   Int?      // 연결된 Booking ID
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   reply       Reply?
@@ -281,6 +287,9 @@ model Booking {
   isAnonymized     Boolean      @default(false)
   anonymizedAt     DateTime?
 
+  // 예약글(Reservation)과 동기화
+  reservationId    Int?         // 연결된 Reservation ID
+
   // 관계
   referrals         Booking[]    @relation("ReferralRelation")
   referrer          Booking?     @relation("ReferralRelation", fields: [referredByBookingId], references: [id])
@@ -345,6 +354,25 @@ enum ReviewStatus {
   MANUAL_REVIEW   // 수동 검토 필요
   APPROVED        // 승인 (할인 적용)
   REJECTED        // 거절
+}
+
+// 야외스냅/프리웨딩 신청 (예약글과 별도, 마이페이지에서 신청)
+model EventSnapApplication {
+  id              Int       @id @default(autoincrement())
+  reservationId   Int?      // 로그인한 고객의 예약 ID (마이페이지 연동)
+  type            String    // "야외스냅" | "프리웨딩"
+  customerName    String    // 신청자 성함
+  customerPhone   String    // 연락처
+  customerEmail   String?   // 이메일 (선택)
+  shootLocation   String?   // 희망 촬영 장소
+  shootDate       String?   // 촬영 희망 날짜 (텍스트)
+  shootTime       String?   // 촬영 희망 시간 (텍스트)
+  shootConcept    String?   @db.Text // 원하시는 컨셉
+  specialNotes    String?   @db.Text // 특이사항
+  status          String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED
+  adminNote       String?   @db.Text // 관리자 메모
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 // 시스템 설정

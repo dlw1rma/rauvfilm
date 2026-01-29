@@ -101,6 +101,20 @@ export async function GET() {
       CANCELLED: '취소됨',
     };
 
+    const reservationIds = myReservations.map((r) => r.id);
+    const eventSnapByReservation = await prisma.eventSnapApplication.findMany({
+      where: { reservationId: { in: reservationIds } },
+      orderBy: { createdAt: "desc" },
+    });
+    const eventSnapMap = new Map<number, typeof eventSnapByReservation>();
+    for (const app of eventSnapByReservation) {
+      if (app.reservationId == null) continue;
+      if (!eventSnapMap.has(app.reservationId)) {
+        eventSnapMap.set(app.reservationId, []);
+      }
+      eventSnapMap.get(app.reservationId)!.push(app);
+    }
+
     return NextResponse.json({
       reservations: myReservations.map((reservation) => ({
         id: reservation.id,
@@ -111,7 +125,8 @@ export async function GET() {
         status: reservation.status,
         statusLabel: statusLabels[reservation.status || 'PENDING'] || '예약 대기',
         createdAt: reservation.createdAt,
-        hasReply: false, // reply는 include하지 않았으므로 false
+        hasReply: false,
+        eventSnapApplications: eventSnapMap.get(reservation.id) ?? [],
       })),
     });
   } catch (error) {

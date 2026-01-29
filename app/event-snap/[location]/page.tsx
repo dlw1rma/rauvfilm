@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import GalleryWithLightbox from "@/components/event-snap/GalleryWithLightbox";
 
 interface PageProps {
   params: Promise<{ location: string }>;
@@ -74,7 +75,6 @@ export default async function EventSnapLocationPage({ params }: PageProps) {
   }
 
   const featuredImage = location.images.find(img => img.isFeatured) || location.images[0];
-  const galleryImages = location.images.filter(img => img !== featuredImage);
 
   return (
     <div className="min-h-screen py-20 px-4">
@@ -98,14 +98,22 @@ export default async function EventSnapLocationPage({ params }: PageProps) {
           </p>
         </div>
 
-        {/* Main Image */}
-        <div className="relative aspect-video bg-muted rounded-xl mb-8 overflow-hidden">
+        {/* Main Image - 원본 비율로 박스 꽉 차게 */}
+        <div
+          className="relative w-full bg-muted rounded-xl mb-8 overflow-hidden"
+          style={{
+            aspectRatio:
+              featuredImage?.width && featuredImage?.height
+                ? `${featuredImage.width} / ${featuredImage.height}`
+                : "16 / 9",
+          }}
+        >
           {featuredImage ? (
             <Image
               src={featuredImage.secureUrl}
               alt={featuredImage.alt || location.name}
               fill
-              className="object-contain"
+              className="object-cover"
               sizes="(max-width: 896px) 100vw, 896px"
               priority
             />
@@ -142,26 +150,17 @@ export default async function EventSnapLocationPage({ params }: PageProps) {
         )}
 
         {/* Gallery */}
-        {galleryImages.length > 0 && (
-          <div className="mb-12">
-            <h2 className="font-bold mb-6">갤러리</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {galleryImages.map((image) => (
-                <div
-                  key={image.id}
-                  className="relative aspect-[4/3] bg-muted rounded-lg overflow-hidden group"
-                >
-                  <Image
-                    src={image.secureUrl}
-                    alt={image.alt || `${location.name} 갤러리`}
-                    fill
-                    className="object-contain transition-transform duration-300 group-hover:scale-105"
-                    sizes="(max-width: 768px) 50vw, 33vw"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+        {location.images.length > 0 && (
+          <GalleryWithLightbox
+            images={location.images.map((img) => ({
+              id: img.id,
+              secureUrl: img.secureUrl,
+              alt: img.alt,
+              width: img.width,
+              height: img.height,
+            }))}
+            locationName={location.name}
+          />
         )}
 
         {/* Empty Gallery State */}

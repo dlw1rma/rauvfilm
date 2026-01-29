@@ -131,8 +131,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
       // 자신의 예약글이면 자동으로 열람 가능
       if (isOwner) {
+        const eventSnapApplications = await prisma.eventSnapApplication.findMany({
+          where: { reservationId: reservationId },
+          orderBy: { createdAt: "desc" },
+        });
         return NextResponse.json({
           ...decryptedReservation,
+          eventSnapApplications,
           isLocked: false,
         });
       }
@@ -141,9 +146,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       if (passwordParam) {
         const isPasswordValid = await bcrypt.compare(passwordParam, reservation.password);
         if (isPasswordValid) {
-          // 비밀번호 일치 - 전체 내용 반환 (복호화된 데이터)
+          const eventSnapApplications = await prisma.eventSnapApplication.findMany({
+            where: { reservationId: reservationId },
+            orderBy: { createdAt: "desc" },
+          });
           return NextResponse.json({
             ...decryptedReservation,
+            eventSnapApplications,
             isLocked: false,
           });
         }
@@ -156,6 +165,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         author: decryptedReservation.author, // 복호화된 이름만 표시
         isPrivate: true,
         isLocked: true,
+        overseasResident: !!reservation.overseasResident,
         createdAt: reservation.createdAt,
         content: "비밀글입니다. 비밀번호를 입력해주세요.",
         phone: null,
@@ -169,8 +179,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
     }
 
+    const eventSnapApplications = await prisma.eventSnapApplication.findMany({
+      where: { reservationId: reservationId },
+      orderBy: { createdAt: "desc" },
+    });
     return NextResponse.json({
       ...decryptedReservation,
+      eventSnapApplications,
       isLocked: false,
     });
   } catch (error) {

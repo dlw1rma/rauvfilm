@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
       faqRead,
       // 개인정보 활용 동의
       privacyAgreed,
+      // 해외 거주 (비밀번호=이메일, SMS 미발송)
+      overseasResident,
       // 본식DVD 예약 고객님 필수 추가 작성 항목
       weddingDate,
       weddingTime,
@@ -163,16 +165,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!sanitizedBrideName || !normalizedBridePhone || !sanitizedGroomName || !normalizedGroomPhone) {
+    const isOverseas = !!overseasResident;
+    if (!sanitizedBrideName || !sanitizedGroomName) {
       return NextResponse.json(
-        { error: "신부님/신랑님 성함 및 전화번호는 필수 항목입니다." },
+        { error: "신부님/신랑님 성함은 필수 항목입니다." },
         { status: 400 }
       );
     }
-
-    if (normalizedBridePhone.length < 10 || normalizedGroomPhone.length < 10) {
+    if (!isOverseas && (!normalizedBridePhone || !normalizedGroomPhone)) {
+      return NextResponse.json(
+        { error: "신부님/신랑님 전화번호는 필수 항목입니다. (해외 거주 시 '해외 거주' 체크)" },
+        { status: 400 }
+      );
+    }
+    if (!isOverseas && (normalizedBridePhone.length < 10 || normalizedGroomPhone.length < 10)) {
       return NextResponse.json(
         { error: "전화번호 형식이 올바르지 않습니다." },
+        { status: 400 }
+      );
+    }
+    if (isOverseas && !productEmail) {
+      return NextResponse.json(
+        { error: "해외 거주 시 이메일 주소는 필수입니다." },
         { status: 400 }
       );
     }
@@ -235,14 +249,48 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 짝꿍 할인 처리 - 예약 생성 시에는 할인 적용하지 않음 (CONFIRMED 상태가 되어야 할인 적용)
-    // partnerCode만 저장하고, 예약 승인 시 할인 적용
-    // 할인은 예약이 CONFIRMED 상태로 변경될 때 적용됨 (app/api/reservations/[id]/reply/route.ts)
+    // 짝꿍 할인: 예약 생성 시 유효한 partnerCode가 있으면 1만원 즉시 적용
+    if (discountCouple && partnerCode && typeof partnerCode === "string") {
+      const trimmedCode = String(partnerCode).trim();
+      if (trimmedCode.length >= 2) {
+        const referrerRes = await prisma.reservation.findUnique({
+          where: { referralCode: trimmedCode },
+          select: { id: true, status: true, weddingDate: true },
+        });
+        if (referrerRes && referrerRes.status === "CONFIRMED" && referrerRes.weddingDate) {
+          try {
+            let wd: Date;
+            if (typeof referrerRes.weddingDate === "string") {
+              const ds = referrerRes.weddingDate.replace(/-/g, "").substring(0, 8);
+              if (ds.length === 8) {
+                wd = new Date(
+                  parseInt(ds.slice(0, 4), 10),
+                  parseInt(ds.slice(4, 6), 10) - 1,
+                  parseInt(ds.slice(6, 8), 10)
+                );
+              } else {
+                wd = new Date(referrerRes.weddingDate);
+              }
+            } else {
+              wd = new Date(referrerRes.weddingDate);
+            }
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            wd.setHours(0, 0, 0, 0);
+            if (wd >= today) {
+              referralDiscount = 10000;
+            }
+          } catch {
+            // 날짜 파싱 실패 시 할인 미적용
+          }
+        }
+      }
+    }
 
     // 르메그라피 제휴 할인 (15만원)
     const lemeGraphyDiscountAmount = lemeGraphyDiscount || 0;
 
-    // 할인 총액 계산
+    // 할인 총액 계산 (신년/후기/짝꿍/르메그라피 등)
     const discountAmount = referralDiscount + reviewDiscount + lemeGraphyDiscountAmount;
 
     // 최종 잔금 계산: 정가 - 예약금 - 할인들
@@ -257,10 +305,10 @@ export async function POST(request: NextRequest) {
         isPrivate: isPrivate !== undefined ? isPrivate : true, // 기본값 true (비밀글만)
         // 필수 작성항목(공통) - 개인정보 암호화
         brideName: encrypt(sanitizedBrideName) || null,
-        bridePhone: encrypt(normalizedBridePhone) || null,
+        bridePhone: isOverseas ? null : (encrypt(normalizedBridePhone) || null),
         groomName: encrypt(sanitizedGroomName) || null,
-        groomPhone: encrypt(normalizedGroomPhone) || null,
-        receiptPhone: encrypt(receiptPhone ? normalizePhone(receiptPhone) : null) || null,
+        groomPhone: isOverseas ? null : (encrypt(normalizedGroomPhone) || null),
+        receiptPhone: isOverseas ? null : (encrypt(receiptPhone ? normalizePhone(receiptPhone) : null) || null),
         depositName: depositName || null,
         productEmail: encrypt(productEmail) || null, // 이메일 암호화
         productType: productType || null,
@@ -271,6 +319,7 @@ export async function POST(request: NextRequest) {
         faqRead: faqRead || false,
         // 개인정보 활용 동의
         privacyAgreed: privacyAgreed || false,
+        overseasResident: isOverseas,
         // 본식DVD 예약 고객님 필수 추가 작성 항목
         weddingDate: weddingDate || null,
         weddingTime: weddingTime || null,
@@ -295,10 +344,16 @@ export async function POST(request: NextRequest) {
         shootDate: shootDate || null,
         shootTime: shootTime || null,
         shootConcept: shootConcept || null,
-        // 할인사항 (체크박스)
+        // 할인사항 (체크박스) - 가성비형·르메그라피 제휴 시 신년할인 적용 불가
         discountCouple: discountCouple || false,
         discountReview: discountReview || false,
-        discountNewYear: discountNewYear !== undefined ? discountNewYear : true, // 기본값 true (항상 체크)
+        discountNewYear: (() => {
+          if (productType === "가성비형") return false; // 가성비형은 신년할인 적용 대상 아님
+          const isLeme = (mainSnapCompany || "").toLowerCase().includes("르메그라피") || (mainSnapCompany || "").toLowerCase().includes("leme");
+          const lemeProduct = productType === "기본형" || productType === "시네마틱형";
+          if (isLeme && lemeProduct) return false;
+          return discountNewYear !== undefined ? discountNewYear : true;
+        })(),
         discountReviewBlog: discountReviewBlog || false,
         // 특이사항
         specialNotes: specialNotes || null,
@@ -323,6 +378,45 @@ export async function POST(request: NextRequest) {
         referredCount: 0,
       },
     });
+
+    // 예약관리(Booking) 동기화 생성 (예식일과 장소가 있을 때만, 해외거주가 아닐 때만)
+    if (weddingDate && venueName && normalizedBridePhone && !isOverseas) {
+      try {
+        const defaultProduct = await prisma.product.findFirst({ where: {} });
+        if (defaultProduct) {
+          const weddingDateObj = new Date(weddingDate);
+          if (!isNaN(weddingDateObj.getTime())) {
+            const booking = await prisma.booking.create({
+              data: {
+                customerName: sanitizedAuthor,
+                customerPhone: normalizedBridePhone,
+                customerEmail: productEmail || null,
+                weddingDate: weddingDateObj,
+                weddingVenue: venueName,
+                weddingTime: weddingTime || null,
+                productId: defaultProduct.id,
+                listPrice: totalAmount || defaultProduct.price,
+                eventDiscount: discountAmount || 0,
+                referralDiscount: referralDiscount || 0,
+                reviewDiscount: reviewDiscount || 0,
+                finalBalance: finalBalance || (totalAmount || defaultProduct.price) - (depositAmount || 100000) - (discountAmount || 0),
+                status: reservation.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING',
+                reservationId: reservation.id,
+              },
+            });
+
+            // Reservation에 bookingId 연결
+            await prisma.reservation.update({
+              where: { id: reservation.id },
+              data: { bookingId: booking.id },
+            });
+          }
+        }
+      } catch (syncError) {
+        console.error('예약관리 동기화 생성 오류 (계속 진행):', syncError);
+        // 동기화 실패해도 Reservation 생성은 성공으로 처리
+      }
+    }
 
     return NextResponse.json(
       { message: "예약 문의가 등록되었습니다.", id: reservation.id },

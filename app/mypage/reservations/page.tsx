@@ -4,6 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+interface EventSnapApp {
+  id: number;
+  type: string;
+  status: string;
+  shootDate: string | null;
+  shootTime: string | null;
+  shootLocation: string | null;
+}
+
 interface Reservation {
   id: number;
   title: string;
@@ -14,6 +23,7 @@ interface Reservation {
   statusLabel: string;
   createdAt: string;
   hasReply: boolean;
+  eventSnapApplications?: EventSnapApp[];
 }
 
 export default function MyReservationsPage() {
@@ -97,10 +107,22 @@ export default function MyReservationsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className={`px-3 py-1 rounded text-xs font-medium ${statusColors[reservation.status] || 'bg-muted text-muted-foreground'}`}>
                       {reservation.statusLabel}
                     </span>
+                    {(reservation.eventSnapApplications ?? []).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {reservation.eventSnapApplications!.map((ev) => (
+                          <span
+                            key={ev.id}
+                            className={`px-2 py-0.5 rounded text-xs font-medium ${ev.status === "CONFIRMED" ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}
+                          >
+                            {ev.type} {ev.status === "CONFIRMED" ? "확정" : "등록됨"}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
@@ -109,7 +131,7 @@ export default function MyReservationsPage() {
                   </span>
                   <div className="flex gap-2">
                     <Link
-                      href={`/reservation/${reservation.id}`}
+                      href={`/mypage/reservations/${reservation.id}`}
                       className="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
                     >
                       상세보기

@@ -104,6 +104,11 @@ export async function GET(
       );
     }
 
+    const eventSnapApplications = await prisma.eventSnapApplication.findMany({
+      where: { reservationId: reservationId },
+      orderBy: { createdAt: "desc" },
+    });
+
     // 개인정보 복호화하여 반환
     return NextResponse.json({
       id: reservation.id,
@@ -154,6 +159,7 @@ export async function GET(
       customEffect: reservation.customEffect,
       customContent: reservation.customContent,
       customSpecialRequest: reservation.customSpecialRequest,
+      eventSnapApplications,
     });
   } catch (error) {
     console.error('예약 조회 오류:', error);

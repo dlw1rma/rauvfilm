@@ -15,15 +15,22 @@ export const metadata: Metadata = {
 async function getCoalitionImage() {
   try {
     const image = await prisma.siteImage.findFirst({
-      where: { 
-        category: 'coalition',
-        isActive: true 
+      where: {
+        category: "coalition",
+        isActive: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        secureUrl: true,
+        alt: true,
+        width: true,
+        height: true,
+      },
     });
     return image;
   } catch (error) {
-    console.error('Failed to fetch coalition image:', error);
+    console.error("Failed to fetch coalition image:", error);
     return null;
   }
 }
@@ -43,23 +50,37 @@ export default async function CoalitionPage() {
           </p>
         </div>
 
-        {/* 제휴사 이미지 */}
+        {/* 제휴사 이미지 - 이미지 비율에 맞춰 박스 조절, 잘리지 않게 표시 */}
         {coalitionImage && (
           <div className="mb-12">
             <a
               href={lemeGraphyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="block relative aspect-video rounded-xl overflow-hidden bg-muted border border-border hover:shadow-lg transition-shadow cursor-pointer"
+              className="block w-full max-w-full rounded-xl overflow-hidden bg-muted border border-border hover:shadow-lg transition-shadow cursor-pointer"
             >
-              <Image
-                src={coalitionImage.secureUrl}
-                alt={coalitionImage.alt || "제휴사 이미지"}
-                fill
-                className="object-cover"
-                sizes="(max-width: 896px) 100vw, 896px"
-                priority
-              />
+              {coalitionImage.width && coalitionImage.height ? (
+                <Image
+                  src={coalitionImage.secureUrl}
+                  alt={coalitionImage.alt || "제휴사 이미지"}
+                  width={coalitionImage.width}
+                  height={coalitionImage.height}
+                  className="w-full h-auto object-contain"
+                  sizes="(max-width: 896px) 100vw, 896px"
+                  priority
+                />
+              ) : (
+                <span className="block relative w-full" style={{ aspectRatio: "16/9" }}>
+                  <Image
+                    src={coalitionImage.secureUrl}
+                    alt={coalitionImage.alt || "제휴사 이미지"}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 896px) 100vw, 896px"
+                    priority
+                  />
+                </span>
+              )}
             </a>
           </div>
         )}

@@ -18,33 +18,34 @@ function normalizePhone(phone: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, phone } = body;
+    const { name, phone, email } = body;
+    const loginEmail = (email || '').trim().toLowerCase();
+    const loginPhone = phone ? normalizePhone(phone) : '';
 
-    // 입력 검증
-    if (!name || !phone) {
+    // 입력 검증: 성함 + (전화번호 또는 이메일)
+    if (!name || (!loginPhone && !loginEmail)) {
       return NextResponse.json(
-        { error: '성함과 전화번호를 입력해주세요.' },
+        { error: '성함과 전화번호(또는 해외 거주 시 이메일)를 입력해주세요.' },
         { status: 400 }
       );
     }
 
-    const normalizedPhone = normalizePhone(phone);
-
-    if (normalizedPhone.length < 10 || normalizedPhone.length > 11) {
+    if (loginPhone && (loginPhone.length < 10 || loginPhone.length > 11)) {
       return NextResponse.json(
         { error: '올바른 전화번호를 입력해주세요.' },
         { status: 400 }
       );
     }
 
-    // Reservation 테이블에서 조회 (계약자 성함 + 전화번호)
-    // 암호화된 필드이므로 모든 예약을 가져와서 복호화 후 비교
+    // Reservation 테이블에서 조회 (계약자 성함 + 전화번호 또는 이메일)
     const reservations = await prisma.reservation.findMany({
       orderBy: {
-        createdAt: 'desc', // 최신 예약 우선
+        createdAt: 'desc',
       },
-      take: 100, // 최근 100개만 조회 (성능 최적화)
+      take: 100,
     });
+
+    const trimmedName = name.trim();
 
     // 복호화 후 비교
     const reservation = reservations.find((r) => {
@@ -53,26 +54,24 @@ export async function POST(request: NextRequest) {
       const decryptedGroomName = decrypt(r.groomName) || '';
       const decryptedBridePhone = decrypt(r.bridePhone) || '';
       const decryptedGroomPhone = decrypt(r.groomPhone) || '';
+      const decryptedProductEmail = (decrypt(r.productEmail) || '').trim().toLowerCase();
 
-      const trimmedName = name.trim();
-      
-      // 신부 정보로 로그인
-      if (decryptedBrideName === trimmedName && decryptedBridePhone.replace(/[^0-9]/g, '') === normalizedPhone) {
-        return true;
+      // 해외 거주: 성함 + 이메일로 로그인
+      if (r.overseasResident && loginEmail) {
+        if (decryptedProductEmail !== loginEmail) return false;
+        if (decryptedAuthor === trimmedName || decryptedBrideName === trimmedName || decryptedGroomName === trimmedName) {
+          return true;
+        }
+        return false;
       }
-      // 신랑 정보로 로그인
-      if (decryptedGroomName === trimmedName && decryptedGroomPhone.replace(/[^0-9]/g, '') === normalizedPhone) {
-        return true;
-      }
-      // 계약자 이름 + 신부 전화번호
-      if (decryptedAuthor === trimmedName && decryptedBridePhone.replace(/[^0-9]/g, '') === normalizedPhone) {
-        return true;
-      }
-      // 계약자 이름 + 신랑 전화번호
-      if (decryptedAuthor === trimmedName && decryptedGroomPhone.replace(/[^0-9]/g, '') === normalizedPhone) {
-        return true;
-      }
-      
+
+      // 일반: 전화번호로 로그인
+      if (!loginPhone) return false;
+      const normalizedBride = decryptedBridePhone.replace(/[^0-9]/g, '');
+      const normalizedGroom = decryptedGroomPhone.replace(/[^0-9]/g, '');
+      if (decryptedBrideName === trimmedName && normalizedBride === loginPhone) return true;
+      if (decryptedGroomName === trimmedName && normalizedGroom === loginPhone) return true;
+      if (decryptedAuthor === trimmedName && (normalizedBride === loginPhone || normalizedGroom === loginPhone)) return true;
       return false;
     });
 
@@ -83,13 +82,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 세션 토큰 생성
+    // 세션 토큰 생성 (해외 거주 시 customerPhone에 이메일 저장)
     const decryptedAuthor = decrypt(reservation.author) || '';
+    const decryptedEmail = reservation.overseasResident ? (decrypt(reservation.productEmail) || '') : '';
     const sessionToken = Buffer.from(
       JSON.stringify({
         reservationId: reservation.id,
         customerName: decryptedAuthor,
-        customerPhone: normalizedPhone,
+        customerPhone: reservation.overseasResident ? decryptedEmail : normalizedPhone,
         referralCode: reservation.referralCode,
         exp: Date.now() + 24 * 60 * 60 * 1000, // 24시간 후 만료
       })

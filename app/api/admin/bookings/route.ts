@@ -8,7 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { formatKRW } from '@/lib/pricing';
-import { safeParseInt, sanitizeString } from '@/lib/validation';
+import { safeParseInt, sanitizeString, normalizePhone } from '@/lib/validation';
+import { encrypt } from '@/lib/encryption';
+import bcrypt from 'bcryptjs';
 
 import { validateSessionToken } from '@/lib/auth';
 
@@ -114,6 +116,7 @@ export async function GET(request: NextRequest) {
         weddingTime: b.weddingTime,
         status: b.status,
         partnerCode: b.partnerCode,
+        reservationId: b.reservationId ?? null,
         product: {
           id: b.product.id,
           name: b.product.name,
@@ -233,6 +236,56 @@ export async function POST(request: NextRequest) {
         discountEvent: true,
       },
     });
+
+    // 예약글(Reservation) 동기화 생성
+    try {
+      const weddingDateStr = new Date(weddingDate).toISOString().slice(0, 10);
+      const title = `[예약관리] ${customerName} ${weddingDateStr}`;
+      const hashedPassword = await bcrypt.hash('booking-sync', 10);
+      const encryptedAuthor = encrypt(customerName.trim()) ?? customerName.trim();
+
+      const reservation = await prisma.reservation.create({
+        data: {
+          title,
+          author: encryptedAuthor,
+          password: hashedPassword,
+          content: `예약관리에서 생성됨: ${weddingVenue}`,
+          isPrivate: true,
+          status: booking.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING',
+          weddingDate: weddingDateStr,
+          weddingTime: weddingTime || null,
+          venueName: weddingVenue,
+          productType: product.name || null,
+          termsAgreed: true,
+          faqRead: true,
+          privacyAgreed: true,
+          totalAmount: product.price,
+          depositAmount: 100000,
+          discountAmount: eventDiscount,
+          finalBalance: product.price - 100000 - eventDiscount,
+          bookingId: booking.id,
+        },
+      });
+
+      // Booking에 reservationId 연결
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: { reservationId: reservation.id },
+      });
+
+      // 예약확정 상태면 Reply 생성
+      if (booking.status === 'CONFIRMED') {
+        await prisma.reply.create({
+          data: {
+            reservationId: reservation.id,
+            content: '예약 확정되었습니다.',
+          },
+        });
+      }
+    } catch (syncError) {
+      console.error('예약글 동기화 생성 오류 (계속 진행):', syncError);
+      // 동기화 실패해도 Booking 생성은 성공으로 처리
+    }
 
     return NextResponse.json({
       success: true,

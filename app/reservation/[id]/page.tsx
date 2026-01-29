@@ -4,6 +4,15 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
+interface EventSnapItem {
+  id: number;
+  type: string;
+  status: string;
+  shootDate: string | null;
+  shootTime: string | null;
+  shootLocation: string | null;
+}
+
 interface Reservation {
   id: number;
   title: string;
@@ -15,19 +24,21 @@ interface Reservation {
   location: string | null;
   isPrivate: boolean;
   isLocked?: boolean;
+  overseasResident?: boolean;
   createdAt: string;
   reply: {
     content: string;
     createdAt: string;
   } | null;
+  eventSnapApplications?: EventSnapItem[];
 }
 
-// 작성자 이름 마스킹 함수 (첫 글자와 두 번째 글자만 보이고 나머지는 *)
+// 작성자 이름 마스킹 함수 (첫 글자만 보이고 나머지는 *)
 const maskAuthorName = (name: string): string => {
   if (!name || name.length === 0) return "";
   if (name.length === 1) return name + "*";
-  if (name.length === 2) return name[0] + name[1] + "*";
-  return name[0] + name[1] + "*".repeat(name.length - 2);
+  if (name.length === 2) return name[0] + "*";
+  return name[0] + "*".repeat(name.length - 1);
 };
 
 export default function ReservationDetailPage() {
@@ -198,7 +209,9 @@ export default function ReservationDetailPage() {
               <br />
               비밀번호를 입력하여 내용을 확인하세요.
               <br />
-              <span className="text-sm font-medium text-accent">비밀번호는 예약자 전화번호입니다.</span>
+              <span className="text-sm font-medium text-accent">
+                비밀번호는 {reservation.overseasResident ? "예약 시 등록한 이메일" : "예약자 전화번호"}입니다.
+              </span>
             </p>
             <div className="flex flex-col items-center gap-2">
               <p className="text-sm text-muted-foreground">
@@ -219,21 +232,22 @@ export default function ReservationDetailPage() {
               <div className="w-full max-w-sm rounded-xl bg-muted p-6">
               <h3 className="mb-4 text-lg font-bold">비밀번호 확인</h3>
               <p className="mb-3 text-sm text-muted-foreground">
-                비밀번호는 예약자 전화번호입니다.
+                비밀번호는 {reservation.overseasResident ? "예약 시 등록한 이메일" : "예약자 전화번호"}입니다.
               </p>
               <form onSubmit={handlePasswordSubmit}>
                 <input
-                  type="text"
+                  type={reservation.overseasResident ? "email" : "text"}
                   value={password}
                   onChange={(e) => {
-                    // 숫자만 입력 가능하고 최대 11자리로 제한
-                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                    const value = reservation.overseasResident
+                      ? e.target.value
+                      : e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
                     setPassword(value);
                   }}
-                  placeholder="예약자 전화번호를 입력하세요 (숫자만, 최대 11자리)"
+                  placeholder={reservation.overseasResident ? "예약 시 등록한 이메일을 입력하세요" : "예약자 전화번호를 입력하세요 (숫자만, 최대 11자리)"}
                   className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   autoFocus
-                  maxLength={11}
+                  maxLength={reservation.overseasResident ? undefined : 11}
                 />
                   {actionError && (
                     <p className="mb-4 text-sm text-accent">{actionError}</p>
@@ -322,6 +336,21 @@ export default function ReservationDetailPage() {
               <span>작성자: {maskAuthorName(reservation.author)}</span>
               <span>|</span>
               <span>작성일: {reservation.createdAt.split("T")[0]}</span>
+              {(reservation.eventSnapApplications ?? []).length > 0 && (
+                <>
+                  <span>|</span>
+                  <div className="flex flex-wrap gap-1">
+                    {reservation.eventSnapApplications!.map((ev) => (
+                      <span
+                        key={ev.id}
+                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${ev.status === "CONFIRMED" ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}
+                      >
+                        {ev.type} {ev.status === "CONFIRMED" ? "확정" : "등록됨"}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -396,21 +425,22 @@ export default function ReservationDetailPage() {
             <div className="w-full max-w-sm rounded-xl bg-muted p-6">
               <h3 className="mb-4 text-lg font-bold">비밀번호 확인</h3>
               <p className="mb-3 text-sm text-muted-foreground">
-                비밀번호는 예약자 전화번호입니다.
+                비밀번호는 {reservation.overseasResident ? "예약 시 등록한 이메일" : "예약자 전화번호"}입니다.
               </p>
               <form onSubmit={handlePasswordSubmit}>
                 <input
-                  type="text"
+                  type={reservation.overseasResident ? "email" : "text"}
                   value={password}
                   onChange={(e) => {
-                    // 숫자만 입력 가능하고 최대 11자리로 제한
-                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                    const value = reservation.overseasResident
+                      ? e.target.value
+                      : e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
                     setPassword(value);
                   }}
-                  placeholder="예약자 전화번호를 입력하세요 (숫자만, 최대 11자리)"
+                  placeholder={reservation.overseasResident ? "예약 시 등록한 이메일을 입력하세요" : "예약자 전화번호를 입력하세요 (숫자만, 최대 11자리)"}
                   className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   autoFocus
-                  maxLength={11}
+                  maxLength={reservation.overseasResident ? undefined : 11}
                 />
                 {actionError && (
                   <p className="mb-4 text-sm text-accent">{actionError}</p>

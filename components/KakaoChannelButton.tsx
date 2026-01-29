@@ -25,6 +25,7 @@ export default function KakaoChannelButton() {
       className="fixed bottom-6 right-6 z-50 shadow-lg hover:shadow-xl transition-shadow"
       aria-label="카카오톡 상담"
     >
+      {/* 오른쪽 플로팅 버튼: public/kaka.svg 사용 */}
       <Image
         src="/kaka.svg"
         alt="카카오톡 상담"

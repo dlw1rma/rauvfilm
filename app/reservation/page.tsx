@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { decrypt } from "@/lib/encryption";
 
 export const metadata: Metadata = {
   title: "예약하기",
@@ -37,7 +38,7 @@ async function getReservations() {
     return reservations.map((r) => ({
       id: r.id,
       title: r.title,
-      author: maskAuthorName(r.author),
+      author: maskAuthorName(decrypt(r.author) || ""),
       isPrivate: r.isPrivate,
       status: r.status,
       createdAt: r.createdAt.toISOString().split("T")[0],

@@ -12,6 +12,7 @@ interface Booking {
   weddingVenue: string;
   status: string;
   partnerCode: string | null;
+  reservationId: number | null;
   product: { name: string };
   finalBalanceFormatted: string;
   depositPaidAt: string | null;
@@ -137,7 +138,30 @@ export default function AdminBookingsPage() {
       {excelOpen && (
         <div className="rounded-xl border border-border bg-muted p-4">
           <h3 className="font-semibold mb-3">이전 사이트 계약자 엑셀 이관</h3>
-          <p className="text-sm text-muted-foreground mb-3">엑셀 1행에 계약자/이름, 전화/연락처, 예식일/날짜, 예식장/장소 컬럼이 있어야 합니다.</p>
+          <p className="text-sm text-muted-foreground mb-3">엑셀 1행에 필수 컬럼(계약자/이름, 신부 이름/전화, 신랑 이름/전화, 예식일/날짜, 예식장/장소, 상품 종류)이 있어야 합니다. 이관 시 예약글(예약하기 게시판)에 일반 예약과 동일한 형식으로 자동 등록·예약확정 처리됩니다. 상품 종류가 가성비형/기본형이면 짝궁코드가 자동 발행됩니다.</p>
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/admin/bookings/import-template', { credentials: 'include' });
+                  if (!res.ok) throw new Error('다운로드 실패');
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'rauvfilm-booking-import-template.xlsx';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch {
+                  alert('템플릿 다운로드에 실패했습니다.');
+                }
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted/80 text-sm font-medium"
+            >
+              양식 템플릿 다운로드 (.xlsx)
+            </button>
+          </div>
           <form onSubmit={handleExcelImport} className="flex flex-wrap items-end gap-3">
             <label className="flex-1 min-w-[200px]">
               <span className="block text-sm text-muted-foreground mb-1">파일 (.xlsx, .xls)</span>
@@ -266,12 +290,22 @@ export default function AdminBookingsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/bookings/${booking.id}`}
-                        className="text-accent hover:underline text-sm"
-                      >
-                        상세
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/admin/bookings/${booking.id}`}
+                          className="text-accent hover:underline text-sm"
+                        >
+                          상세
+                        </Link>
+                        {booking.reservationId != null && (
+                          <Link
+                            href={`/admin/reservations?reservationId=${booking.reservationId}`}
+                            className="text-muted-foreground hover:text-accent text-xs"
+                          >
+                            예약글
+                          </Link>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

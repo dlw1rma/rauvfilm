@@ -34,7 +34,7 @@ export async function POST(
       );
     }
 
-    // 예약 존재 여부 확인
+    // 예약 존재 여부 확인 (SMS 발송 시 reservation.overseasResident이면 솔라피 문자 미발송)
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
       include: { reply: true },
@@ -122,39 +122,76 @@ export async function POST(
         }),
       ]);
 
+      // 예약관리(Booking) 동기화 업데이트
+      if (reservation.bookingId) {
+        try {
+          await prisma.booking.update({
+            where: { id: reservation.bookingId },
+            data: {
+              status: 'CONFIRMED',
+              partnerCode: referralCode || undefined,
+            },
+          });
+        } catch (syncError) {
+          console.error('예약관리 동기화 업데이트 오류 (계속 진행):', syncError);
+        }
+      }
+
       // 예약이 PENDING에서 CONFIRMED로 변경되고, referredBy(partnerCode)가 있으면 짝꿍 할인 적용
       if (wasPending && reservation.referredBy) {
         try {
           // 추천인 코드 확인 (CONFIRMED 상태인 예약만)
           const referrer = await prisma.reservation.findUnique({
-            where: { referralCode: reservation.referredBy },
-            select: { id: true, status: true },
+            where: { referralCode: reservation.referredBy.trim() },
+            select: { id: true, status: true, weddingDate: true },
           });
 
           if (referrer && referrer.status === "CONFIRMED") {
-            // 추천인에게 할인 적용
-            await prisma.reservation.update({
-              where: { id: referrer.id },
-              data: {
-                referredCount: { increment: 1 },
-                discountAmount: { increment: 10000 },
-                referralDiscount: { increment: 10000 },
-              },
-            });
+            // 추천인에게 할인 적용 (예식일 지난 코드는 추천인 쪽 할인만 미적용, 신규 고객 할인은 유지)
+            const referrerWeddingPassed = (() => {
+              if (!referrer.weddingDate) return false;
+              try {
+                let wd: Date;
+                if (typeof referrer.weddingDate === "string") {
+                  const ds = referrer.weddingDate.replace(/-/g, "").substring(0, 8);
+                  if (ds.length !== 8) return false;
+                  wd = new Date(parseInt(ds.slice(0, 4), 10), parseInt(ds.slice(4, 6), 10) - 1, parseInt(ds.slice(6, 8), 10));
+                } else {
+                  wd = new Date(referrer.weddingDate);
+                }
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                wd.setHours(0, 0, 0, 0);
+                return wd < today;
+              } catch {
+                return false;
+              }
+            })();
+            if (!referrerWeddingPassed) {
+              await prisma.reservation.update({
+                where: { id: referrer.id },
+                data: {
+                  referredCount: { increment: 1 },
+                  discountAmount: { increment: 10000 },
+                  referralDiscount: { increment: 10000 },
+                },
+              });
+            }
 
-            // 신규 예약자에게도 짝꿍 할인 1만원 적용
-            const currentDiscount = reservation.referralDiscount || 0;
-            const currentDiscountAmount = reservation.discountAmount || 0;
-            const newFinalBalance = Math.max(0, (reservation.totalAmount || 0) - (reservation.depositAmount || 100000) - currentDiscountAmount - 10000);
-            
-            await prisma.reservation.update({
-              where: { id: reservationId },
-              data: {
-                referralDiscount: 10000,
-                discountAmount: currentDiscountAmount + 10000,
-                finalBalance: newFinalBalance,
-              },
-            });
+            // 신규 예약자 짝꿍 할인: 생성 시 이미 1만원 적용된 경우 중복 적용하지 않음
+            const alreadyHasReferral = (reservation.referralDiscount ?? 0) >= 10000;
+            if (!alreadyHasReferral) {
+              const currentDiscountAmount = reservation.discountAmount || 0;
+              const newFinalBalance = Math.max(0, (reservation.totalAmount || 0) - (reservation.depositAmount || 100000) - currentDiscountAmount - 10000);
+              await prisma.reservation.update({
+                where: { id: reservationId },
+                data: {
+                  referralDiscount: 10000,
+                  discountAmount: currentDiscountAmount + 10000,
+                  finalBalance: newFinalBalance,
+                },
+              });
+            }
           }
         } catch (error) {
           console.error("Error applying referral discount:", error);
@@ -163,6 +200,13 @@ export async function POST(
       }
 
       reply = updatedReply;
+
+      // 예약확정문자 발송: 기본적으로 관리자가 답변(확정) 등록 시 고객에게 발송.
+      // 해외거주(overseasResident)인 경우 전화번호가 없으므로 문자 미발송.
+      if (!reservation.overseasResident) {
+        // TODO: 솔라피 등 SMS API 연동 시 여기서 예약확정 문자 발송
+        // 복호화된 전화번호(decrypt(reservation.bridePhone) 또는 groomPhone)로 발송
+      }
     }
 
     return NextResponse.json(reply);

@@ -55,19 +55,45 @@ interface BalanceData {
   };
 }
 
+interface EventSnapItem {
+  id: number;
+  type: string;
+  shootLocation: string | null;
+  shootDate: string | null;
+  shootTime: string | null;
+  status: string;
+  createdAt: string;
+}
+
+interface WeatherData {
+  temperature: number | null;
+  humidity?: number | null;
+  weatherLabel: string;
+  dateLabel?: string;
+}
+
+interface WeatherTooFar {
+  tooFar: true;
+  date?: string;
+  message?: string;
+}
+
 export default function MypageDashboard() {
   const router = useRouter();
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [balance, setBalance] = useState<BalanceData | null>(null);
+  const [eventSnapList, setEventSnapList] = useState<EventSnapItem[]>([]);
+  const [weather, setWeather] = useState<WeatherData | WeatherTooFar | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [bookingRes, balanceRes] = await Promise.all([
+        const [bookingRes, balanceRes, eventSnapRes] = await Promise.all([
           fetch('/api/mypage/booking'),
           fetch('/api/mypage/balance'),
+          fetch('/api/mypage/event-snap-applications'),
         ]);
 
         if (!bookingRes.ok) {
@@ -77,9 +103,13 @@ export default function MypageDashboard() {
 
         const bookingData = await bookingRes.json();
         const balanceData = await balanceRes.json();
-
         setBooking(bookingData.booking);
         setBalance(balanceData.balance);
+
+        if (eventSnapRes.ok) {
+          const list = await eventSnapRes.json();
+          setEventSnapList(Array.isArray(list) ? list : []);
+        }
       } catch {
         router.push('/mypage/login');
       } finally {
@@ -89,6 +119,47 @@ export default function MypageDashboard() {
 
     fetchData();
   }, [router]);
+
+  // 날씨: 확정된 야외스냅/프리웨딩 일정에 맞춰 표시 (확정된 것만, 없으면 예식일)
+  useEffect(() => {
+    if (!booking) return;
+    const weddingDateStr = booking.weddingDate?.slice(0, 10);
+    const confirmedWithDate = eventSnapList
+      .filter((ev) => ev.status === "CONFIRMED" && !!ev.shootDate)
+      .map((ev) => ({ ...ev, shootDateNorm: ev.shootDate!.slice(0, 10) }))
+      .sort((a, b) => a.shootDateNorm.localeCompare(b.shootDateNorm));
+    const weatherDate = confirmedWithDate[0]?.shootDateNorm ?? weddingDateStr;
+    if (!weatherDate) return;
+
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch(`/api/weather?date=${encodeURIComponent(weatherDate)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.tooFar) {
+          setWeather({ tooFar: true, date: data.date, message: data.message ?? '일정이 너무 멀어 아직 날씨 정보가 없습니다.' });
+          return;
+        }
+        const dateLabel = (() => {
+          try {
+            const d = new Date(weatherDate);
+            return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) + ' 예상 날씨';
+          } catch {
+            return undefined;
+          }
+        })();
+        setWeather({
+          temperature: data.temperature ?? null,
+          humidity: data.humidity ?? null,
+          weatherLabel: data.weatherLabel ?? '—',
+          dateLabel,
+        });
+      } catch {
+        // ignore
+      }
+    };
+    fetchWeather();
+  }, [booking, eventSnapList]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/customer-logout', { method: 'POST' });
@@ -131,10 +202,10 @@ export default function MypageDashboard() {
   const dDayText = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-6 sm:py-12 px-4">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
-        <div className="flex items-start justify-between mb-10">
+        <div className="flex items-start justify-between mb-6 sm:mb-10">
           <div>
             <h1 className="text-3xl font-bold mb-2">{booking.customerName}님</h1>
             <p className="text-muted-foreground">라우브필름과 함께하는 특별한 날</p>
@@ -147,10 +218,10 @@ export default function MypageDashboard() {
           </button>
         </div>
 
-        {/* D-Day Hero Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent/90 to-accent p-8 mb-8 text-white">
+        {/* D-Day Hero Card: 예식일 + 야외스냅/프리웨딩 + 날씨 */}
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-accent/90 to-accent p-5 sm:p-8 mb-5 sm:mb-8 text-white">
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-white/70 text-sm mb-1">예식일</p>
                 <p className="text-2xl font-bold">
@@ -166,19 +237,56 @@ export default function MypageDashboard() {
                 <span className="text-5xl font-bold">{dDayText}</span>
               </div>
             </div>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+            {/* 예식일 밑: 야외스냅/프리웨딩 신청 건 표기 */}
+            {eventSnapList.length > 0 && (
+              <div className="mb-4 space-y-1">
+                {eventSnapList.slice(0, 3).map((ev) => (
+                  <div key={ev.id} className="flex items-center gap-2 text-white/90 text-sm">
+                    <span className="font-medium">{ev.type}</span>
+                    {ev.shootDate && (
+                      <span>
+                        {new Date(ev.shootDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
+                        {ev.shootTime ? ` ${ev.shootTime}` : ''}
+                      </span>
+                    )}
+                    {ev.shootLocation && <span className="text-white/70">· {ev.shootLocation}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-3 sm:gap-4 text-sm">
+              <div className="bg-white/20 backdrop-blur rounded-lg px-3 sm:px-4 py-2">
                 <span className="text-white/70">장소</span>
                 <p className="font-medium">{booking.weddingVenue || '미정'}</p>
               </div>
-              <div className="bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+              <div className="bg-white/20 backdrop-blur rounded-lg px-3 sm:px-4 py-2">
                 <span className="text-white/70">상품</span>
                 <p className="font-medium">{booking.product.name}</p>
               </div>
-              <div className="bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+              <div className="bg-white/20 backdrop-blur rounded-lg px-3 sm:px-4 py-2">
                 <span className="text-white/70">상태</span>
                 <p className="font-medium">{booking.statusLabel}</p>
               </div>
+              {/* 같은 공간: 촬영/예식일 기준 날씨 */}
+              {weather && (
+                <div className="bg-white/20 backdrop-blur rounded-lg px-3 sm:px-4 py-2">
+                  {'tooFar' in weather ? (
+                    <>
+                      <span className="text-white/70">날씨</span>
+                      <p className="font-medium">{weather.message ?? '일정이 너무 멀어 아직 날씨 정보가 없습니다.'}</p>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-white/70">{weather.dateLabel ?? '날씨'}</span>
+                      <p className="font-medium">
+                        {weather.weatherLabel}
+                        {weather.temperature != null ? ` ${Math.round(weather.temperature)}°C` : ''}
+                        {weather.humidity != null ? ` · 습도 ${weather.humidity}%` : ''}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           {/* Background Pattern */}
@@ -187,9 +295,9 @@ export default function MypageDashboard() {
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-8">
           {/* Partner Code Card */}
-          <div className="rounded-2xl border border-border bg-background p-6">
+          <div className="rounded-2xl border border-border bg-background p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
                 <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
@@ -223,7 +331,7 @@ export default function MypageDashboard() {
           </div>
 
           {/* Balance Summary Card */}
-          <div className="rounded-2xl border border-border bg-background p-6">
+          <div className="rounded-2xl border border-border bg-background p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
                 <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
@@ -247,7 +355,7 @@ export default function MypageDashboard() {
         </div>
 
         {/* Balance Detail */}
-        <div className="rounded-2xl border border-border bg-background p-6 mb-8">
+        <div className="rounded-2xl border border-border bg-background p-4 sm:p-6 mb-4">
           <h3 className="font-semibold mb-4">금액 상세</h3>
           <div className="space-y-3 text-sm">
             {/* 기본 상품 가격 */}
@@ -293,11 +401,22 @@ export default function MypageDashboard() {
           </div>
         </div>
 
+        {/* 야외스냅/프리웨딩 신청 - 금액 상세 밑 가로 전체, 아이콘 크기 동일(w-8 h-8) */}
+        <Link
+          href="/mypage/event-snap"
+          className="flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl border-2 border-accent/30 bg-accent/5 hover:border-accent/50 hover:bg-accent/10 hover:shadow-lg transition-all mb-5 sm:mb-8"
+        >
+          <svg className="w-8 h-8 text-accent shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+          </svg>
+          <span className="text-base font-semibold">야외스냅 / 프리웨딩 신청</span>
+        </Link>
+
         {/* Quick Menu */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <Link
             href="/mypage/reservations"
-            className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
+            className="flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
           >
             <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
@@ -306,7 +425,7 @@ export default function MypageDashboard() {
           </Link>
           <Link
             href="/mypage/partner-code"
-            className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
+            className="flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
           >
             <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
@@ -315,7 +434,7 @@ export default function MypageDashboard() {
           </Link>
           <Link
             href="/mypage/review"
-            className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
+            className="flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
           >
             <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -324,7 +443,7 @@ export default function MypageDashboard() {
           </Link>
           <Link
             href="/mypage/downloads"
-            className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
+            className="flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl border border-border bg-background hover:border-accent/50 hover:shadow-lg transition-all text-center"
           >
             <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />

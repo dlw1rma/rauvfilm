@@ -11,6 +11,7 @@ import { cookies } from 'next/headers';
 import { calculateBalance, formatKRW } from '@/lib/pricing';
 import { validateSessionToken } from '@/lib/auth';
 import { safeParseInt, sanitizeString } from '@/lib/validation';
+import { encrypt } from '@/lib/encryption';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
@@ -186,6 +187,56 @@ export async function PUT(
       },
     });
 
+    // 예약글(Reservation) 동기화 업데이트
+    if (booking.reservationId) {
+      try {
+        const reservationUpdateData: Record<string, unknown> = {};
+        
+        if (body.customerName !== undefined) {
+          reservationUpdateData.author = encrypt(body.customerName.trim()) ?? body.customerName.trim();
+        }
+        if (body.weddingDate !== undefined) {
+          const date = body.weddingDate ? new Date(body.weddingDate) : null;
+          if (date && !isNaN(date.getTime())) {
+            reservationUpdateData.weddingDate = date.toISOString().slice(0, 10);
+          }
+        }
+        if (body.weddingVenue !== undefined) {
+          reservationUpdateData.venueName = body.weddingVenue;
+        }
+        if (body.weddingTime !== undefined) {
+          reservationUpdateData.weddingTime = body.weddingTime;
+        }
+        if (body.status !== undefined) {
+          reservationUpdateData.status = body.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING';
+          
+          // 예약확정 시 Reply 생성
+          if (body.status === 'CONFIRMED') {
+            const existingReply = await prisma.reply.findUnique({
+              where: { reservationId: booking.reservationId },
+            });
+            if (!existingReply) {
+              await prisma.reply.create({
+                data: {
+                  reservationId: booking.reservationId,
+                  content: '예약 확정되었습니다.',
+                },
+              });
+            }
+          }
+        }
+
+        if (Object.keys(reservationUpdateData).length > 0) {
+          await prisma.reservation.update({
+            where: { id: booking.reservationId },
+            data: reservationUpdateData,
+          });
+        }
+      } catch (syncError) {
+        console.error('예약글 동기화 업데이트 오류 (계속 진행):', syncError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       booking: updatedBooking,
@@ -218,6 +269,17 @@ export async function DELETE(
         { error: '잘못된 예약 ID입니다.' },
         { status: 400 }
       );
+    }
+
+    // 연결된 예약글(Reservation)도 삭제
+    if (booking.reservationId) {
+      try {
+        await prisma.reservation.delete({
+          where: { id: booking.reservationId },
+        });
+      } catch (syncError) {
+        console.error('예약글 동기화 삭제 오류 (계속 진행):', syncError);
+      }
     }
 
     await prisma.booking.delete({

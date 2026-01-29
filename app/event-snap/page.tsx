@@ -57,14 +57,22 @@ export default async function EventSnapPage() {
                 href={`/event-snap/${location.slug}`}
                 className="group block rounded-xl border border-border bg-muted overflow-hidden transition-all hover:-translate-y-2 hover:shadow-lg hover:shadow-accent/10"
               >
-                {/* Image */}
-                <div className="relative aspect-video bg-background">
+                {/* Image - 원본 비율로 박스 꽉 차게 (width/height 있으면 해당 비율, 없으면 16/9) */}
+                <div
+                  className="relative w-full bg-background overflow-hidden"
+                  style={{
+                    aspectRatio:
+                      location.images[0]?.width && location.images[0]?.height
+                        ? `${location.images[0].width} / ${location.images[0].height}`
+                        : "16 / 9",
+                  }}
+                >
                   {location.images[0] ? (
                     <Image
                       src={location.images[0].secureUrl}
                       alt={location.images[0].alt || location.name}
                       fill
-                      className="object-contain transition-transform duration-500 group-hover:scale-105"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                       sizes="(max-width: 640px) 100vw, 50vw"
                     />
                   ) : (
