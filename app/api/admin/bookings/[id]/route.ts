@@ -11,7 +11,7 @@ import { cookies } from 'next/headers';
 import { calculateBalance, formatKRW } from '@/lib/pricing';
 import { validateSessionToken } from '@/lib/auth';
 import { safeParseInt, sanitizeString } from '@/lib/validation';
-import { encrypt } from '@/lib/encryption';
+import { encrypt, decrypt } from '@/lib/encryption';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
@@ -80,6 +80,55 @@ export async function GET(
       approvedReviewCount,
     });
 
+    // 연결된 예약글(Reservation)에서 제공사항 정보 가져오기
+    let reservationInfo = null;
+    if (booking.reservationId) {
+      try {
+        const reservation = await prisma.reservation.findUnique({
+          where: { id: booking.reservationId },
+          select: {
+            id: true,
+            productType: true,
+            usbOption: true,
+            deliveryAddress: true,
+            makeupShoot: true,
+            paebaekShoot: true,
+            receptionShoot: true,
+            seonwonpan: true,
+            gimbalShoot: true,
+            discountCouple: true,
+            discountReview: true,
+            discountNewYear: true,
+            discountReviewBlog: true,
+            customShootingRequest: true,
+            customStyle: true,
+            customEditStyle: true,
+            customMusic: true,
+            customLength: true,
+            customEffect: true,
+            customContent: true,
+            customSpecialRequest: true,
+            mainSnapCompany: true,
+            playbackDevice: true,
+            referralCode: true,
+            specialNotes: true,
+            reviewLink: true,
+            reviewRefundAccount: true,
+            reviewRefundDepositorName: true,
+            reviewDiscount: true,
+          },
+        });
+        if (reservation) {
+          reservationInfo = {
+            ...reservation,
+            deliveryAddress: decrypt(reservation.deliveryAddress),
+          };
+        }
+      } catch (resError) {
+        console.error('예약글 조회 오류 (계속 진행):', resError);
+      }
+    }
+
     return NextResponse.json({
       booking: {
         ...booking,
@@ -90,6 +139,7 @@ export async function GET(
         reviewDiscountFormatted: formatKRW(booking.reviewDiscount),
         finalBalanceFormatted: formatKRW(calculation.finalBalance),
         calculatedBalance: calculation,
+        reservationInfo,
       },
     });
   } catch (error) {

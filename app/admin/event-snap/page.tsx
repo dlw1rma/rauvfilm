@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Image from 'next/image';
-import { Trash2, Upload, Plus, X, ImageIcon, Cloud } from 'lucide-react';
+import { Trash2, Upload, Plus, X, ImageIcon, Cloud, Star, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface EventSnapImage {
   id: number;
@@ -145,6 +145,64 @@ export default function EventSnapAdminPage() {
       fetchLocations();
     } catch (error) {
       console.error('Delete failed:', error);
+    }
+  };
+
+  const handleSetFeatured = async (imageId: number, isFeatured: boolean) => {
+    try {
+      // 같은 장소의 다른 이미지들의 isFeatured를 false로 설정
+      if (isFeatured && selectedLocationData) {
+        const otherImages = selectedLocationData.images.filter(img => img.id !== imageId && img.isFeatured);
+        for (const img of otherImages) {
+          await fetch(`/api/admin/images/${img.id}?type=event-snap`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isFeatured: false }),
+          });
+        }
+      }
+
+      await fetch(`/api/admin/images/${imageId}?type=event-snap`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFeatured }),
+      });
+      fetchLocations();
+    } catch (error) {
+      console.error('Set featured failed:', error);
+    }
+  };
+
+  const handleMoveOrder = async (imageId: number, direction: 'up' | 'down') => {
+    if (!selectedLocationData) return;
+
+    const images = [...selectedLocationData.images].sort((a, b) => a.order - b.order);
+    const currentIndex = images.findIndex(img => img.id === imageId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= images.length) return;
+
+    const currentImage = images[currentIndex];
+    const targetImage = images[newIndex];
+
+    try {
+      // 두 이미지의 order를 교환
+      await Promise.all([
+        fetch(`/api/admin/images/${currentImage.id}?type=event-snap`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: targetImage.order }),
+        }),
+        fetch(`/api/admin/images/${targetImage.id}?type=event-snap`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: currentImage.order }),
+        }),
+      ]);
+      fetchLocations();
+    } catch (error) {
+      console.error('Move order failed:', error);
     }
   };
 
@@ -391,30 +449,88 @@ export default function EventSnapAdminPage() {
             {selectedLocationData.name} 이미지 ({selectedLocationData.images.length}장)
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {selectedLocationData.images.map((image) => (
-              <div
-                key={image.id}
-                className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/10"
-              >
-                <Image
-                  src={image.secureUrl}
-                  alt={image.alt || '이벤트 스냅'}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 16vw"
-                />
+            {[...selectedLocationData.images].sort((a, b) => a.order - b.order).map((image, index) => {
+              const sortedImages = [...selectedLocationData.images].sort((a, b) => a.order - b.order);
+              const canMoveUp = index > 0;
+              const canMoveDown = index < sortedImages.length - 1;
+              
+              return (
+                <div
+                  key={image.id}
+                  className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/10"
+                >
+                  <Image
+                    src={image.secureUrl}
+                    alt={image.alt || '이벤트 스냅'}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 16vw"
+                  />
 
-                {/* 호버 오버레이 */}
-                <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button
-                    onClick={() => handleDelete(image.id)}
-                    className="p-3 bg-red-500 rounded-xl hover:bg-red-600 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5 text-white" />
-                  </button>
+                  {/* 대표이미지 표시 */}
+                  {image.isFeatured && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <div className="bg-accent text-white rounded-full p-1.5">
+                        <Star className="w-4 h-4 fill-white" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 호버 오버레이 */}
+                  <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                    {/* 대표이미지 설정 */}
+                    <button
+                      onClick={() => handleSetFeatured(image.id, !image.isFeatured)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        image.isFeatured
+                          ? 'bg-accent text-white'
+                          : 'bg-white/20 text-white hover:bg-white/30'
+                      }`}
+                      title={image.isFeatured ? '대표이미지 해제' : '대표이미지로 설정'}
+                    >
+                      <Star className={`w-5 h-5 ${image.isFeatured ? 'fill-white' : ''}`} />
+                    </button>
+
+                    {/* 순서 변경 */}
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleMoveOrder(image.id, 'up')}
+                        disabled={!canMoveUp}
+                        className={`p-2 rounded-lg transition-colors ${
+                          canMoveUp
+                            ? 'bg-white/20 text-white hover:bg-white/30'
+                            : 'bg-white/10 text-white/30 cursor-not-allowed'
+                        }`}
+                        title="위로 이동"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleMoveOrder(image.id, 'down')}
+                        disabled={!canMoveDown}
+                        className={`p-2 rounded-lg transition-colors ${
+                          canMoveDown
+                            ? 'bg-white/20 text-white hover:bg-white/30'
+                            : 'bg-white/10 text-white/30 cursor-not-allowed'
+                        }`}
+                        title="아래로 이동"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* 삭제 */}
+                    <button
+                      onClick={() => handleDelete(image.id)}
+                      className="p-2 bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
+                      title="삭제"
+                    >
+                      <Trash2 className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

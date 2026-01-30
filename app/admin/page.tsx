@@ -89,7 +89,7 @@ export default function AdminPage() {
         </svg>
       ),
       count: stats.reservations.pending,
-      description: "예약 문의 확인 및 답변",
+      description: "예약글 확인 및 편집",
     },
     {
       name: "예약(북킹)",
@@ -100,7 +100,7 @@ export default function AdminPage() {
         </svg>
       ),
       count: 0,
-      description: "예약 목록 및 결제·촬영 관리",
+      description: "예약확정·할인·짝궁코드·영상/계약서 링크 관리",
     },
     {
       name: "포트폴리오 관리",

@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
 
 const cards = [
   {
@@ -74,9 +75,36 @@ const cards = [
 ];
 
 export default function AboutPage() {
+  const [aboutImage, setAboutImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/site-images")
+      .then((res) => res.json())
+      .then((data: Record<string, { secureUrl?: string }>) => {
+        if (data["about"]?.secureUrl) {
+          setAboutImage(data["about"].secureUrl);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen py-20 px-6 md:py-20">
       <div className="mx-auto max-w-5xl">
+        {/* About 이미지 (관리자 사이트 이미지에서 'About 이미지'로 설정) */}
+        {aboutImage && (
+          <div className="relative w-full aspect-[16/9] max-h-[400px] rounded-xl overflow-hidden mb-12 bg-muted">
+            <Image
+              src={aboutImage}
+              alt="About"
+              fill
+              className="object-cover"
+              sizes="(max-width: 896px) 100vw, 896px"
+              priority
+            />
+          </div>
+        )}
+
         {/* Main Title */}
         <h1 className="text-center text-2xl md:text-3xl font-medium text-accent mb-15 leading-relaxed tracking-tight">
           &apos;감정을 영원히 보존할 수 있게 기억을 담는 일을 합니다.&apos;

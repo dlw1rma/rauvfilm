@@ -145,29 +145,15 @@ export async function POST(request: Request) {
       }
 
       try {
-        // Booking 생성 (계약자는 author 사용)
-        const b = await prisma.booking.create({
-          data: {
-            customerName: author,
-            customerPhone: bridePhone, // 신부 전화를 기본으로
-            weddingDate,
-            weddingVenue,
-            productId: defaultProduct.id,
-            listPrice: defaultProduct.price,
-            eventDiscount: 0,
-            finalBalance: defaultProduct.price - 100000,
-          },
-        });
-
         // 짝궁코드 생성 (상품 종류가 가성비형/기본형이면 자동 생성)
         let referralCode: string | null = null;
         let finalPartnerCode: string | null = null;
         const isCoupleDiscount = productType === '가성비형' || productType === '기본형';
-        
+
         if (isCoupleDiscount && !partnerCode) {
-          const weddingDateStr = weddingDate.toISOString().slice(0, 10).replace(/-/g, '');
-          const yy = weddingDateStr.slice(2, 4);
-          const mmdd = weddingDateStr.slice(4, 8);
+          const weddingDateStr2 = weddingDate.toISOString().slice(0, 10).replace(/-/g, '');
+          const yy = weddingDateStr2.slice(2, 4);
+          const mmdd = weddingDateStr2.slice(4, 8);
           const cleanName = author.replace(/\s/g, '');
           referralCode = `${yy}${mmdd} ${cleanName}`;
           finalPartnerCode = referralCode;
@@ -175,14 +161,33 @@ export async function POST(request: Request) {
           finalPartnerCode = partnerCode;
         }
 
+        // 1. Booking 생성 (weddingTime, status, customerEmail, partnerCode 포함)
+        const b = await prisma.booking.create({
+          data: {
+            customerName: author,
+            customerPhone: bridePhone,
+            customerEmail: productEmail || null,
+            weddingDate,
+            weddingTime: weddingTime || null,
+            weddingVenue,
+            status: 'CONFIRMED',
+            partnerCode: finalPartnerCode,
+            productId: defaultProduct.id,
+            listPrice: defaultProduct.price,
+            eventDiscount: 0,
+            finalBalance: defaultProduct.price - 100000,
+          },
+        });
+
         const weddingDateStr = weddingDate.toISOString().slice(0, 10);
         const title = `[엑셀 이관] ${author} ${weddingDateStr}`;
         const hashedPassword = await bcrypt.hash('excel-import', 10);
         const encryptedAuthor = encrypt(author) ?? author;
 
-        // Reservation 생성 (일반 예약 폼과 동일한 필드)
+        // 2. Reservation 생성 (bookingId 연결)
         const res = await prisma.reservation.create({
           data: {
+            bookingId: b.id,
             title,
             author: encryptedAuthor,
             password: hashedPassword,
@@ -255,6 +260,13 @@ export async function POST(request: Request) {
           },
         });
 
+        // 3. Booking에 reservationId 업데이트
+        await prisma.booking.update({
+          where: { id: b.id },
+          data: { reservationId: res.id },
+        });
+
+        // 4. Reply 생성
         await prisma.reply.create({
           data: {
             reservationId: res.id,

@@ -13,7 +13,6 @@ interface Reservation {
   author: string;
   isPrivate: boolean;
   createdAt: string;
-  // 필수 작성항목(공통)
   brideName: string | null;
   bridePhone: string | null;
   groomName: string | null;
@@ -29,7 +28,6 @@ interface Reservation {
   termsAgreed: boolean | null;
   faqRead: boolean | null;
   privacyAgreed: boolean | null;
-  // 본식 영상 예약
   weddingDate: string | null;
   weddingTime: string | null;
   venueName: string | null;
@@ -46,20 +44,16 @@ interface Reservation {
   seonwonpan: boolean | null;
   gimbalShoot: boolean | null;
   playbackDevice: string | null;
-  // 이벤트 예약
   eventType: string | null;
   shootLocation: string | null;
   shootDate: string | null;
   shootTime: string | null;
   shootConcept: string | null;
-  // 할인사항
   discountCouple: boolean | null;
   discountReview: boolean | null;
   discountNewYear: boolean | null;
   discountReviewBlog: boolean | null;
-  // 특이사항
   specialNotes: string | null;
-  // 커스텀 촬영 요청 필드
   customShootingRequest: boolean | null;
   customStyle: string | null;
   customEditStyle: string | null;
@@ -68,8 +62,6 @@ interface Reservation {
   customEffect: string | null;
   customContent: string | null;
   customSpecialRequest: string | null;
-  pdfUrl: string | null;
-  videoUrl: string | null;
   totalAmount: number | null;
   discountAmount: number | null;
   finalBalance: number | null;
@@ -89,15 +81,9 @@ export default function AdminReservationsPage() {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [updatingLinks, setUpdatingLinks] = useState(false);
   const [searchDate, setSearchDate] = useState("");
   const [searchName, setSearchName] = useState("");
-  const [specialDiscount, setSpecialDiscount] = useState("");
-  const [updatingDiscount, setUpdatingDiscount] = useState(false);
-  const [referredByEdit, setReferredByEdit] = useState("");
-  const [updatingReferral, setUpdatingReferral] = useState(false);
+  const [creatingBooking, setCreatingBooking] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -113,21 +99,17 @@ export default function AdminReservationsPage() {
       if (Number.isInteger(id) && id > 0) setSelectedId(id);
     }
   }, [isAuthenticated, reservationIdParam]);
-  
-  // 검색어 변경 시 자동 검색 (디바운스) - 날짜는 즉시, 이름은 500ms 후
+
   useEffect(() => {
     if (!isAuthenticated) return;
     if (searchDate && searchDate.length === 6) {
-      // 날짜는 6자리 완성 시 즉시 검색
       fetchReservations();
     } else if (searchName && searchName.length >= 2) {
-      // 이름은 2자 이상 입력 후 500ms 대기
       const timer = setTimeout(() => {
         fetchReservations();
       }, 500);
       return () => clearTimeout(timer);
     } else if (!searchDate && !searchName) {
-      // 검색어가 없으면 전체 목록
       fetchReservations();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,7 +126,7 @@ export default function AdminReservationsPage() {
       const params = new URLSearchParams();
       if (searchDate) params.append("date", searchDate);
       if (searchName) params.append("name", searchName);
-      
+
       const res = await fetch(`/api/admin/reservations?${params.toString()}`);
       const data = await res.json();
       setReservations(data.reservations || []);
@@ -153,11 +135,6 @@ export default function AdminReservationsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSearch = () => {
-    setLoading(true);
-    fetchReservations();
   };
 
   const handleClearSearch = () => {
@@ -173,104 +150,9 @@ export default function AdminReservationsPage() {
       if (res.ok) {
         const data = await res.json();
         setSelectedReservation(data);
-        setPdfUrl(data.pdfUrl || "");
-        setVideoUrl(data.videoUrl || "");
-        // 특별 할인 금액 설정 (discountAmount에서 다른 할인들을 제외한 금액)
-        // 체험단 할인 등 특별 할인만 표시하기 위해
-        const eventDiscount = data.discountNewYear && data.productType !== '가성비형' ? 50000 : 0;
-        const referralDiscount = data.referralDiscount || 0;
-        const reviewDiscount = data.reviewDiscount || 0;
-        // 르메그라피 제휴 할인 확인
-        const mainSnapCompany = data.mainSnapCompany || '';
-        const isLemeGraphy = mainSnapCompany.toLowerCase().includes('르메그라피') || mainSnapCompany.toLowerCase().includes('leme');
-        const lemeGraphyDiscount = isLemeGraphy && (data.productType === '기본형' || data.productType === '시네마틱형') ? 150000 : 0;
-        const otherDiscounts = eventDiscount + referralDiscount + reviewDiscount + lemeGraphyDiscount;
-        const specialDiscountAmount = (data.discountAmount || 0) - otherDiscounts;
-        setSpecialDiscount(specialDiscountAmount > 0 ? specialDiscountAmount.toString() : "");
-        setReferredByEdit(data.referredBy ?? "");
       }
     } catch (error) {
       console.error("Failed to fetch reservation detail:", error);
-    }
-  };
-
-  const handleUpdateReferral = async () => {
-    if (!selectedId || selectedReservation == null) return;
-    setUpdatingReferral(true);
-    try {
-      const res = await fetch(`/api/admin/reservations/${selectedId}/referral`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          referredBy: referredByEdit.trim() || null,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        await fetchReservationDetail(selectedId);
-        alert("짝꿍코드 적용 대상이 변경되었습니다.");
-      } else {
-        alert(data.error || "변경에 실패했습니다.");
-      }
-    } catch (error) {
-      console.error("Failed to update referral:", error);
-      alert("변경 중 오류가 발생했습니다.");
-    } finally {
-      setUpdatingReferral(false);
-    }
-  };
-
-  const handleUpdateSpecialDiscount = async () => {
-    if (!selectedId || !selectedReservation) return;
-    setUpdatingDiscount(true);
-    try {
-      const discountValue = parseInt(specialDiscount) || 0;
-      const res = await fetch(`/api/admin/reservations/${selectedId}/special-discount`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          specialDiscount: discountValue,
-        }),
-      });
-      if (res.ok) {
-        await fetchReservationDetail(selectedId);
-        alert("특별 할인이 업데이트되었습니다.");
-      } else {
-        const data = await res.json();
-        alert(data.error || "업데이트에 실패했습니다.");
-      }
-    } catch (error) {
-      console.error("Failed to update special discount:", error);
-      alert("업데이트 중 오류가 발생했습니다.");
-    } finally {
-      setUpdatingDiscount(false);
-    }
-  };
-
-  const handleUpdateDownloadLinks = async () => {
-    if (!selectedId) return;
-    setUpdatingLinks(true);
-    try {
-      const res = await fetch(`/api/admin/reservations/${selectedId}/download-links`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pdfUrl: pdfUrl.trim() || null,
-          videoUrl: videoUrl.trim() || null,
-        }),
-      });
-      if (res.ok) {
-        await fetchReservationDetail(selectedId);
-        alert("다운로드 링크가 업데이트되었습니다.");
-      } else {
-        const data = await res.json();
-        alert(data.error || "업데이트에 실패했습니다.");
-      }
-    } catch (error) {
-      console.error("Failed to update download links:", error);
-      alert("업데이트 중 오류가 발생했습니다.");
-    } finally {
-      setUpdatingLinks(false);
     }
   };
 
@@ -331,7 +213,6 @@ export default function AdminReservationsPage() {
     txt += "예약 문의 상세 정보\n";
     txt += "=".repeat(60) + "\n\n";
 
-    // 기본 정보
     txt += "[기본 정보]\n";
     txt += `제목: ${selectedReservation.title}\n`;
     txt += `작성자(계약자): ${selectedReservation.author}\n`;
@@ -342,7 +223,6 @@ export default function AdminReservationsPage() {
     }
     txt += "\n";
 
-    // 필수 작성항목(공통)
     txt += "[필수 작성항목(공통)]\n";
     txt += `신부님 성함: ${selectedReservation.brideName || "-"}\n`;
     txt += `신부님 전화번호: ${selectedReservation.bridePhone || "-"}\n`;
@@ -359,9 +239,8 @@ export default function AdminReservationsPage() {
     txt += `개인정보 활용 동의: ${selectedReservation.privacyAgreed ? "동의" : "미동의"}\n`;
     txt += "\n";
 
-    // 본식 영상 예약 정보
-    if (selectedReservation.productType === "가성비형" || 
-        selectedReservation.productType === "기본형" || 
+    if (selectedReservation.productType === "가성비형" ||
+        selectedReservation.productType === "기본형" ||
         selectedReservation.productType === "시네마틱형") {
       txt += "[본식 영상 예약 정보]\n";
       txt += `예식 날짜: ${selectedReservation.weddingDate || "-"}\n`;
@@ -382,7 +261,6 @@ export default function AdminReservationsPage() {
       txt += "\n";
     }
 
-    // 이벤트 예약 정보
     if (selectedReservation.eventType) {
       txt += "[이벤트 예약 정보]\n";
       txt += `이벤트 촬영: ${selectedReservation.eventType}\n`;
@@ -393,13 +271,12 @@ export default function AdminReservationsPage() {
       txt += "\n";
     }
 
-    // 할인사항
     const discounts: string[] = [];
     if (selectedReservation.discountNewYear) discounts.push("신년할인");
     if (selectedReservation.discountReview) discounts.push("블로그와 카페 촬영후기 (총 2만원 페이백)");
     if (selectedReservation.discountCouple) discounts.push("짝궁할인");
     if (selectedReservation.discountReviewBlog) discounts.push("블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)");
-    
+
     if (discounts.length > 0) {
       txt += "[할인사항]\n";
       discounts.forEach(discount => {
@@ -408,14 +285,12 @@ export default function AdminReservationsPage() {
       txt += "\n";
     }
 
-    // 특이사항
     if (selectedReservation.specialNotes) {
       txt += "[특이사항 및 요구사항]\n";
       txt += `${selectedReservation.specialNotes}\n`;
       txt += "\n";
     }
 
-    // 커스텀 촬영 요청
     if (selectedReservation.customShootingRequest) {
       txt += "[커스텀 촬영 요청]\n";
       txt += `요청 여부: 예\n`;
@@ -429,7 +304,6 @@ export default function AdminReservationsPage() {
       txt += "\n";
     }
 
-    // 답변
     if (selectedReservation.reply) {
       txt += "[관리자 답변]\n";
       txt += `${selectedReservation.reply.content}\n`;
@@ -439,7 +313,6 @@ export default function AdminReservationsPage() {
 
     txt += "=".repeat(60) + "\n";
 
-    // 파일 다운로드
     const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -477,9 +350,9 @@ export default function AdminReservationsPage() {
             </svg>
             대시보드로 돌아가기
           </Link>
-          <h1 className="text-3xl font-bold">예약 관리</h1>
+          <h1 className="text-3xl font-bold">예약글 관리</h1>
           <p className="mt-1 text-muted-foreground">
-            고객 예약 문의를 확인하고 답변합니다.
+            고객 예약글을 확인하고 편집합니다. 할인/링크 관리는 <Link href="/admin/bookings" className="text-accent hover:underline">예약(북킹)</Link>에서 관리하세요.
           </p>
         </div>
 
@@ -488,13 +361,12 @@ export default function AdminReservationsPage() {
           <div className="lg:col-span-1 rounded-xl border border-border overflow-hidden">
             <div className="bg-muted px-4 py-3 border-b border-border">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-medium">예약 목록</h2>
+                <h2 className="font-medium">예약글 목록</h2>
                 <span className="text-sm text-muted-foreground">
                   {reservations.filter((r) => !r.reply).length}건 대기중
                 </span>
               </div>
-              
-              {/* 검색 필드 */}
+
               <div className="space-y-2">
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">
@@ -536,7 +408,7 @@ export default function AdminReservationsPage() {
             <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
               {reservations.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
-                  등록된 예약 문의가 없습니다.
+                  등록된 예약글이 없습니다.
                 </div>
               ) : (
                 reservations.map((reservation) => (
@@ -584,13 +456,42 @@ export default function AdminReservationsPage() {
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <h3 className="font-bold text-lg">{selectedReservation.title}</h3>
                   <div className="flex items-center gap-2">
-                    {selectedReservation.bookingId != null && (
+                    {selectedReservation.bookingId != null ? (
                       <Link
                         href={`/admin/bookings/${selectedReservation.bookingId}`}
                         className="text-sm text-accent hover:underline"
                       >
-                        연결된 예약(북킹) 보기
+                        예약(북킹) 관리
                       </Link>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          if (!confirm("이 예약글에서 예약관리(Booking)를 생성하시겠습니까?")) return;
+                          setCreatingBooking(true);
+                          try {
+                            const res = await fetch(`/api/admin/reservations/${selectedReservation.id}/create-booking`, {
+                              method: "POST",
+                            });
+                            const data = await res.json();
+                            if (res.ok) {
+                              alert(`예약관리가 생성되었습니다. (Booking #${data.bookingId})`);
+                              await fetchReservations();
+                              await fetchReservationDetail(selectedReservation.id);
+                            } else {
+                              alert(data.error || "예약관리 생성에 실패했습니다.");
+                            }
+                          } catch (error) {
+                            console.error("Create booking error:", error);
+                            alert("오류가 발생했습니다.");
+                          } finally {
+                            setCreatingBooking(false);
+                          }
+                        }}
+                        disabled={creatingBooking}
+                        className="text-sm px-3 py-1.5 rounded-lg border border-accent text-accent hover:bg-accent hover:text-white transition-colors disabled:opacity-50"
+                      >
+                        {creatingBooking ? "생성 중..." : "예약관리 생성"}
+                      </button>
                     )}
                     <Link
                       href={`/admin/reservations/${selectedReservation.id}/edit`}
@@ -667,7 +568,7 @@ export default function AdminReservationsPage() {
                       <p className="font-medium">{selectedReservation.productType || "-"}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">짝궁 코드 (이 고객의 코드)</p>
+                      <p className="text-muted-foreground">짝궁 코드</p>
                       <p className="font-medium">{selectedReservation.partnerCode || "-"}</p>
                     </div>
                     <div>
@@ -677,41 +578,9 @@ export default function AdminReservationsPage() {
                   </div>
                 </div>
 
-                {/* 짝꿍코드 적용 대상 (관리자 변경) */}
-                <div className="mb-6">
-                  <h4 className="font-semibold mb-3 text-accent">짝꿍코드 적용 대상</h4>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    이 예약에 적용된 짝꿍 코드(추천인 코드)를 변경할 수 있습니다. 다른 고객의 확정된 짝꿍 코드를 입력하세요.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="text"
-                      value={referredByEdit}
-                      onChange={(e) => setReferredByEdit(e.target.value)}
-                      placeholder="예: 260126 홍길동 (비우면 적용 해제)"
-                      className="flex-1 min-w-[200px] rounded-lg border border-border bg-background px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                    />
-                    <button
-                      onClick={handleUpdateReferral}
-                      disabled={updatingReferral}
-                      className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-50"
-                    >
-                      {updatingReferral ? "저장 중…" : "적용"}
-                    </button>
-                  </div>
-                  {selectedReservation.referredBy && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      현재 적용: {selectedReservation.referredBy}
-                      {selectedReservation.referralDiscount != null && selectedReservation.referralDiscount > 0 && (
-                        <span className="ml-2 text-green-600">(1만원 할인)</span>
-                      )}
-                    </p>
-                  )}
-                </div>
-
                 {/* 본식 영상 예약 정보 */}
-                {(selectedReservation.productType === "가성비형" || 
-                  selectedReservation.productType === "기본형" || 
+                {(selectedReservation.productType === "가성비형" ||
+                  selectedReservation.productType === "기본형" ||
                   selectedReservation.productType === "시네마틱형") && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-accent">본식 영상 예약 정보</h4>
@@ -800,8 +669,8 @@ export default function AdminReservationsPage() {
                 )}
 
                 {/* 할인사항 */}
-                {(selectedReservation.discountCouple || 
-                  selectedReservation.discountReview || 
+                {(selectedReservation.discountCouple ||
+                  selectedReservation.discountReview ||
                   selectedReservation.discountNewYear ||
                   selectedReservation.discountReviewBlog) && (
                   <div className="mb-6">
@@ -880,80 +749,6 @@ export default function AdminReservationsPage() {
                   </div>
                 )}
 
-                {/* 특별 할인 관리 */}
-                <div className="mb-6">
-                  <h4 className="font-semibold mb-3 text-accent">특별 할인 관리</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        특별 할인 금액 (예: 체험단 50만원)
-                      </label>
-                      <input
-                        type="number"
-                        value={specialDiscount}
-                        onChange={(e) => setSpecialDiscount(e.target.value)}
-                        placeholder="0"
-                        min="0"
-                        className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        체험단 등 특별 할인 금액을 입력하세요. (원 단위)
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleUpdateSpecialDiscount}
-                      disabled={updatingDiscount}
-                      className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50"
-                    >
-                      {updatingDiscount ? "저장 중..." : "할인 저장"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* 제공 사항 / 다운로드 링크 관리 */}
-                <div className="mb-6">
-                  <h4 className="font-semibold mb-3 text-accent">제공 사항 / 다운로드 링크 관리</h4>
-                  {selectedReservation.usbOption && selectedReservation.deliveryAddress && (
-                    <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
-                      <p className="text-sm font-medium text-muted-foreground mb-1">USB 배송지</p>
-                      <p className="text-sm whitespace-pre-wrap">{selectedReservation.deliveryAddress}</p>
-                    </div>
-                  )}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        PDF 다운로드 링크
-                      </label>
-                      <input
-                        type="url"
-                        value={pdfUrl}
-                        onChange={(e) => setPdfUrl(e.target.value)}
-                        placeholder="https://example.com/file.pdf"
-                        className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        영상 다운로드 링크
-                      </label>
-                      <input
-                        type="url"
-                        value={videoUrl}
-                        onChange={(e) => setVideoUrl(e.target.value)}
-                        placeholder="https://example.com/video.mp4"
-                        className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                      />
-                    </div>
-                    <button
-                      onClick={handleUpdateDownloadLinks}
-                      disabled={updatingLinks}
-                      className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50"
-                    >
-                      {updatingLinks ? "저장 중..." : "링크 저장"}
-                    </button>
-                  </div>
-                </div>
-
                 {/* 답변 */}
                 {!selectedReservation.reply ? (
                   <div>
@@ -987,7 +782,7 @@ export default function AdminReservationsPage() {
               </div>
             ) : (
               <div className="p-8 text-center text-muted-foreground">
-                목록에서 예약을 선택하세요.
+                목록에서 예약글을 선택하세요.
               </div>
             )}
           </div>

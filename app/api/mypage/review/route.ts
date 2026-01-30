@@ -233,6 +233,9 @@ export async function GET() {
         productType: true,
         discountReview: true,
         discountReviewBlog: true,
+        reviewLink: true,
+        reviewRefundAccount: true,
+        reviewRefundDepositorName: true,
       },
     });
 
@@ -272,6 +275,10 @@ export async function GET() {
       canWriteReview,
       maxReviews,
       productType: reservation?.productType,
+      reservationId: session.reservationId,
+      reviewLink: reservation?.reviewLink || null,
+      reviewRefundAccount: reservation?.reviewRefundAccount || null,
+      reviewRefundDepositorName: reservation?.reviewRefundDepositorName || null,
     });
   } catch (error) {
     console.error('후기 목록 조회 오류:', error);

@@ -3,6 +3,27 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Cloudinary URL에 최적화 transformation 추가
+ */
+function getOptimizedThumbnailUrl(secureUrl: string, maxWidth: number = 800): string {
+  if (secureUrl.includes('res.cloudinary.com')) {
+    if (secureUrl.includes('/image/upload/')) {
+      const parts = secureUrl.split('/image/upload/');
+      if (parts.length === 2) {
+        const existingTransform = parts[1].split('/')[0];
+        const publicId = parts[1].substring(existingTransform.length + 1);
+        return `${parts[0]}/image/upload/w_${maxWidth},q_auto,f_auto/${publicId}`;
+      }
+    }
+    const parts = secureUrl.split('/image/upload/');
+    if (parts.length === 2) {
+      return `${parts[0]}/image/upload/w_${maxWidth},q_auto,f_auto/${parts[1]}`;
+    }
+  }
+  return secureUrl;
+}
+
 export const metadata: Metadata = {
   title: "EVENT SNAP | 라우브필름",
   description: "라우브필름의 야외 스냅 촬영 장소를 소개합니다. 동작대교, 창경궁, 노을공원, 올림픽공원에서 특별한 순간을 담아보세요.",
@@ -69,11 +90,12 @@ export default async function EventSnapPage() {
                 >
                   {location.images[0] ? (
                     <Image
-                      src={location.images[0].secureUrl}
+                      src={getOptimizedThumbnailUrl(location.images[0].secureUrl, 800)}
                       alt={location.images[0].alt || location.name}
                       fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-contain transition-transform duration-500 group-hover:scale-105"
                       sizes="(max-width: 640px) 100vw, 50vw"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">

@@ -61,6 +61,9 @@ interface ReservationDetail {
     shootTime: string | null;
     shootLocation: string | null;
   }>;
+  reviewLink?: string | null;
+  reviewRefundAccount?: string | null;
+  reviewRefundDepositorName?: string | null;
 }
 
 function DetailRow({

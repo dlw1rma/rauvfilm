@@ -77,7 +77,7 @@ export async function POST(
       }
 
       // 영상 업로드 완료 시 상태 변경
-      if (videoUrl && booking.status === 'COMPLETED') {
+      if (videoUrl && ['COMPLETED', 'DEPOSIT_PAID'].includes(booking.status)) {
         updateData.status = 'DELIVERED';
       }
     }

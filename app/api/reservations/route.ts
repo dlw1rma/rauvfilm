@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
       productEmail,
       productType,
       partnerCode,
+      referralNickname,
       foundPath,
       termsAgreed,
       faqRead,
@@ -236,8 +237,11 @@ export async function POST(request: NextRequest) {
           // YYMMDD 형식으로 변환 (앞의 20 제거)
           const yy = dateStr.slice(2, 4);
           const mmdd = dateStr.slice(4, 8);
-          // 이름에서 공백 제거
-          const cleanName = author.replace(/\s/g, '');
+          // 닉네임이 있으면 닉네임 사용, 없으면 계약자 이름 사용
+          const codeName = (referralNickname && typeof referralNickname === 'string' && referralNickname.trim())
+            ? referralNickname.trim()
+            : author;
+          const cleanName = codeName.replace(/\s/g, '');
           referralCode = `${yy}${mmdd} ${cleanName}`;
           
           // 중복 체크 - 중복이 있어도 형식 유지 (숫자 붙이지 않음)
@@ -379,43 +383,64 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 예약관리(Booking) 동기화 생성 (예식일과 장소가 있을 때만, 해외거주가 아닐 때만)
-    if (weddingDate && venueName && normalizedBridePhone && !isOverseas) {
-      try {
-        const defaultProduct = await prisma.product.findFirst({ where: {} });
-        if (defaultProduct) {
-          const weddingDateObj = new Date(weddingDate);
-          if (!isNaN(weddingDateObj.getTime())) {
-            const booking = await prisma.booking.create({
-              data: {
-                customerName: sanitizedAuthor,
-                customerPhone: normalizedBridePhone,
-                customerEmail: productEmail || null,
-                weddingDate: weddingDateObj,
-                weddingVenue: venueName,
-                weddingTime: weddingTime || null,
-                productId: defaultProduct.id,
-                listPrice: totalAmount || defaultProduct.price,
-                eventDiscount: discountAmount || 0,
-                referralDiscount: referralDiscount || 0,
-                reviewDiscount: reviewDiscount || 0,
-                finalBalance: finalBalance || (totalAmount || defaultProduct.price) - (depositAmount || 100000) - (discountAmount || 0),
-                status: reservation.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING',
-                reservationId: reservation.id,
-              },
-            });
-
-            // Reservation에 bookingId 연결
-            await prisma.reservation.update({
-              where: { id: reservation.id },
-              data: { bookingId: booking.id },
-            });
-          }
-        }
-      } catch (syncError) {
-        console.error('예약관리 동기화 생성 오류 (계속 진행):', syncError);
-        // 동기화 실패해도 Reservation 생성은 성공으로 처리
+    // 예약관리(Booking) 동기화 생성 - 항상 생성
+    try {
+      let defaultProduct = await prisma.product.findFirst({ where: {} });
+      if (!defaultProduct) {
+        defaultProduct = await prisma.product.create({
+          data: { name: "기본 상품", price: 0, description: "자동 생성", isActive: true },
+        });
       }
+      {
+        // 예식일 처리: 없으면 기본값 사용
+        let weddingDateObj: Date;
+        if (weddingDate) {
+          weddingDateObj = new Date(weddingDate);
+          if (isNaN(weddingDateObj.getTime())) {
+            weddingDateObj = new Date("2099-12-31");
+          }
+        } else {
+          weddingDateObj = new Date("2099-12-31");
+        }
+
+        // 전화번호 처리: 해외거주면 이메일, 없으면 플레이스홀더
+        let phoneForBooking: string;
+        if (isOverseas) {
+          phoneForBooking = productEmail || "no-email@placeholder.local";
+        } else {
+          phoneForBooking = normalizedBridePhone || normalizedGroomPhone || "00000000000";
+        }
+
+        const booking = await prisma.booking.create({
+          data: {
+            customerName: sanitizedAuthor,
+            customerPhone: phoneForBooking,
+            customerEmail: productEmail || null,
+            weddingDate: weddingDateObj,
+            weddingVenue: venueName || "미정",
+            weddingTime: weddingTime || null,
+            productId: defaultProduct.id,
+            listPrice: totalAmount || defaultProduct.price,
+            depositAmount: depositAmount || 100000,
+            eventDiscount: discountAmount || 0,
+            referralDiscount: referralDiscount || 0,
+            reviewDiscount: reviewDiscount || 0,
+            finalBalance: finalBalance || Math.max(0, (totalAmount || defaultProduct.price) - (depositAmount || 100000) - (discountAmount || 0)),
+            status: reservation.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING',
+            reservationId: reservation.id,
+            referredBy: discountCouple && partnerCode ? partnerCode : null,
+          },
+        });
+
+        // Reservation에 bookingId 연결
+        await prisma.reservation.update({
+          where: { id: reservation.id },
+          data: { bookingId: booking.id },
+        });
+      }
+    } catch (syncError) {
+      console.error('예약관리 동기화 생성 오류 (계속 진행):', syncError);
+      // 동기화 실패해도 Reservation 생성은 성공으로 처리
     }
 
     return NextResponse.json(

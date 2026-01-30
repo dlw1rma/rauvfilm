@@ -102,6 +102,8 @@ model Reservation {
   
   // 후기 할인 시스템
   reviewLink        String?   @db.Text // 후기 링크 URL
+  reviewRefundAccount    String?   @db.Text // 환급받을 계좌
+  reviewRefundDepositorName String?   // 환급 입금자명
   
   // 후기 제출
   reviewSubmissions ReviewSubmission[]

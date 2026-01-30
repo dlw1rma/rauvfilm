@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
       totalContacts,
       unreadContacts,
       totalPortfolios,
-      totalReviews,
+      adminReviews,
+      approvedSubmissions,
       pendingReviewSubmissions,
     ] = await Promise.all([
       prisma.reservation.count(),
@@ -33,11 +34,20 @@ export async function GET(request: NextRequest) {
       prisma.reviewSubmission.count({
         where: {
           status: {
+            in: ['AUTO_APPROVED', 'APPROVED'],
+          },
+        },
+      }),
+      prisma.reviewSubmission.count({
+        where: {
+          status: {
             in: ['PENDING', 'MANUAL_REVIEW'],
           },
         },
       }),
     ]);
+
+    const totalReviews = adminReviews + approvedSubmissions;
 
     return NextResponse.json({
       reservations: {

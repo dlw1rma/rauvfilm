@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
+import { validateSessionToken } from '@/lib/auth';
+
+async function isAdminAuthenticated(): Promise<boolean> {
+  const cookieStore = await cookies();
+  const adminSession = cookieStore.get('admin_session');
+  if (!adminSession?.value) return false;
+  return validateSessionToken(adminSession.value);
+}
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: '관리자 로그인이 필요합니다.' }, { status: 401 });
+  }
+
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);
@@ -46,6 +59,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: '관리자 로그인이 필요합니다.' }, { status: 401 });
+  }
+
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);

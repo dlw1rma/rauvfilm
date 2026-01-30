@@ -160,6 +160,9 @@ export async function GET(
       customContent: reservation.customContent,
       customSpecialRequest: reservation.customSpecialRequest,
       eventSnapApplications,
+      reviewLink: reservation.reviewLink,
+      reviewRefundAccount: reservation.reviewRefundAccount,
+      reviewRefundDepositorName: reservation.reviewRefundDepositorName,
     });
   } catch (error) {
     console.error('예약 조회 오류:', error);

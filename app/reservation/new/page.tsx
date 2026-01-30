@@ -25,6 +25,7 @@ type FormState = {
   productEmail: string;
   productType: ProductType;
   partnerCode: string;
+  referralNickname: string;
   foundPath: string;
   termsAgreed: boolean;
   faqRead: boolean;
@@ -149,6 +150,7 @@ export default function NewReservationPage() {
     productEmail: "",
     productType: "" as ProductType,
     partnerCode: "",
+    referralNickname: "",
     foundPath: "",
     termsAgreed: false,
     faqRead: false,
@@ -1787,6 +1789,26 @@ export default function NewReservationPage() {
                   }}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
                   placeholder="특이사항이나 요구사항이 있으시면 작성해주세요"
+                />
+              </div>
+
+              {/* 짝궁코드 닉네임 */}
+              <div>
+                <label htmlFor="referralNickname" className="mb-2 block text-sm font-medium">
+                  짝궁코드 닉네임 (선택)
+                </label>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  예약 확정 시 생성되는 짝궁코드에 계약자 이름 대신 사용할 닉네임을 입력하세요. 비워두면 계약자 이름으로 생성됩니다.
+                </p>
+                <input
+                  type="text"
+                  id="referralNickname"
+                  name="referralNickname"
+                  value={formData.referralNickname}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="예: 라우브신부"
+                  maxLength={20}
                 />
               </div>
 

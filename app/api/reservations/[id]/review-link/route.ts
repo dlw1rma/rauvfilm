@@ -34,7 +34,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { password, name, phone, reviewLink } = body;
+    const { password, name, phone, reviewLink, reviewRefundAccount, reviewRefundDepositorName } = body;
 
     if (!reviewLink || typeof reviewLink !== 'string') {
       return NextResponse.json(
@@ -140,7 +140,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // 최종 잔금 재계산
     const finalBalance = Math.max(0, totalAmount - depositAmount - newDiscountAmount);
 
-    // 후기 링크 업데이트 및 할인 적용
+    const sanitizedRefundAccount = typeof reviewRefundAccount === 'string' ? sanitizeString(reviewRefundAccount, 200) : undefined;
+    const sanitizedRefundDepositor = typeof reviewRefundDepositorName === 'string' ? sanitizeString(reviewRefundDepositorName, 50) : undefined;
+
+    // 후기 링크 업데이트 및 할인 적용 (환급 계좌/입금자명 포함)
     const updated = await prisma.reservation.update({
       where: { id: reservationId },
       data: {
@@ -148,6 +151,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         reviewDiscount: reviewDiscount,
         discountAmount: newDiscountAmount,
         finalBalance: finalBalance,
+        ...(sanitizedRefundAccount !== undefined && { reviewRefundAccount: sanitizedRefundAccount || null }),
+        ...(sanitizedRefundDepositor !== undefined && { reviewRefundDepositorName: sanitizedRefundDepositor || null }),
       },
     });
 

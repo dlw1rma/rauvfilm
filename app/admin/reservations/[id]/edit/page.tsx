@@ -66,7 +66,7 @@ interface ReservationData {
   }>;
 }
 
-export default function MyReservationEditPage() {
+export default function AdminReservationEditPage() {
   const params = useParams();
   const router = useRouter();
 
@@ -175,10 +175,10 @@ export default function MyReservationEditPage() {
     async function fetchReservation() {
       try {
         // 마이페이지 세션으로 예약 조회
-        const res = await fetch(`/api/mypage/reservations/${params.id}`);
+        const res = await fetch(`/api/admin/reservations/${params.id}`);
         if (!res.ok) {
           if (res.status === 401) {
-            router.push('/mypage/login');
+            router.push('/admin');
             return;
           }
           throw new Error("예약 정보를 불러올 수 없습니다.");
@@ -320,7 +320,7 @@ export default function MyReservationEditPage() {
 
     try {
       // 마이페이지 세션으로 수정 (비밀번호 불필요)
-      const res = await fetch(`/api/mypage/reservations/${params.id}`, {
+      const res = await fetch(`/api/admin/reservations/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -342,7 +342,7 @@ export default function MyReservationEditPage() {
         throw new Error(data.error || "수정에 실패했습니다.");
       }
 
-      router.push(`/mypage/reservations`);
+      router.push(`/admin/reservations`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
@@ -431,7 +431,7 @@ export default function MyReservationEditPage() {
         {/* Header */}
         <div className="mb-8">
           <Link
-            href="/mypage/reservations"
+            href="/admin/reservations"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <svg
@@ -449,9 +449,9 @@ export default function MyReservationEditPage() {
             </svg>
             예약글 목록으로
           </Link>
-          <h1 className="text-3xl font-bold">예약 문의 수정</h1>
+          <h1 className="text-3xl font-bold">예약글 편집 (관리자)</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            예약 정보를 수정할 수 있습니다.
+            고객의 예약글 정보를 편집합니다.
           </p>
           {(eventSnapApplications ?? []).length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">

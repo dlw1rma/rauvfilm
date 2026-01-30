@@ -19,7 +19,14 @@
       "Bash(npm install:*)",
       "Bash(npx prisma generate:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx prisma migrate dev:*)"
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(dir:*)",
+      "Bash(if not exist \"C:\\\\rauvfilm\\\\rauvfilm\\\\app\\\\api\\\\admin\\\\reservations\\\\[id]\\\\create-booking\" mkdir \"C:\\\\rauvfilm\\\\rauvfilm\\\\app\\\\api\\\\admin\\\\reservations\\\\[id]\\\\create-booking\")",
+      "Bash(npx prisma migrate:*)",
+      "Bash(node -e:*)",
+      "Bash(node scripts/backfill-bookings.js:*)",
+      "Bash(npx dotenv -- node scripts/backfill-bookings.js)",
+      "Bash(npx tsx:*)"
     ]
   }
 }

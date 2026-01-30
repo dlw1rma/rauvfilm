@@ -5,6 +5,27 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import GalleryWithLightbox from "@/components/event-snap/GalleryWithLightbox";
 
+/**
+ * Cloudinary URL에 최적화 transformation 추가
+ */
+function getOptimizedImageUrl(secureUrl: string, maxWidth: number = 1200): string {
+  if (secureUrl.includes('res.cloudinary.com')) {
+    if (secureUrl.includes('/image/upload/')) {
+      const parts = secureUrl.split('/image/upload/');
+      if (parts.length === 2) {
+        const existingTransform = parts[1].split('/')[0];
+        const publicId = parts[1].substring(existingTransform.length + 1);
+        return `${parts[0]}/image/upload/w_${maxWidth},q_auto,f_auto/${publicId}`;
+      }
+    }
+    const parts = secureUrl.split('/image/upload/');
+    if (parts.length === 2) {
+      return `${parts[0]}/image/upload/w_${maxWidth},q_auto,f_auto/${parts[1]}`;
+    }
+  }
+  return secureUrl;
+}
+
 interface PageProps {
   params: Promise<{ location: string }>;
 }
@@ -110,10 +131,10 @@ export default async function EventSnapLocationPage({ params }: PageProps) {
         >
           {featuredImage ? (
             <Image
-              src={featuredImage.secureUrl}
+              src={getOptimizedImageUrl(featuredImage.secureUrl, 1200)}
               alt={featuredImage.alt || location.name}
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="(max-width: 896px) 100vw, 896px"
               priority
             />
