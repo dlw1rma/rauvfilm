@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600; // 10분마다 재생성
 
 function platformToSourceType(platform: string): string {
   switch (platform) {
@@ -24,17 +24,17 @@ function platformToSourceType(platform: string): string {
 
 async function getReviews() {
   try {
-    // 1. 관리자 등록 후기
-    const adminReviews = await prisma.review.findMany({
-      where: { isVisible: true },
-      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-    });
-
-    // 2. 고객 제출 후 승인된 후기 (APPROVED, AUTO_APPROVED)
-    const approvedSubmissions = await prisma.reviewSubmission.findMany({
-      where: { status: { in: ["APPROVED", "AUTO_APPROVED"] } },
-      orderBy: { createdAt: "desc" },
-    });
+    // 1. 관리자 등록 후기 + 2. 고객 제출 승인 후기 (병렬 조회)
+    const [adminReviews, approvedSubmissions] = await Promise.all([
+      prisma.review.findMany({
+        where: { isVisible: true },
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      }),
+      prisma.reviewSubmission.findMany({
+        where: { status: { in: ["APPROVED", "AUTO_APPROVED"] } },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
     const customerReviews = approvedSubmissions.map((submission) => ({
       id: submission.id + 100000,

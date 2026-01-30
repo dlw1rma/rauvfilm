@@ -15,7 +15,9 @@ export async function GET() {
       orderBy: { order: 'asc' },
     });
 
-    return NextResponse.json(locations);
+    const response = NextResponse.json(locations);
+    response.headers.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=7200");
+    return response;
   } catch (error) {
     console.error('Fetch public locations error:', error);
     return NextResponse.json({ error: 'Failed to fetch locations' }, { status: 500 });

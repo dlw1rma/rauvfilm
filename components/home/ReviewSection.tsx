@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { ImageOff, ArrowRight } from "lucide-react";
 
@@ -146,10 +147,12 @@ export default function ReviewSection() {
                 >
                   {/* 썸네일 이미지 */}
                   {hasValidImageUrl && !review.imageError ? (
-                    <img
+                    <Image
                       src={review.imageUrl!}
                       alt={review.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                       onError={() => {

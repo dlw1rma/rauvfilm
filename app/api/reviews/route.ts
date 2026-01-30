@@ -29,28 +29,28 @@ export async function GET(request: NextRequest) {
       reviewWhere = {};
     }
 
-    // 1. 관리자가 등록한 리뷰
-    const adminReviews = await prisma.review.findMany({
-      where: reviewWhere,
-      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-    });
-
-    // 2. 고객이 제출하고 승인된 후기 (APPROVED, AUTO_APPROVED)
-    const approvedSubmissions = await prisma.reviewSubmission.findMany({
-      where: {
-        status: { in: ["APPROVED", "AUTO_APPROVED"] },
-      },
-      include: {
-        reservation: {
-          select: {
-            author: true,
-            brideName: true,
-            groomName: true,
+    // 1+2. 관리자 등록 리뷰 + 고객 승인 후기 병렬 조회
+    const [adminReviews, approvedSubmissions] = await Promise.all([
+      prisma.review.findMany({
+        where: reviewWhere,
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      }),
+      prisma.reviewSubmission.findMany({
+        where: {
+          status: { in: ["APPROVED", "AUTO_APPROVED"] },
+        },
+        include: {
+          reservation: {
+            select: {
+              author: true,
+              brideName: true,
+              groomName: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
     // ReviewSubmission을 Review 형태로 변환
     const customerReviews = approvedSubmissions.map((submission) => {
@@ -76,7 +76,11 @@ export async function GET(request: NextRequest) {
     // 통합 및 정렬 (관리자 후기 우선, 그 다음 고객 후기)
     const allReviews = [...adminReviews, ...customerReviews];
 
-    return NextResponse.json({ reviews: allReviews });
+    const response = NextResponse.json({ reviews: allReviews });
+    if (admin !== "true") {
+      response.headers.set("Cache-Control", "public, s-maxage=600, stale-while-revalidate=1200");
+    }
+    return response;
   } catch (error) {
     console.error("Error fetching reviews:", error);
     return NextResponse.json(

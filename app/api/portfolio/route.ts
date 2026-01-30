@@ -44,7 +44,11 @@ export async function GET(request: NextRequest) {
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     });
 
-    return NextResponse.json({ portfolios });
+    const response = NextResponse.json({ portfolios });
+    if (admin !== "true") {
+      response.headers.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=7200");
+    }
+    return response;
   } catch (error) {
     console.error("Error fetching portfolios:", error);
     return NextResponse.json(

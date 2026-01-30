@@ -24,6 +24,8 @@ function getOptimizedThumbnailUrl(secureUrl: string, maxWidth: number = 800): st
   return secureUrl;
 }
 
+export const revalidate = 3600; // 1시간마다 재생성
+
 export const metadata: Metadata = {
   title: "EVENT SNAP | 라우브필름",
   description: "라우브필름의 야외 스냅 촬영 장소를 소개합니다. 동작대교, 창경궁, 노을공원, 올림픽공원에서 특별한 순간을 담아보세요.",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 interface ReviewImageProps {
   src: string;
@@ -30,12 +31,31 @@ export default function ReviewImage({ src, alt }: ReviewImageProps) {
     );
   }
 
+  // pstatic.net 이미지는 Next/Image 최적화 가능 (remotePatterns 등록됨)
+  const canUseNextImage = src.includes("pstatic.net") || src.includes("cloudinary.com");
+
+  if (canUseNextImage) {
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className="object-cover"
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setError(true)}
+      />
+    );
+  }
+
   return (
     <img
       src={src}
       alt={alt}
       className="w-full h-full object-cover"
       referrerPolicy="no-referrer"
+      loading="lazy"
       onError={() => setError(true)}
     />
   );

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600; // 1시간마다 재생성
 
 export default function PortfolioPage() {
   return <PortfolioPageClient />;
