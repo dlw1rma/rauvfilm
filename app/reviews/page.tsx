@@ -174,29 +174,6 @@ export default async function ReviewsPage() {
           ))}
         </div>
         )}
-
-        {/* CTA */}
-        <div className="mt-16 text-center">
-          <p className="mb-6 text-muted-foreground">
-            더 많은 후기가 궁금하시다면?
-          </p>
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <a
-              href="https://blog.naver.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-12 items-center justify-center rounded-lg border border-border px-8 text-base font-medium transition-all hover:bg-muted"
-            >
-              네이버 블로그 보기
-            </a>
-            <a
-              href="/contact"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-accent px-8 text-base font-medium text-white transition-all hover:bg-accent-hover hover:-translate-y-1"
-            >
-              촬영 문의하기
-            </a>
-          </div>
-        </div>
       </div>
     </div>
   );

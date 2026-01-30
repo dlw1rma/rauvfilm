@@ -4,7 +4,7 @@
  * 검증 항목:
  * 1. 제목 검사: '라우브필름' 또는 '본식DVD' 포함
  * 2. 본문 검사: 최소 글자 수 (500자 이상)
- * 3. 플랫폼 분류: 네이버 블로그(자동), 네이버 카페(수동)
+ * 3. 플랫폼 분류: 네이버 블로그(자동), 네이버 카페(자동), 인스타그램(수동)
  */
 
 import type { ReviewPlatform, ReviewStatus } from '@prisma/client';
@@ -25,8 +25,6 @@ export interface VerificationResult {
 
 /**
  * URL에서 플랫폼 감지
- * @param url 후기 URL
- * @returns 플랫폼 타입
  */
 export function detectPlatform(url: string): ReviewPlatform {
   const lowerUrl = url.toLowerCase();
@@ -39,8 +37,6 @@ export function detectPlatform(url: string): ReviewPlatform {
 
 /**
  * 제목에 필수 키워드가 포함되어 있는지 검사
- * @param title 제목
- * @returns 포함 여부
  */
 export function validateTitle(title: string): boolean {
   const lowerTitle = title.toLowerCase();
@@ -51,14 +47,11 @@ export function validateTitle(title: string): boolean {
 
 /**
  * 본문 글자 수 검사
- * @param content 본문 내용
- * @returns 글자 수 및 유효 여부
  */
 export function validateContent(content: string): {
   characterCount: number;
   isValid: boolean;
 } {
-  // 공백 제거 후 글자 수 계산
   const characterCount = content.replace(/\s/g, '').length;
   return {
     characterCount,
@@ -66,96 +59,127 @@ export function validateContent(content: string): {
   };
 }
 
-/**
- * 후기 URL 분석 및 검증
- *
- * 참고: 네이버 카페는 비공개라 자동 검증 불가
- * 인스타그램도 로그인 필요하여 자동 검증 불가
- *
- * @param url 후기 URL
- * @returns 검증 결과
- */
-export async function verifyReview(url: string): Promise<VerificationResult> {
-  // 플랫폼 판별
-  const platform = detectPlatform(url);
+// HTML에서 텍스트 추출 (태그 제거)
+function extractText(html: string): string {
+  let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  text = text.replace(/<[^>]+>/g, ' ');
+  text = text.replace(/\s+/g, ' ').trim();
+  return text;
+}
 
-  // 네이버 카페 자동 검증 시도 (공개 설정에 따라 가능할 수 있음)
-  if (platform === 'NAVER_CAFE') {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-      });
+// 네이버 블로그 PostView URL 변환
+function toNaverBlogPostUrl(url: string): string | null {
+  let match = url.match(/blog\.naver\.com\/([^\/\?]+)\/(\d+)/);
+  if (match) {
+    return `https://blog.naver.com/PostView.naver?blogId=${match[1]}&logNo=${match[2]}`;
+  }
+  match = url.match(/blogId=([^&]+).*logNo=(\d+)/);
+  if (match) {
+    return `https://blog.naver.com/PostView.naver?blogId=${match[1]}&logNo=${match[2]}`;
+  }
+  match = url.match(/blog\.naver\.com\/([^\/\?]+).*logNo=(\d+)/);
+  if (match) {
+    return `https://blog.naver.com/PostView.naver?blogId=${match[1]}&logNo=${match[2]}`;
+  }
+  return null;
+}
 
-      if (!response.ok) {
-        return {
-          platform,
-          canAutoVerify: false,
-          titleValid: null,
-          contentValid: null,
-          characterCount: null,
-          status: 'MANUAL_REVIEW',
-          errorMessage: '네이버 카페 후기를 확인할 수 없습니다. 카페 게시글의 공개여부를 "전체공개"로 설정해주세요. 설정 후 다시 제출해주시면 자동으로 확인됩니다.',
-        };
-      }
+// 네이버 카페 모바일 URL 변환
+function toNaverCafeMobileUrl(url: string): string | null {
+  const match = url.match(/cafe\.naver\.com\/([\w-]+)\/(\d+)/);
+  if (match) {
+    return `https://m.cafe.naver.com/${match[1]}/${match[2]}`;
+  }
+  return null;
+}
 
-      const html = await response.text();
-
-      // 제목 추출
-      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      const title = titleMatch ? titleMatch[1] : '';
-      const titleValid = validateTitle(title);
-
-      // 본문 추출 (네이버 카페 특화)
-      let content = '';
-      
-      // 카페 게시글 본문 추출 시도
-      const articleBodyMatch = html.match(/class="se-main-container"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/i) ||
-                                   html.match(/class="article_body"[^>]*>([\s\S]*?)<\/div>/i) ||
-                                   html.match(/id="postContentArea"[^>]*>([\s\S]*?)<\/div>/i);
-      
-      if (articleBodyMatch) {
-        content = articleBodyMatch[1].replace(/<[^>]+>/g, ' ');
-      } else {
-        // 전체 body에서 스크립트/스타일 제거 후 텍스트 추출
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) {
-          content = bodyMatch[1]
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-            .replace(/<[^>]+>/g, ' ');
-        }
-      }
-
-      const contentValidation = validateContent(content);
-
-      // 자동 승인 여부 결정
-      const canAutoVerify = titleValid && contentValidation.isValid;
-
-      return {
-        platform,
-        canAutoVerify,
-        titleValid,
-        contentValid: contentValidation.isValid,
-        characterCount: contentValidation.characterCount,
-        status: canAutoVerify ? 'AUTO_APPROVED' : 'MANUAL_REVIEW',
-        errorMessage: canAutoVerify ? undefined : '네이버 카페 후기 검증 결과, 제목 또는 본문 요건을 충족하지 않습니다. 카페 게시글의 공개여부가 "전체공개"로 설정되어 있는지 확인해주세요.',
-      };
-    } catch (error) {
-      console.error('네이버 카페 후기 검증 오류:', error);
-      return {
-        platform,
-        canAutoVerify: false,
-        titleValid: null,
-        contentValid: null,
-        characterCount: null,
-        status: 'MANUAL_REVIEW',
-        errorMessage: '네이버 카페 후기를 확인할 수 없습니다. 카페 게시글의 공개여부를 "전체공개"로 설정해주세요. 설정 후 다시 제출해주시면 자동으로 확인됩니다.',
-      };
-    }
+// HTML에서 본문 콘텐츠 추출 (여러 패턴 시도)
+function extractContent(html: string): string {
+  // 스마트에디터 3.0
+  const seMatch = html.match(/<div[^>]*class=["'][^"']*se-main-container[^"']*["'][^>]*>([\s\S]*?)(<\/div>\s*){3,}/i);
+  if (seMatch && seMatch[1]) {
+    const text = extractText(seMatch[1]);
+    if (text.length > 50) return text;
   }
 
+  // 네이버 블로그 post-view
+  const postViewMatch = html.match(/<div[^>]*class=["'][^"']*post-view[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+  if (postViewMatch && postViewMatch[1]) {
+    const text = extractText(postViewMatch[1]);
+    if (text.length > 50) return text;
+  }
+
+  // 네이버 카페 article_body
+  const articleBodyMatch = html.match(/<div[^>]*class=["'][^"']*article_body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+  if (articleBodyMatch && articleBodyMatch[1]) {
+    const text = extractText(articleBodyMatch[1]);
+    if (text.length > 50) return text;
+  }
+
+  // postContentArea
+  const contentAreaMatch = html.match(/<div[^>]*id=["']postContentArea["'][^>]*>([\s\S]*?)<\/div>/i);
+  if (contentAreaMatch && contentAreaMatch[1]) {
+    const text = extractText(contentAreaMatch[1]);
+    if (text.length > 50) return text;
+  }
+
+  // postViewArea
+  const postViewAreaMatch = html.match(/<div[^>]*id=["']postViewArea["'][^>]*>([\s\S]*?)<\/div>/i);
+  if (postViewAreaMatch && postViewAreaMatch[1]) {
+    const text = extractText(postViewAreaMatch[1]);
+    if (text.length > 50) return text;
+  }
+
+  // article 태그
+  const articleMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+  if (articleMatch && articleMatch[1]) {
+    const text = extractText(articleMatch[1]);
+    if (text.length > 50) return text;
+  }
+
+  // 최후: body 전체에서 스크립트/스타일 제거
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch) {
+    return extractText(bodyMatch[1]);
+  }
+
+  return '';
+}
+
+// HTML에서 제목 추출
+function extractTitle(html: string): string {
+  // og:title 우선
+  const ogMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+  if (ogMatch && ogMatch[1]) {
+    return ogMatch[1].trim();
+  }
+
+  // title 태그
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  if (titleMatch && titleMatch[1]) {
+    let title = titleMatch[1].trim();
+    // "블로그명 : 포스트 제목" 형식
+    if (title.includes(':')) {
+      const parts = title.split(':');
+      title = parts[parts.length - 1].trim();
+    } else if (title.includes(' - ')) {
+      const parts = title.split(' - ');
+      title = parts[0].trim();
+    }
+    return title;
+  }
+
+  return '';
+}
+
+/**
+ * 후기 URL 분석 및 검증
+ */
+export async function verifyReview(url: string): Promise<VerificationResult> {
+  const platform = detectPlatform(url);
+
+  // 인스타그램: 자동 검증 불가
   if (platform === 'INSTAGRAM') {
     return {
       platform,
@@ -168,6 +192,7 @@ export async function verifyReview(url: string): Promise<VerificationResult> {
     };
   }
 
+  // 기타 플랫폼: 자동 검증 불가
   if (platform === 'OTHER') {
     return {
       platform,
@@ -180,15 +205,36 @@ export async function verifyReview(url: string): Promise<VerificationResult> {
     };
   }
 
-  // 네이버 블로그 자동 검증 시도
+  // 네이버 블로그/카페 자동 검증
   try {
-    const response = await fetch(url, {
+    let fetchUrl: string;
+    let userAgent: string;
+    let referer: string;
+
+    if (platform === 'NAVER_BLOG') {
+      // PostView.naver 형식으로 변환 (iframe 우회)
+      fetchUrl = toNaverBlogPostUrl(url) || url;
+      userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      referer = 'https://www.naver.com/';
+    } else {
+      // 네이버 카페: 모바일 URL로 변환
+      fetchUrl = toNaverCafeMobileUrl(url) || url;
+      userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1';
+      referer = 'https://m.naver.com/';
+    }
+
+    const response = await fetch(fetchUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': userAgent,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': referer,
       },
+      redirect: 'follow',
     });
 
     if (!response.ok) {
+      const platformName = platform === 'NAVER_CAFE' ? '네이버 카페' : '네이버 블로그';
       return {
         platform,
         canAutoVerify: false,
@@ -196,47 +242,35 @@ export async function verifyReview(url: string): Promise<VerificationResult> {
         contentValid: null,
         characterCount: null,
         status: 'MANUAL_REVIEW',
-        errorMessage: `페이지를 불러올 수 없습니다. (HTTP ${response.status})`,
+        errorMessage: `${platformName} 후기를 확인할 수 없습니다. 게시글이 전체공개로 설정되어 있는지 확인해주세요.`,
       };
     }
 
     const html = await response.text();
 
-    // 제목 추출 (간단한 정규식 사용)
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const title = titleMatch ? titleMatch[1] : '';
-    const titleValid = validateTitle(title);
+    // 제목 추출 및 검증
+    const title = extractTitle(html);
+    const titleValid = title ? validateTitle(title) : null;
 
-    // 본문 추출 (네이버 블로그 특화)
-    // se-main-container: 스마트에디터
-    // post-view: 구버전
-    let content = '';
+    // 본문 추출 및 검증
+    const content = extractContent(html);
+    const contentValidation = content ? validateContent(content) : { characterCount: 0, isValid: false };
 
-    // 스마트에디터 3.0
-    const seContainerMatch = html.match(/class="se-main-container"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/i);
-    if (seContainerMatch) {
-      content = seContainerMatch[1].replace(/<[^>]+>/g, ' ');
-    } else {
-      // 구버전 또는 다른 형식
-      const postViewMatch = html.match(/class="post-view"[^>]*>([\s\S]*?)<\/div>/i);
-      if (postViewMatch) {
-        content = postViewMatch[1].replace(/<[^>]+>/g, ' ');
-      } else {
-        // 전체 body에서 스크립트/스타일 제거 후 텍스트 추출
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) {
-          content = bodyMatch[1]
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-            .replace(/<[^>]+>/g, ' ');
-        }
-      }
+    // 콘텐츠가 거의 없으면 페이지 접근 실패로 판단
+    if (contentValidation.characterCount < 30) {
+      const platformName = platform === 'NAVER_CAFE' ? '카페 게시글' : '블로그 포스트';
+      return {
+        platform,
+        canAutoVerify: false,
+        titleValid,
+        contentValid: null,
+        characterCount: contentValidation.characterCount,
+        status: 'MANUAL_REVIEW',
+        errorMessage: `${platformName}의 본문을 읽을 수 없습니다. 전체공개로 설정되어 있는지 확인해주세요.`,
+      };
     }
 
-    const contentValidation = validateContent(content);
-
-    // 자동 승인 여부 결정
-    const canAutoVerify = titleValid && contentValidation.isValid;
+    const canAutoVerify = (titleValid === true) && contentValidation.isValid;
 
     return {
       platform,
@@ -245,6 +279,7 @@ export async function verifyReview(url: string): Promise<VerificationResult> {
       contentValid: contentValidation.isValid,
       characterCount: contentValidation.characterCount,
       status: canAutoVerify ? 'AUTO_APPROVED' : 'MANUAL_REVIEW',
+      errorMessage: canAutoVerify ? undefined : undefined,
     };
   } catch (error) {
     console.error('후기 검증 오류:', error);
@@ -262,8 +297,6 @@ export async function verifyReview(url: string): Promise<VerificationResult> {
 
 /**
  * 검증 결과 메시지 생성
- * @param result 검증 결과
- * @returns 사용자에게 보여줄 메시지
  */
 export function getVerificationMessage(result: VerificationResult): string {
   if (result.errorMessage) {
@@ -271,7 +304,7 @@ export function getVerificationMessage(result: VerificationResult): string {
   }
 
   if (result.status === 'AUTO_APPROVED') {
-    return '✅ 후기가 자동 승인되었습니다! 할인이 적용됩니다.';
+    return '후기가 자동 승인되었습니다! 할인이 적용됩니다.';
   }
 
   const issues: string[] = [];
@@ -285,7 +318,7 @@ export function getVerificationMessage(result: VerificationResult): string {
   }
 
   if (issues.length > 0) {
-    return `⚠️ 후기 검증 결과:\n${issues.join('\n')}\n\n관리자가 검토 후 승인 여부를 결정합니다.`;
+    return `후기 검증 결과:\n${issues.join('\n')}\n\n관리자가 검토 후 승인 여부를 결정합니다.`;
   }
 
   return '후기가 제출되었습니다. 관리자가 검토 후 승인 여부를 결정합니다.';
@@ -293,8 +326,6 @@ export function getVerificationMessage(result: VerificationResult): string {
 
 /**
  * 플랫폼 이름 반환
- * @param platform 플랫폼 enum
- * @returns 한글 플랫폼 이름
  */
 export function getPlatformName(platform: ReviewPlatform): string {
   const names: Record<ReviewPlatform, string> = {
