@@ -1,9 +1,9 @@
 import { SolapiMessageService } from 'solapi';
 import { prisma } from '@/lib/prisma';
 
-const apiKey = process.env.SOLAPI_API_KEY || '';
-const apiSecret = process.env.SOLAPI_API_SECRET || '';
-const senderNumber = (process.env.SOLAPI_SENDER_NUMBER || '').replace(/-/g, '');
+const apiKey = (process.env.SOLAPI_API_KEY || '').replace(/^["']|["']$/g, '');
+const apiSecret = (process.env.SOLAPI_API_SECRET || '').replace(/^["']|["']$/g, '');
+const senderNumber = (process.env.SOLAPI_SENDER_NUMBER || '').replace(/^["']|["']$/g, '').replace(/-/g, '');
 
 let messageService: SolapiMessageService | null = null;
 
@@ -17,34 +17,10 @@ function getMessageService(): SolapiMessageService {
   return messageService;
 }
 
-// SMS 메시지 템플릿 (알림톡 미설정 시 fallback)
-const SMS_TEMPLATES = {
-  contract: (customerName: string, link: string) =>
-    `[라우브필름] ${customerName}님, 계약서가 준비되었습니다.\n\n아래 링크에서 확인해 주세요.\n${link}\n\n감사합니다.`,
-  video: (customerName: string, link: string) =>
-    `[라우브필름] ${customerName}님, 영상이 준비되었습니다.\n\n아래 링크에서 확인해 주세요.\n${link}\n\n감사합니다.`,
-};
-
-export type SmsTemplateType = keyof typeof SMS_TEMPLATES;
+export type SmsTemplateType = 'contract' | 'video';
 
 /**
- * SMS 발송
- */
-export async function sendSms(to: string, text: string) {
-  const service = getMessageService();
-  const cleanTo = to.replace(/-/g, '');
-
-  const result = await service.sendOne({
-    to: cleanTo,
-    from: senderNumber,
-    text,
-  });
-
-  return result;
-}
-
-/**
- * 카카오 알림톡 발송
+ * 카카오 알림톡 발송 (솔라피 경유)
  */
 export async function sendKakaoAlimtalk(
   to: string,
@@ -69,7 +45,9 @@ export async function sendKakaoAlimtalk(
 }
 
 /**
- * 템플릿 기반 발송 (알림톡 설정 시 알림톡, 미설정 시 SMS)
+ * DB에 설정된 카카오 알림톡 템플릿으로 발송
+ * - DB에 templateId/channelId가 설정되어 있어야 발송 가능
+ * - 미설정 시 에러 throw
  */
 export async function sendTemplateSms(
   to: string,
@@ -77,25 +55,18 @@ export async function sendTemplateSms(
   customerName: string,
   link: string,
 ) {
-  // DB에서 알림톡 템플릿 설정 확인
-  try {
-    const templateConfig = await prisma.smsTemplateConfig.findUnique({
-      where: { type: templateType },
-    });
+  const templateConfig = await prisma.smsTemplateConfig.findUnique({
+    where: { type: templateType },
+  });
 
-    if (templateConfig) {
-      // 알림톡으로 발송
-      const result = await sendKakaoAlimtalk(to, templateConfig.templateId, templateConfig.channelId, {
-        '#{고객명}': customerName,
-        '#{링크}': link,
-      });
-      return result;
-    }
-  } catch (error) {
-    console.error(`[알림톡] ${templateType} 발송 실패, SMS로 대체:`, error);
+  if (!templateConfig) {
+    throw new Error(`[알림톡] ${templateType} 템플릿이 지정되지 않았습니다. 관리자 페이지에서 템플릿을 지정해주세요.`);
   }
 
-  // fallback: SMS 발송
-  const text = SMS_TEMPLATES[templateType](customerName, link);
-  return sendSms(to, text);
+  const result = await sendKakaoAlimtalk(to, templateConfig.templateId, templateConfig.channelId, {
+    '#{고객명}': customerName,
+    '#{링크}': link,
+  });
+
+  return result;
 }

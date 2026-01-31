@@ -93,7 +93,7 @@ export async function POST(
       data: updateData,
     });
 
-    // SMS 발송 (실패해도 업로드 자체는 성공 처리)
+    // 카카오 알림톡 발송 (실패해도 업로드 자체는 성공 처리)
     if (booking.customerPhone) {
       if (sanitizedContractUrl && sanitizedContractUrl !== booking.contractUrl) {
         try {
@@ -103,9 +103,9 @@ export async function POST(
             booking.customerName,
             sanitizedContractUrl,
           );
-          console.log('[SMS] 계약서 안내 발송 성공:', { to: booking.customerPhone, groupId: result.groupId });
-        } catch (smsError) {
-          console.error('[SMS] 계약서 안내 발송 실패:', smsError);
+          console.log('[알림톡] 계약서 안내 발송 성공:', { to: booking.customerPhone, groupId: result.groupId });
+        } catch (sendError) {
+          console.error('[알림톡] 계약서 안내 발송 실패:', sendError);
         }
       }
       if (sanitizedVideoUrl && sanitizedVideoUrl !== booking.videoUrl) {
@@ -116,9 +116,9 @@ export async function POST(
             booking.customerName,
             sanitizedVideoUrl,
           );
-          console.log('[SMS] 영상 안내 발송 성공:', { to: booking.customerPhone, groupId: result.groupId });
-        } catch (smsError) {
-          console.error('[SMS] 영상 안내 발송 실패:', smsError);
+          console.log('[알림톡] 영상 안내 발송 성공:', { to: booking.customerPhone, groupId: result.groupId });
+        } catch (sendError) {
+          console.error('[알림톡] 영상 안내 발송 실패:', sendError);
         }
       }
     }
