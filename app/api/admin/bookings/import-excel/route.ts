@@ -161,6 +161,19 @@ export async function POST(request: Request) {
           finalPartnerCode = partnerCode;
         }
 
+        // 짝궁코드 중복 체크 - 중복 시 접미사 추가
+        if (finalPartnerCode) {
+          const baseCode = finalPartnerCode;
+          let suffix = 0;
+          while (await prisma.booking.findUnique({ where: { partnerCode: finalPartnerCode! } })) {
+            suffix++;
+            finalPartnerCode = `${baseCode}(${suffix})`;
+          }
+          if (suffix > 0) {
+            referralCode = finalPartnerCode;
+          }
+        }
+
         // 1. Booking 생성 (weddingTime, status, customerEmail, partnerCode 포함)
         const b = await prisma.booking.create({
           data: {
