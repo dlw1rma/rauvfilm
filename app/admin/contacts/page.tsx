@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import Pagination from "@/components/ui/Pagination";
 
 interface Contact {
   id: number;
@@ -20,6 +21,8 @@ export default function AdminContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -132,7 +135,7 @@ export default function AdminContactsPage() {
                   등록된 문의가 없습니다.
                 </div>
               ) : (
-                contacts.map((contact) => (
+                contacts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((contact) => (
                   <button
                     key={contact.id}
                     onClick={() => {
@@ -162,6 +165,7 @@ export default function AdminContactsPage() {
                 ))
               )}
             </div>
+            <Pagination currentPage={currentPage} totalPages={Math.ceil(contacts.length / PAGE_SIZE)} onPageChange={setCurrentPage} />
           </div>
 
           {/* Detail */}

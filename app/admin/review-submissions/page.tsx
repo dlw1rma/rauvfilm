@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Pagination from '@/components/ui/Pagination';
 
 interface ReviewSubmission {
   id: number;
@@ -39,6 +40,8 @@ export default function AdminReviewSubmissionsPage() {
   const [processing, setProcessing] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -58,6 +61,7 @@ export default function AdminReviewSubmissionsPage() {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     fetchReviews();
   }, [statusFilter]);
 
@@ -150,7 +154,7 @@ export default function AdminReviewSubmissionsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {reviews.map((review) => (
+          {reviews.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((review) => (
             <div key={review.id} className="bg-background rounded-xl border border-border p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -248,6 +252,7 @@ export default function AdminReviewSubmissionsPage() {
               )}
             </div>
           ))}
+          <Pagination currentPage={currentPage} totalPages={Math.ceil(reviews.length / PAGE_SIZE)} onPageChange={setCurrentPage} />
         </div>
       )}
     </div>

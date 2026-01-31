@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import Pagination from "@/components/ui/Pagination";
 
 interface Reservation {
   id: number;
@@ -84,6 +85,8 @@ export default function AdminReservationsPage() {
   const [searchDate, setSearchDate] = useState("");
   const [searchName, setSearchName] = useState("");
   const [creatingBooking, setCreatingBooking] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -102,6 +105,7 @@ export default function AdminReservationsPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    setCurrentPage(1);
     if (searchDate && searchDate.length === 6) {
       fetchReservations();
     } else if (searchName && searchName.length >= 2) {
@@ -411,7 +415,7 @@ export default function AdminReservationsPage() {
                   등록된 예약글이 없습니다.
                 </div>
               ) : (
-                reservations.map((reservation) => (
+                reservations.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((reservation) => (
                   <button
                     key={reservation.id}
                     onClick={() => setSelectedId(reservation.id)}
@@ -436,6 +440,7 @@ export default function AdminReservationsPage() {
                 ))
               )}
             </div>
+            <Pagination currentPage={currentPage} totalPages={Math.ceil(reservations.length / PAGE_SIZE)} onPageChange={setCurrentPage} />
           </div>
 
           {/* Detail */}

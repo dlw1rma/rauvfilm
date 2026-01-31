@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import Pagination from "@/components/ui/Pagination";
 
 interface Portfolio {
   id: number;
@@ -32,6 +33,8 @@ export default function AdminPortfolioPage() {
     category: "가성비형",
     featured: false,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [syncData, setSyncData] = useState({
     channelHandle: "rauvfilm_Cine",
     category: "가성비형",
@@ -225,7 +228,7 @@ export default function AdminPortfolioPage() {
                   </td>
                 </tr>
               ) : (
-                portfolios.map((portfolio) => (
+                portfolios.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((portfolio) => (
                   <tr key={portfolio.id} className="hover:bg-muted/50">
                     <td className="px-4 py-3">
                       <p className="font-medium">{portfolio.title}</p>
@@ -276,6 +279,7 @@ export default function AdminPortfolioPage() {
               )}
             </tbody>
           </table>
+          <Pagination currentPage={currentPage} totalPages={Math.ceil(portfolios.length / PAGE_SIZE)} onPageChange={setCurrentPage} />
         </div>
 
         {/* YouTube 동기화 Modal */}
