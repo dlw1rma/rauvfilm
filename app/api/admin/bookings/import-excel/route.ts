@@ -22,21 +22,22 @@ async function isAdminAuthenticated(): Promise<boolean> {
 }
 
 const AUTHOR_KEYS = ['계약자', '이름', '성함', '고객명', 'customerName', 'author'];
-const BRIDE_NAME_KEYS = ['신부', '신부 이름', '신부명', 'brideName'];
-const BRIDE_PHONE_KEYS = ['신부 전화', '신부 연락처', '신부 휴대폰', '신부 전화번호', 'bridePhone'];
-const GROOM_NAME_KEYS = ['신랑', '신랑 이름', '신랑명', 'groomName'];
-const GROOM_PHONE_KEYS = ['신랑 전화', '신랑 연락처', '신랑 휴대폰', '신랑 전화번호', 'groomPhone'];
-const DATE_KEYS = ['예식일', '날짜', 'weddingDate'];
+const BRIDE_NAME_KEYS = ['신부', '신부 이름', '신부명', '신부님', 'brideName'];
+const BRIDE_PHONE_KEYS = ['신부 전화', '신부 연락처', '신부 휴대폰', '신부 전화번호', '신부님 전화', 'bridePhone'];
+const GROOM_NAME_KEYS = ['신랑', '신랑 이름', '신랑명', '신랑님', 'groomName'];
+const GROOM_PHONE_KEYS = ['신랑 전화', '신랑 연락처', '신랑 휴대폰', '신랑 전화번호', '신랑님 전화', 'groomPhone'];
+const DATE_KEYS = ['예식일', '날짜', '예식 날짜', '웨딩일', 'weddingDate'];
 const TIME_KEYS = ['예식 시간', '시간', 'weddingTime'];
-const VENUE_KEYS = ['예식장', '장소', 'weddingVenue'];
+const VENUE_KEYS = ['예식장', '장소', '웨딩홀', 'weddingVenue'];
 const VENUE_FLOOR_KEYS = ['층', '홀', '층/홀', 'venueFloor'];
-const PRODUCT_TYPE_KEYS = ['상품', '상품 종류', 'productType'];
+const PRODUCT_TYPE_KEYS = ['상품', '상품 종류', '상품종류', '패키지', 'productType'];
 const RECEIPT_PHONE_KEYS = ['현금영수증', '영수증 전화', 'receiptPhone'];
-const DEPOSIT_NAME_KEYS = ['예약금 입금자', '입금자명', 'depositName'];
-const PRODUCT_EMAIL_KEYS = ['이메일', '상품 받을 이메일', 'productEmail'];
-const PARTNER_CODE_KEYS = ['짝궁', '짝궁 코드', 'partnerCode'];
+const DEPOSIT_NAME_KEYS = ['예약금 입금자', '입금자명', '입금자', 'depositName'];
+const PRODUCT_EMAIL_KEYS = ['이메일', '상품 받을 이메일', 'email', 'productEmail'];
+const PARTNER_CODE_KEYS = ['짝궁', '짝궁 코드', '짝궁코드', 'partnerCode'];
 const GUEST_COUNT_KEYS = ['초대인원', '인원', 'guestCount'];
-const SPECIAL_NOTES_KEYS = ['특이사항', '요구사항', 'specialNotes'];
+const SPECIAL_NOTES_KEYS = ['특이사항', '요구사항', '메모', 'specialNotes'];
+const PHONE_KEYS = ['전화', '전화번호', '연락처', '휴대폰', 'phone'];
 
 function findCol(row: string[], keys: string[]): number {
   for (let i = 0; i < row.length; i++) {
@@ -48,14 +49,44 @@ function findCol(row: string[], keys: string[]): number {
 
 function parseDate(val: unknown): Date | null {
   if (val == null) return null;
+  // 엑셀 날짜 시리얼
   if (typeof val === 'number') {
     const d = XLSX.SSF.parse_date_code(val);
     if (d) return new Date(d.y, d.m - 1, d.d);
   }
+  // Date 객체 (cellDates: true)
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    return val;
+  }
   const s = String(val).trim();
   if (!s) return null;
-  const parsed = new Date(s);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  // "2025.03.15", "2025-03-15", "2025/03/15", "25.03.15" 등 다양한 형식
+  const cleaned = s.replace(/[./]/g, '-');
+  const parsed = new Date(cleaned);
+  if (!isNaN(parsed.getTime())) return parsed;
+  // "250315" 형태 (6자리)
+  if (/^\d{6}$/.test(s)) {
+    const yy = parseInt(s.slice(0, 2));
+    const mm = parseInt(s.slice(2, 4)) - 1;
+    const dd = parseInt(s.slice(4, 6));
+    const year = yy >= 50 ? 1900 + yy : 2000 + yy;
+    return new Date(year, mm, dd);
+  }
+  // "20250315" 형태 (8자리)
+  if (/^\d{8}$/.test(s)) {
+    const yyyy = parseInt(s.slice(0, 4));
+    const mm = parseInt(s.slice(4, 6)) - 1;
+    const dd = parseInt(s.slice(6, 8));
+    return new Date(yyyy, mm, dd);
+  }
+  return null;
+}
+
+/**
+ * 전화번호 정규화 (느슨한 버전 - 숫자만 추출)
+ */
+function flexNormalizePhone(val: string): string {
+  return String(val ?? '').replace(/[^0-9]/g, '');
 }
 
 export async function POST(request: Request) {
@@ -96,17 +127,45 @@ export async function POST(request: Request) {
     const partnerCodeCol = findCol(header, PARTNER_CODE_KEYS);
     const guestCountCol = findCol(header, GUEST_COUNT_KEYS);
     const specialNotesCol = findCol(header, SPECIAL_NOTES_KEYS);
+    const phoneCol = findCol(header, PHONE_KEYS);
 
-    if (authorCol < 0 || brideNameCol < 0 || bridePhoneCol < 0 || groomNameCol < 0 || groomPhoneCol < 0 || dateCol < 0 || venueCol < 0) {
+    // 최소 필수: 계약자/이름 + 예식일 + 예식장
+    if (authorCol < 0 && brideNameCol < 0 && groomNameCol < 0) {
       return NextResponse.json(
-        { error: '엑셀 1행에 필수 컬럼이 누락되었습니다. 계약자/이름, 신부 이름/전화, 신랑 이름/전화, 예식일/날짜, 예식장/장소가 필요합니다.' },
+        { error: `엑셀 1행에 이름 컬럼이 없습니다. (계약자/신부/신랑 중 하나 필요)\n감지된 헤더: ${header.join(', ')}` },
+        { status: 400 }
+      );
+    }
+    if (dateCol < 0) {
+      return NextResponse.json(
+        { error: `엑셀 1행에 예식일/날짜 컬럼이 없습니다.\n감지된 헤더: ${header.join(', ')}` },
+        { status: 400 }
+      );
+    }
+    if (venueCol < 0) {
+      return NextResponse.json(
+        { error: `엑셀 1행에 예식장/장소 컬럼이 없습니다.\n감지된 헤더: ${header.join(', ')}` },
         { status: 400 }
       );
     }
 
-    const defaultProduct = await prisma.product.findFirst({ where: {} });
+    // DB에서 모든 상품 조회하여 이름으로 매칭 준비
+    const allProducts = await prisma.product.findMany({ where: { isActive: true } });
+    const defaultProduct = allProducts[0] ?? null;
     if (!defaultProduct) {
       return NextResponse.json({ error: '등록된 상품이 없습니다. 상품을 먼저 등록해주세요.' }, { status: 400 });
+    }
+
+    // 상품명 매칭 맵 (부분일치 지원)
+    function findProduct(typeName: string) {
+      if (!typeName) return defaultProduct;
+      // 정확히 일치
+      const exact = allProducts.find((p) => p.name === typeName);
+      if (exact) return exact;
+      // 부분 포함
+      const partial = allProducts.find((p) => typeName.includes(p.name) || p.name.includes(typeName));
+      if (partial) return partial;
+      return defaultProduct;
     }
 
     const created: { id: number; customerName: string; weddingDate: string }[] = [];
@@ -114,38 +173,53 @@ export async function POST(request: Request) {
 
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r] ?? [];
-      const author = sanitizeString(row[authorCol], 50);
-      const brideName = sanitizeString(row[brideNameCol], 50);
-      const bridePhone = normalizePhone(String(row[bridePhoneCol] ?? ''));
-      const groomName = sanitizeString(row[groomNameCol], 50);
-      const groomPhone = normalizePhone(String(row[groomPhoneCol] ?? ''));
-      const weddingDate = parseDate(row[dateCol]);
-      const weddingTime = String(row[timeCol] ?? '').trim();
-      const weddingVenue = String(row[venueCol] ?? '').trim();
-      const venueFloor = String(row[venueFloorCol] ?? '').trim();
-      const productType = String(row[productTypeCol] ?? '').trim();
-      const receiptPhone = normalizePhone(String(row[receiptPhoneCol] ?? ''));
-      const depositName = String(row[depositNameCol] ?? '').trim();
-      const productEmail = String(row[productEmailCol] ?? '').trim();
-      const partnerCode = String(row[partnerCodeCol] ?? '').trim();
-      const guestCount = row[guestCountCol] ? parseInt(String(row[guestCountCol])) : null;
-      const specialNotes = String(row[specialNotesCol] ?? '').trim();
 
-      if (!author || !brideName || !bridePhone || !groomName || !groomPhone || !weddingVenue) {
-        skipped.push({ row: r + 1, reason: '필수 항목 누락 (계약자/신부/신랑 이름·전화, 예식장)' });
+      // 이름: 계약자 > 신부 > 신랑 순으로 fallback
+      const author = sanitizeString(row[authorCol], 50)
+        || sanitizeString(row[brideNameCol], 50)
+        || sanitizeString(row[groomNameCol], 50);
+      const brideName = sanitizeString(row[brideNameCol], 50) || author;
+      const groomName = sanitizeString(row[groomNameCol], 50) || '';
+
+      // 전화번호: 각 컬럼 > 범용 '전화번호' 컬럼 순으로 fallback
+      const bridePhone = flexNormalizePhone(String(row[bridePhoneCol] ?? ''))
+        || flexNormalizePhone(String(row[phoneCol] ?? ''));
+      const groomPhone = flexNormalizePhone(String(row[groomPhoneCol] ?? ''));
+
+      const weddingDate = parseDate(row[dateCol]);
+      const weddingTime = timeCol >= 0 ? String(row[timeCol] ?? '').trim() : '';
+      const weddingVenue = String(row[venueCol] ?? '').trim();
+      const venueFloor = venueFloorCol >= 0 ? String(row[venueFloorCol] ?? '').trim() : '';
+      const productType = productTypeCol >= 0 ? String(row[productTypeCol] ?? '').trim() : '';
+      const receiptPhone = receiptPhoneCol >= 0 ? flexNormalizePhone(String(row[receiptPhoneCol] ?? '')) : '';
+      const depositName = depositNameCol >= 0 ? String(row[depositNameCol] ?? '').trim() : '';
+      const productEmail = productEmailCol >= 0 ? String(row[productEmailCol] ?? '').trim() : '';
+      const partnerCode = partnerCodeCol >= 0 ? String(row[partnerCodeCol] ?? '').trim() : '';
+      const guestCount = guestCountCol >= 0 && row[guestCountCol] ? parseInt(String(row[guestCountCol])) : null;
+      const specialNotes = specialNotesCol >= 0 ? String(row[specialNotesCol] ?? '').trim() : '';
+
+      // 최소 필수: 이름 + 예식일 + 예식장
+      if (!author) {
+        skipped.push({ row: r + 1, reason: '이름 없음 (계약자/신부/신랑 모두 비어있음)' });
         continue;
       }
       if (!weddingDate) {
-        skipped.push({ row: r + 1, reason: '예식일 형식 오류' });
+        skipped.push({ row: r + 1, reason: `예식일 형식 오류: "${String(row[dateCol] ?? '')}"` });
         continue;
       }
-      if (bridePhone.length < 10 || groomPhone.length < 10) {
-        skipped.push({ row: r + 1, reason: '전화번호 형식 오류' });
+      if (!weddingVenue) {
+        skipped.push({ row: r + 1, reason: '예식장 없음' });
         continue;
       }
 
+      // 전화번호가 없으면 더미값 사용 (이관 데이터이므로)
+      const customerPhone = bridePhone || groomPhone || '00000000000';
+
       try {
-        // 짝궁코드 생성 (상품 종류가 가성비형/기본형이면 자동 생성)
+        // 상품 매칭
+        const matchedProduct = findProduct(productType);
+
+        // 짝궁코드 생성
         let referralCode: string | null = null;
         let finalPartnerCode: string | null = null;
         const isCoupleDiscount = productType === '가성비형' || productType === '기본형';
@@ -174,21 +248,21 @@ export async function POST(request: Request) {
           }
         }
 
-        // 1. Booking 생성 (weddingTime, status, customerEmail, partnerCode 포함)
+        // 1. Booking 생성
         const b = await prisma.booking.create({
           data: {
             customerName: author,
-            customerPhone: bridePhone,
+            customerPhone: customerPhone,
             customerEmail: productEmail || null,
             weddingDate,
             weddingTime: weddingTime || null,
             weddingVenue,
             status: 'CONFIRMED',
             partnerCode: finalPartnerCode,
-            productId: defaultProduct.id,
-            listPrice: defaultProduct.price,
+            productId: matchedProduct.id,
+            listPrice: matchedProduct.price,
             eventDiscount: 0,
-            finalBalance: defaultProduct.price - 100000,
+            finalBalance: matchedProduct.price - 100000,
           },
         });
 
@@ -207,21 +281,19 @@ export async function POST(request: Request) {
             content: specialNotes || `엑셀 이관: ${weddingVenue}`,
             isPrivate: true,
             status: 'CONFIRMED',
-            // 필수 작성항목(공통) - 개인정보 암호화
-            brideName: encrypt(brideName) || null,
-            bridePhone: encrypt(bridePhone) || null,
-            groomName: encrypt(groomName) || null,
-            groomPhone: encrypt(groomPhone) || null,
-            receiptPhone: receiptPhone ? encrypt(receiptPhone) : null,
+            brideName: brideName ? (encrypt(brideName) || null) : null,
+            bridePhone: bridePhone ? (encrypt(bridePhone) || null) : null,
+            groomName: groomName ? (encrypt(groomName) || null) : null,
+            groomPhone: groomPhone ? (encrypt(groomPhone) || null) : null,
+            receiptPhone: receiptPhone ? (encrypt(receiptPhone) || null) : null,
             depositName: depositName || null,
-            productEmail: productEmail ? encrypt(productEmail) : null,
-            productType: productType || null,
+            productEmail: productEmail ? (encrypt(productEmail) || null) : null,
+            productType: productType || matchedProduct.name,
             partnerCode: finalPartnerCode,
             foundPath: null,
             termsAgreed: true,
             faqRead: true,
             privacyAgreed: true,
-            // 본식DVD 예약 고객님 필수 추가 작성 항목
             weddingDate: weddingDateStr,
             weddingTime: weddingTime || null,
             venueName: weddingVenue,
@@ -238,20 +310,16 @@ export async function POST(request: Request) {
             seonwonpan: false,
             gimbalShoot: false,
             playbackDevice: null,
-            // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
             eventType: null,
             shootLocation: null,
             shootDate: null,
             shootTime: null,
             shootConcept: null,
-            // 할인사항 (체크박스)
             discountCouple: isCoupleDiscount,
             discountReview: false,
             discountNewYear: true,
             discountReviewBlog: false,
-            // 특이사항
             specialNotes: specialNotes || null,
-            // 커스텀 촬영 요청 필드
             customShootingRequest: false,
             customStyle: null,
             customEditStyle: null,
@@ -260,13 +328,12 @@ export async function POST(request: Request) {
             customEffect: null,
             customContent: null,
             customSpecialRequest: null,
-            // 잔금 및 할인 시스템
-            totalAmount: defaultProduct.price,
+            totalAmount: matchedProduct.price,
             depositAmount: 100000,
             discountAmount: 0,
             referralDiscount: 0,
             reviewDiscount: 0,
-            finalBalance: defaultProduct.price - 100000,
+            finalBalance: matchedProduct.price - 100000,
             referralCode,
             referredBy: null,
             referredCount: 0,
@@ -303,6 +370,19 @@ export async function POST(request: Request) {
       skipped: skipped.length,
       createdIds: created.map((c) => c.id),
       skippedRows: skipped,
+      // 디버깅용: 감지된 컬럼
+      detectedColumns: {
+        계약자: authorCol >= 0 ? header[authorCol] : '(미감지)',
+        신부: brideNameCol >= 0 ? header[brideNameCol] : '(미감지)',
+        신랑: groomNameCol >= 0 ? header[groomNameCol] : '(미감지)',
+        예식일: header[dateCol],
+        예식장: header[venueCol],
+        상품: productTypeCol >= 0 ? header[productTypeCol] : '(미감지)',
+        전화번호: phoneCol >= 0 ? header[phoneCol] : '(미감지)',
+        신부전화: bridePhoneCol >= 0 ? header[bridePhoneCol] : '(미감지)',
+        신랑전화: groomPhoneCol >= 0 ? header[groomPhoneCol] : '(미감지)',
+      },
+      matchedProducts: allProducts.map((p) => p.name),
     });
   } catch (error) {
     console.error('엑셀 이관 오류:', error);
