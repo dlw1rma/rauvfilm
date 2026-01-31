@@ -220,6 +220,7 @@ export default function NewReservationPage() {
   const [venueSearchQuery, setVenueSearchQuery] = useState("");
   const [venueSearchResults, setVenueSearchResults] = useState<Array<{ title: string; address: string; roadAddress: string }>>([]);
   const [isSearchingVenue, setIsSearchingVenue] = useState(false);
+  const [travelFee, setTravelFee] = useState<number | null>(null);
 
   // 예약금 입금 안내 모달
   const [showDepositModal, setShowDepositModal] = useState(false);
@@ -353,7 +354,7 @@ export default function NewReservationPage() {
     }
     setIsSearchingVenue(true);
     try {
-      const res = await fetch(`/api/naver-map/search?query=${encodeURIComponent(venueSearchQuery + " 웨딩홀")}`);
+      const res = await fetch(`/api/naver-map/search?query=${encodeURIComponent(venueSearchQuery)}`);
       if (res.ok) {
         const data = await res.json();
         setVenueSearchResults(data.items || []);
@@ -366,14 +367,19 @@ export default function NewReservationPage() {
   };
 
   // 예식장 검색 결과 선택
-  const selectVenue = (item: { title: string; address: string; roadAddress: string }) => {
+  const selectVenue = async (item: { title: string; address: string; roadAddress: string }) => {
     const address = item.roadAddress || item.address;
     // 시/도 + 구/군 파싱 (예: "서울특별시 강남구 역삼동 123" → "서울특별시 강남구")
     const parts = address.split(" ");
     let region = "";
+    let regionName = "";
+    let districtName = "";
     if (parts.length >= 2) {
+      regionName = parts[0];
+      districtName = parts[1];
       region = `${parts[0]} ${parts[1]}`;
     } else if (parts.length === 1) {
+      regionName = parts[0];
       region = parts[0];
     }
     setFormData((prev) => ({
@@ -385,6 +391,21 @@ export default function NewReservationPage() {
     setVenueSearchQuery("");
     setVenueSearchResults([]);
     setShowVenueSearchModal(false);
+
+    // 출장비 자동 조회
+    if (regionName) {
+      try {
+        const params = new URLSearchParams({ region: regionName, branch: "서울점" });
+        if (districtName) params.set("district", districtName);
+        const res = await fetch(`/api/travel-fees?${params}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTravelFee(data.fee ?? 0);
+        }
+      } catch {
+        setTravelFee(null);
+      }
+    }
   };
 
   // 짝궁코드 선택 함수 (검색 결과에서 선택 시)
@@ -1596,6 +1617,12 @@ export default function NewReservationPage() {
                       </div>
                       {formData.venueAddress && (
                         <p className="text-xs text-muted-foreground mt-1">{formData.venueAddress}</p>
+                      )}
+                      {travelFee !== null && travelFee > 0 && formData.venueAddress && (
+                        <p className="text-xs text-accent mt-1">출장비: {travelFee.toLocaleString("ko-KR")}원</p>
+                      )}
+                      {travelFee === 0 && formData.venueAddress && (
+                        <p className="text-xs text-green-600 mt-1">출장비 없음</p>
                       )}
                     </div>
                     <div>
