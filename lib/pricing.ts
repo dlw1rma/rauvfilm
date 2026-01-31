@@ -7,6 +7,7 @@
 
 export interface BalanceCalculation {
   listPrice: number;          // 정가
+  travelFee: number;          // 출장비
   depositAmount: number;      // 예약금 (10만원)
   eventDiscount: number;      // 이벤트 할인
   referralDiscount: number;   // 짝꿍 할인 (1만원)
@@ -17,6 +18,7 @@ export interface BalanceCalculation {
 
 export interface CalculateBalanceOptions {
   depositAmount?: number;     // 예약금 (기본 10만원)
+  travelFee?: number;         // 출장비
   eventDiscount?: number;     // 이벤트 할인 금액
   hasReferral?: boolean;      // 짝꿍 코드 사용 여부
   approvedReviewCount?: number; // 승인된 후기 수
@@ -38,18 +40,20 @@ export function calculateBalance(
   options: CalculateBalanceOptions = {}
 ): BalanceCalculation {
   const depositAmount = options.depositAmount ?? DEFAULT_DEPOSIT_AMOUNT;
+  const travelFee = options.travelFee ?? 0;
   const eventDiscount = options.eventDiscount ?? 0;
   const referralDiscount = options.hasReferral ? REFERRAL_DISCOUNT_AMOUNT : 0;
   const reviewDiscount = (options.approvedReviewCount ?? 0) * REVIEW_DISCOUNT_AMOUNT;
 
   const totalDiscount = eventDiscount + referralDiscount + reviewDiscount;
 
-  // 최종 잔금 = 정가 - 예약금 - 총 할인
+  // 최종 잔금 = 정가 + 출장비 - 예약금 - 총 할인
   // 음수가 되지 않도록 처리
-  const finalBalance = Math.max(0, listPrice - depositAmount - totalDiscount);
+  const finalBalance = Math.max(0, listPrice + travelFee - depositAmount - totalDiscount);
 
   return {
     listPrice,
+    travelFee,
     depositAmount,
     eventDiscount,
     referralDiscount,

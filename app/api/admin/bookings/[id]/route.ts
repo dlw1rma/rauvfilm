@@ -75,6 +75,7 @@ export async function GET(
     // 잔금 재계산
     const calculation = calculateBalance(booking.listPrice, {
       depositAmount: booking.depositAmount,
+      travelFee: booking.travelFee,
       eventDiscount: booking.eventDiscount,
       hasReferral: booking.referralDiscount > 0,
       approvedReviewCount,
@@ -134,6 +135,7 @@ export async function GET(
         ...booking,
         listPriceFormatted: formatKRW(booking.listPrice),
         depositAmountFormatted: formatKRW(booking.depositAmount),
+        travelFeeFormatted: formatKRW(booking.travelFee),
         eventDiscountFormatted: formatKRW(booking.eventDiscount),
         referralDiscountFormatted: formatKRW(booking.referralDiscount),
         reviewDiscountFormatted: formatKRW(booking.reviewDiscount),
@@ -195,6 +197,7 @@ export async function PUT(
       'eventDiscount',
       'referralDiscount',
       'reviewDiscount',
+      'travelFee',
       'adminNote',
     ];
 
@@ -216,15 +219,17 @@ export async function PUT(
     if (
       body.eventDiscount !== undefined ||
       body.referralDiscount !== undefined ||
-      body.reviewDiscount !== undefined
+      body.reviewDiscount !== undefined ||
+      body.travelFee !== undefined
     ) {
       const eventDiscount = body.eventDiscount ?? booking.eventDiscount;
       const referralDiscount = body.referralDiscount ?? booking.referralDiscount;
       const reviewDiscount = body.reviewDiscount ?? booking.reviewDiscount;
+      const travelFee = body.travelFee ?? booking.travelFee;
 
       updateData.finalBalance = Math.max(
         0,
-        booking.listPrice - booking.depositAmount - eventDiscount - referralDiscount - reviewDiscount
+        booking.listPrice + travelFee - booking.depositAmount - eventDiscount - referralDiscount - reviewDiscount
       );
     }
 

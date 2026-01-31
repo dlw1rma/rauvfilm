@@ -215,12 +215,6 @@ export default function NewReservationPage() {
   const [lemeGraphyDiscount, setLemeGraphyDiscount] = useState(0);
   const [showDraftModal, setShowDraftModal] = useState(false);
 
-  // 예식장 검색 팝업 관련 상태
-  const [showVenueSearchModal, setShowVenueSearchModal] = useState(false);
-  const [venueSearchQuery, setVenueSearchQuery] = useState("");
-  const [venueSearchResults, setVenueSearchResults] = useState<Array<{ title: string; address: string; roadAddress: string }>>([]);
-  const [isSearchingVenue, setIsSearchingVenue] = useState(false);
-  const [travelFee, setTravelFee] = useState<number | null>(null);
 
   // 예약금 입금 안내 모달
   const [showDepositModal, setShowDepositModal] = useState(false);
@@ -346,67 +340,6 @@ export default function NewReservationPage() {
     }
   };
 
-  // 예식장 검색 함수 (팝업에서 버튼 클릭 시 실행)
-  const searchVenue = async () => {
-    if (venueSearchQuery.length < 2) {
-      setVenueSearchResults([]);
-      return;
-    }
-    setIsSearchingVenue(true);
-    try {
-      const res = await fetch(`/api/naver-map/search?query=${encodeURIComponent(venueSearchQuery)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setVenueSearchResults(data.items || []);
-      }
-    } catch {
-      setVenueSearchResults([]);
-    } finally {
-      setIsSearchingVenue(false);
-    }
-  };
-
-  // 예식장 검색 결과 선택
-  const selectVenue = async (item: { title: string; address: string; roadAddress: string }) => {
-    const address = item.roadAddress || item.address;
-    // 시/도 + 구/군 파싱 (예: "서울특별시 강남구 역삼동 123" → "서울특별시 강남구")
-    const parts = address.split(" ");
-    let region = "";
-    let regionName = "";
-    let districtName = "";
-    if (parts.length >= 2) {
-      regionName = parts[0];
-      districtName = parts[1];
-      region = `${parts[0]} ${parts[1]}`;
-    } else if (parts.length === 1) {
-      regionName = parts[0];
-      region = parts[0];
-    }
-    setFormData((prev) => ({
-      ...prev,
-      venueName: item.title,
-      venueAddress: address,
-      venueRegion: region,
-    }));
-    setVenueSearchQuery("");
-    setVenueSearchResults([]);
-    setShowVenueSearchModal(false);
-
-    // 출장비 자동 조회
-    if (regionName) {
-      try {
-        const params = new URLSearchParams({ region: regionName, branch: "서울점" });
-        if (districtName) params.set("district", districtName);
-        const res = await fetch(`/api/travel-fees?${params}`);
-        if (res.ok) {
-          const data = await res.json();
-          setTravelFee(data.fee ?? 0);
-        }
-      } catch {
-        setTravelFee(null);
-      }
-    }
-  };
 
   // 짝궁코드 선택 함수 (검색 결과에서 선택 시)
   const selectPartnerCode = (code: string) => {
@@ -997,74 +930,6 @@ export default function NewReservationPage() {
 
   return (
     <div className="min-h-screen py-20 px-4">
-      {/* 예식장 검색 팝업 모달 */}
-      {showVenueSearchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-background border border-border shadow-xl flex flex-col max-h-[80vh]">
-            <div className="p-4 border-b border-border">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-bold">예식장 검색</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowVenueSearchModal(false)}
-                  className="text-muted-foreground hover:text-foreground p-1"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={venueSearchQuery}
-                  onChange={(e) => setVenueSearchQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); searchVenue(); } }}
-                  className="flex-1 rounded-lg border border-border bg-background px-4 py-2.5 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-sm"
-                  placeholder="예식장명을 입력하세요"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={searchVenue}
-                  disabled={isSearchingVenue || venueSearchQuery.length < 2}
-                  className="shrink-0 px-4 py-2.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
-                >
-                  {isSearchingVenue ? "검색 중..." : "검색"}
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {venueSearchResults.length > 0 ? (
-                venueSearchResults.map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className="w-full text-left px-4 py-3 hover:bg-muted transition-colors border-b border-border last:border-b-0"
-                    onClick={() => selectVenue(item)}
-                  >
-                    <p className="text-sm font-medium">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.roadAddress || item.address}</p>
-                  </button>
-                ))
-              ) : (
-                <div className="p-8 text-center text-sm text-muted-foreground">
-                  {isSearchingVenue ? "검색 중..." : "검색어를 입력하고 검색 버튼을 눌러주세요."}
-                </div>
-              )}
-            </div>
-            <div className="p-3 border-t border-border">
-              <button
-                type="button"
-                onClick={() => setShowVenueSearchModal(false)}
-                className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                직접 입력하기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 예약금 입금 안내 모달 */}
       {showDepositModal && (
@@ -1592,38 +1457,16 @@ export default function NewReservationPage() {
                       <label htmlFor="venueName" className="mb-2 block text-sm font-medium">
                         장소명 <span className="text-accent">*</span>
                       </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          id="venueName"
-                          name="venueName"
-                          required
-                          value={formData.venueName}
-                          onChange={handleChange}
-                          className="flex-1 rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                          placeholder="예식장명을 입력하세요"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setVenueSearchQuery(formData.venueName || "");
-                            setVenueSearchResults([]);
-                            setShowVenueSearchModal(true);
-                          }}
-                          className="shrink-0 px-4 py-3 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
-                        >
-                          검색
-                        </button>
-                      </div>
-                      {formData.venueAddress && (
-                        <p className="text-xs text-muted-foreground mt-1">{formData.venueAddress}</p>
-                      )}
-                      {travelFee !== null && travelFee > 0 && formData.venueAddress && (
-                        <p className="text-xs text-accent mt-1">출장비: {travelFee.toLocaleString("ko-KR")}원</p>
-                      )}
-                      {travelFee === 0 && formData.venueAddress && (
-                        <p className="text-xs text-green-600 mt-1">출장비 없음</p>
-                      )}
+                      <input
+                        type="text"
+                        id="venueName"
+                        name="venueName"
+                        required
+                        value={formData.venueName}
+                        onChange={handleChange}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        placeholder="예식장명을 입력하세요"
+                      />
                     </div>
                     <div>
                       <label htmlFor="venueFloor" className="mb-2 block text-sm font-medium">

@@ -268,6 +268,9 @@ model Booking {
   // 후기 할인
   reviewDiscount   Int          @default(0)       // 후기 할인 (1만원)
 
+  // 출장비
+  travelFee        Int          @default(0)
+
   // 최종 잔금 (자동 계산됨)
   finalBalance     Int          @default(0)
   balancePaidAt    DateTime?    // 잔금 입금일

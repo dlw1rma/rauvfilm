@@ -21,6 +21,8 @@ interface BookingDetail {
   depositAmount: number;
   depositAmountFormatted: string;
   depositPaidAt: string | null;
+  travelFee: number;
+  travelFeeFormatted: string;
   eventDiscount: number;
   eventDiscountFormatted: string;
   referralDiscount: number;
@@ -102,6 +104,8 @@ export default function AdminBookingDetailPage() {
   const [adminNote, setAdminNote] = useState('');
   const [partnerCode, setPartnerCode] = useState('');
   const [specialDiscount, setSpecialDiscount] = useState('');
+  const [travelFeeInput, setTravelFeeInput] = useState('');
+  const [updatingTravelFee, setUpdatingTravelFee] = useState(false);
   const [updatingDiscount, setUpdatingDiscount] = useState(false);
   const [referredByEdit, setReferredByEdit] = useState('');
   const [updatingReferral, setUpdatingReferral] = useState(false);
@@ -118,6 +122,7 @@ export default function AdminBookingDetailPage() {
       setAdminNote(data.booking.adminNote || '');
       setPartnerCode(data.booking.partnerCode || '');
       setSpecialDiscount(data.booking.eventDiscount > 0 ? data.booking.eventDiscount.toString() : '');
+      setTravelFeeInput(data.booking.travelFee > 0 ? data.booking.travelFee.toString() : '');
       setReferredByEdit(data.booking.referredBy || '');
     } catch (error) {
       console.error(error);
@@ -242,6 +247,26 @@ export default function AdminBookingDetailPage() {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : '오류가 발생했습니다.' });
     } finally {
       setUpdatingDiscount(false);
+    }
+  };
+
+  const handleUpdateTravelFee = async () => {
+    setUpdatingTravelFee(true);
+    try {
+      const feeValue = parseInt(travelFeeInput) || 0;
+      const res = await fetch(`/api/admin/bookings/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ travelFee: feeValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMessage({ type: 'success', text: '출장비가 업데이트되었습니다.' });
+      fetchBooking();
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : '오류가 발생했습니다.' });
+    } finally {
+      setUpdatingTravelFee(false);
     }
   };
 
@@ -394,6 +419,12 @@ export default function AdminBookingDetailPage() {
               <dt className="text-muted-foreground">정가</dt>
               <dd>{booking.listPriceFormatted}</dd>
             </div>
+            {booking.travelFee > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">출장비</dt>
+                <dd className="text-accent">+{booking.travelFeeFormatted}</dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-muted-foreground">예약금</dt>
               <dd className="text-green-600">-{booking.depositAmountFormatted}</dd>
@@ -576,6 +607,36 @@ export default function AdminBookingDetailPage() {
               className="w-full py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 disabled:opacity-50"
             >
               {updatingDiscount ? '저장 중...' : '할인 저장'}
+            </button>
+          </div>
+        </div>
+
+        {/* 출장비 관리 */}
+        <div className="bg-background rounded-xl border border-border p-6">
+          <h2 className="text-lg font-semibold mb-4">출장비 관리</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                출장비 금액
+              </label>
+              <input
+                type="number"
+                value={travelFeeInput}
+                onChange={(e) => setTravelFeeInput(e.target.value)}
+                placeholder="0"
+                min="0"
+                className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                출장비는 잔금에 자동 합산됩니다. (원 단위)
+              </p>
+            </div>
+            <button
+              onClick={handleUpdateTravelFee}
+              disabled={updatingTravelFee}
+              className="w-full py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 disabled:opacity-50"
+            >
+              {updatingTravelFee ? '저장 중...' : '출장비 저장'}
             </button>
           </div>
         </div>
