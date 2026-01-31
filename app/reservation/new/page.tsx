@@ -1695,32 +1695,6 @@ export default function NewReservationPage() {
                         피로연(2부 예식) 촬영 (5만원)
                       </label>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="seonwonpan"
-                        name="seonwonpan"
-                        checked={formData.seonwonpan}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="seonwonpan" className="text-sm">
-                        선원판 진행 여부
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="gimbalShoot"
-                        name="gimbalShoot"
-                        checked={formData.gimbalShoot}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="gimbalShoot" className="text-sm">
-                        짐벌(커스텀) 촬영 (희망 시 카카오채널로 말씀 부탁드립니다)
-                      </label>
-                    </div>
                   </div>
 
                   <div>
@@ -1998,6 +1972,37 @@ export default function NewReservationPage() {
               <div className="border-b border-border pb-4">
                 <h2 className="text-xl font-semibold">5. 특이사항</h2>
               </div>
+
+              {(formData.productType === "가성비형" || formData.productType === "기본형" || formData.productType === "시네마틱형") && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="seonwonpan"
+                      name="seonwonpan"
+                      checked={formData.seonwonpan}
+                      onChange={handleChange}
+                      className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                    />
+                    <label htmlFor="seonwonpan" className="text-sm">
+                      선원판 진행 여부
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="gimbalShoot"
+                      name="gimbalShoot"
+                      checked={formData.gimbalShoot}
+                      onChange={handleChange}
+                      className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                    />
+                    <label htmlFor="gimbalShoot" className="text-sm">
+                      짐벌(커스텀) 촬영 (희망 시 카카오채널로 말씀 부탁드립니다)
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="specialNotes" className="mb-2 block text-sm font-medium">
