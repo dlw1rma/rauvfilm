@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { reviewUrl } = body;
+    const { reviewUrl, type = 'booking' } = body;
+    const reviewType = type === 'shooting' ? 'shooting' : 'booking';
 
     if (!reviewUrl) {
       return NextResponse.json(
@@ -105,22 +106,59 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 가성비형이면 1건, 아니면 3건 제한
-    const maxReviews = reservationInfo?.productType === '가성비형' ? 1 : 3;
-    const reviewCount = await prisma.reviewSubmission.count({
-      where: {
-        reservationId: session.reservationId,
-        status: {
-          in: ['PENDING', 'AUTO_APPROVED', 'MANUAL_REVIEW', 'APPROVED'],
+    if (reviewType === 'shooting') {
+      // 촬영후기: 블로그 1건 + 카페 1건 = 총 2건 제한
+      const shootingCount = await prisma.reviewSubmission.count({
+        where: {
+          reservationId: session.reservationId,
+          type: 'shooting',
+          status: { in: ['PENDING', 'AUTO_APPROVED', 'MANUAL_REVIEW', 'APPROVED'] },
         },
-      },
-    });
+      });
+      if (shootingCount >= 2) {
+        return NextResponse.json(
+          { error: '촬영후기는 최대 2건(블로그 1건 + 카페 1건)까지 등록할 수 있습니다.' },
+          { status: 400 }
+        );
+      }
 
-    if (reviewCount >= maxReviews) {
-      return NextResponse.json(
-        { error: `후기는 최대 ${maxReviews}건까지만 등록할 수 있습니다.` },
-        { status: 400 }
-      );
+      // 같은 플랫폼 중복 체크
+      const url = reviewUrl.toLowerCase();
+      const isBlog = url.includes('blog.naver.com');
+      const isCafe = url.includes('cafe.naver.com');
+      if (isBlog || isCafe) {
+        const platformCheck = isBlog ? 'NAVER_BLOG' : 'NAVER_CAFE';
+        const platformCount = await prisma.reviewSubmission.count({
+          where: {
+            reservationId: session.reservationId,
+            type: 'shooting',
+            platform: platformCheck,
+            status: { in: ['PENDING', 'AUTO_APPROVED', 'MANUAL_REVIEW', 'APPROVED'] },
+          },
+        });
+        if (platformCount >= 1) {
+          return NextResponse.json(
+            { error: `촬영후기 ${isBlog ? '블로그' : '카페'} 후기는 1건만 등록할 수 있습니다.` },
+            { status: 400 }
+          );
+        }
+      }
+    } else {
+      // 예약후기: 가성비형이면 1건, 아니면 3건 제한
+      const maxReviews = reservationInfo?.productType === '가성비형' ? 1 : 3;
+      const reviewCount = await prisma.reviewSubmission.count({
+        where: {
+          reservationId: session.reservationId,
+          type: 'booking',
+          status: { in: ['PENDING', 'AUTO_APPROVED', 'MANUAL_REVIEW', 'APPROVED'] },
+        },
+      });
+      if (reviewCount >= maxReviews) {
+        return NextResponse.json(
+          { error: `예약후기는 최대 ${maxReviews}건까지만 등록할 수 있습니다.` },
+          { status: 400 }
+        );
+      }
     }
 
     // 후기 자동 검증
@@ -135,6 +173,7 @@ export async function POST(request: NextRequest) {
         reservationId: session.reservationId,
         reviewUrl,
         platform: verification.platform,
+        type: reviewType,
         // 자동 추출된 메타데이터
         title: metadata.title,
         excerpt: metadata.excerpt,
@@ -257,21 +296,28 @@ export async function GET() {
     // 가성비형이면 1건, 아니면 3건 제한
     const maxReviews = reservation?.productType === '가성비형' ? 1 : 3;
 
+    const mapReview = (r: typeof reviews[number]) => ({
+      id: r.id,
+      reviewUrl: r.reviewUrl,
+      platform: r.platform,
+      platformName: getPlatformName(r.platform),
+      status: r.status,
+      statusLabel: statusLabels[r.status] || r.status,
+      titleValid: r.titleValid,
+      contentValid: r.contentValid,
+      characterCount: r.characterCount,
+      rejectReason: r.rejectReason,
+      createdAt: r.createdAt,
+      verifiedAt: r.verifiedAt,
+      type: r.type || 'booking',
+    });
+
+    const bookingReviews = reviews.filter(r => (r.type || 'booking') === 'booking').map(mapReview);
+    const shootingReviews = reviews.filter(r => r.type === 'shooting').map(mapReview);
+
     return NextResponse.json({
-      reviews: reviews.map((r) => ({
-        id: r.id,
-        reviewUrl: r.reviewUrl,
-        platform: r.platform,
-        platformName: getPlatformName(r.platform),
-        status: r.status,
-        statusLabel: statusLabels[r.status] || r.status,
-        titleValid: r.titleValid,
-        contentValid: r.contentValid,
-        characterCount: r.characterCount,
-        rejectReason: r.rejectReason,
-        createdAt: r.createdAt,
-        verifiedAt: r.verifiedAt,
-      })),
+      reviews: bookingReviews,
+      shootingReviews,
       canWriteReview,
       maxReviews,
       productType: reservation?.productType,

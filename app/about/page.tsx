@@ -113,7 +113,7 @@ export default function AboutPage() {
         {/* Hero Content */}
         <div className="flex justify-center items-center mb-15">
           <div className="text-center max-w-3xl">
-            <p className="text-lg leading-loose text-muted-foreground font-light mb-7">
+            <p className="text-lg leading-loose text-muted-foreground font-light mb-7 mobile-br-hidden">
               단순히 카메라를 들고 촬영하는 사람이 아닌.
               <br />
               특별한 날의 모습과 감정을 이해하고
@@ -140,7 +140,7 @@ export default function AboutPage() {
               <h2 className="text-xl font-semibold text-white mb-5 leading-snug tracking-tight">
                 {card.title} <span className="text-accent font-semibold">{card.titleHighlight}</span>
               </h2>
-              <p className="text-[15px] leading-relaxed text-muted-foreground font-light">
+              <p className="text-[15px] leading-relaxed text-muted-foreground font-light mobile-br-hidden">
                 {card.description}
               </p>
             </div>

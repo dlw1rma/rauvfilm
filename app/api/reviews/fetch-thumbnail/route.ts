@@ -109,17 +109,100 @@ function getNaverBlogPostUrl(blogId: string, postId: string): string {
   return `https://blog.naver.com/PostView.naver?blogId=${blogId}&logNo=${postId}`;
 }
 
-// 네이버 카페 URL을 모바일 주소로 변환 (쿼리 스트링 제거)
-function convertNaverCafeToMobile(url: string): string | null {
-  // cafe.naver.com/{카페ID}/{게시글번호} 형식 추출
+// 네이버 카페 URL에서 카페ID와 게시글번호 추출
+function extractNaverCafeIds(url: string): { cafeId: string; articleId: string } | null {
   const cafeMatch = url.match(/cafe\.naver\.com\/([\w-]+)\/(\d+)/);
   if (cafeMatch) {
-    const cafeId = cafeMatch[1];
-    const articleId = cafeMatch[2];
-    // 모바일 주소로 변환 (쿼리 스트링 완전 제거)
-    return `https://m.cafe.naver.com/${cafeId}/${articleId}`;
+    return { cafeId: cafeMatch[1], articleId: cafeMatch[2] };
   }
   return null;
+}
+
+// 네이버 카페 URL을 모바일 주소로 변환 (쿼리 스트링 제거)
+function convertNaverCafeToMobile(url: string): string | null {
+  const ids = extractNaverCafeIds(url);
+  if (ids) {
+    return `https://m.cafe.naver.com/${ids.cafeId}/${ids.articleId}`;
+  }
+  return null;
+}
+
+// 네이버 카페 모바일 API로 게시글 데이터 가져오기
+async function fetchNaverCafeArticleAPI(cafeId: string, articleId: string): Promise<ParsedData | null> {
+  try {
+    // 네이버 카페 모바일 웹의 내부 API 호출
+    const apiUrl = `https://m.cafe.naver.com/ca-fe/web/cafes/${cafeId}/articles/${articleId}?useCafeId=false&requestFrom=A`;
+    console.log("Trying Naver cafe mobile web API:", apiUrl);
+
+    const response = await fetch(apiUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "ko-KR,ko;q=0.9",
+        "Referer": `https://m.cafe.naver.com/${cafeId}/${articleId}`,
+      },
+      redirect: "follow",
+    });
+
+    if (!response.ok) {
+      console.log("Naver cafe API response not ok:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log("Naver cafe API response keys:", Object.keys(data));
+
+    const article = data?.article;
+    if (!article) {
+      console.log("No article data in cafe API response");
+      return null;
+    }
+
+    const result: ParsedData = {
+      title: article.subject || null,
+      excerpt: null,
+      thumbnailUrl: null,
+      author: null,
+    };
+
+    // 본문 추출 (contentHtml 또는 contentElements)
+    if (article.contentHtml) {
+      result.excerpt = truncateText(extractTextFromHTML(article.contentHtml, 300), 200);
+    }
+
+    // 썸네일 이미지
+    if (article.representImage) {
+      result.thumbnailUrl = article.representImage;
+    } else if (article.openGraphImage) {
+      result.thumbnailUrl = article.openGraphImage;
+    }
+
+    // 작성자 (닉네임)
+    const writer = article.writer;
+    if (writer) {
+      result.author = writer.nick || writer.nickName || writer.id || null;
+    }
+
+    // 작성자를 못 가져왔으면 카페명 사용
+    if (!result.author) {
+      const cafeName = data?.cafe?.name || data?.cafe?.cafeName || null;
+      if (cafeName) {
+        result.author = cafeName;
+      }
+    }
+
+    console.log("Naver cafe API parsed data:", {
+      title: result.title,
+      excerpt: result.excerpt ? result.excerpt.substring(0, 50) + "..." : null,
+      thumbnailUrl: result.thumbnailUrl ? "있음" : "없음",
+      author: result.author,
+    });
+
+    return result;
+  } catch (error) {
+    console.error("Naver cafe API error:", error);
+    return null;
+  }
 }
 
 // HTML에서 메타 데이터 추출
@@ -255,7 +338,22 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching data from URL:", targetUrl);
 
-    // 네이버 카페인 경우 모바일 주소로 변환 (쿼리 스트링 제거)
+    // 네이버 카페인 경우: 모바일 API 우선 시도
+    if (targetUrl.includes("cafe.naver.com")) {
+      const cafeIds = extractNaverCafeIds(targetUrl);
+      if (cafeIds) {
+        console.log("📡 네이버 카페 모바일 API 시도:", cafeIds);
+        const cafeApiData = await fetchNaverCafeArticleAPI(cafeIds.cafeId, cafeIds.articleId);
+        if (cafeApiData && (cafeApiData.title || cafeApiData.thumbnailUrl || cafeApiData.excerpt)) {
+          // 카페 API로 데이터를 가져온 경우 바로 반환
+          console.log("✅ 네이버 카페 모바일 API에서 데이터 가져옴");
+          return NextResponse.json(cafeApiData);
+        }
+        console.log("⚠️ 네이버 카페 모바일 API 실패, 기존 방식으로 fallback");
+      }
+    }
+
+    // 네이버 카페인 경우 모바일 주소로 변환 (fallback)
     let finalUrl = targetUrl;
     if (targetUrl.includes("cafe.naver.com")) {
       const mobileUrl = convertNaverCafeToMobile(targetUrl);

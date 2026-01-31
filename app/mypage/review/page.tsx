@@ -20,6 +20,7 @@ interface ReviewData {
 
 interface ReviewResponse {
   reviews: ReviewData[];
+  shootingReviews?: ReviewData[];
   canWriteReview: boolean;
   maxReviews?: number;
   productType?: string;
@@ -45,12 +46,13 @@ export default function ReviewPage() {
 
   // 촬영후기 관련 상태
   const [reservationId, setReservationId] = useState<number | null>(null);
-  const [shootingReviewLink, setShootingReviewLink] = useState('');
-  const [savedReviewLink, setSavedReviewLink] = useState<string | null>(null);
+  const [shootingReviewUrl, setShootingReviewUrl] = useState('');
+  const [shootingReviews, setShootingReviews] = useState<ReviewData[]>([]);
   const [reviewRefundBank, setReviewRefundBank] = useState('');
   const [reviewRefundAccountNumber, setReviewRefundAccountNumber] = useState('');
   const [reviewRefundDepositorName, setReviewRefundDepositorName] = useState('');
   const [refundInfoSaved, setRefundInfoSaved] = useState(false);
+  const [savingRefund, setSavingRefund] = useState(false);
 
   const fetchReviews = async () => {
     try {
@@ -61,12 +63,11 @@ export default function ReviewPage() {
       }
       const data: ReviewResponse = await res.json();
       setReviews(data.reviews);
+      setShootingReviews(data.shootingReviews || []);
       setCanWriteReview(data.canWriteReview || false);
       setMaxReviews(data.maxReviews || 3);
       setProductType(data.productType || null);
       setReservationId(data.reservationId || null);
-      setSavedReviewLink(data.reviewLink || null);
-      setShootingReviewLink(data.reviewLink || '');
 
       if (data.reviewRefundAccount) {
         const parts = data.reviewRefundAccount.split(' ');
@@ -146,19 +147,19 @@ export default function ReviewPage() {
     }
   };
 
-  const handleShootingReviewSubmit = async () => {
+  // 환급계좌 저장 (1회만)
+  const handleSaveRefundAccount = async () => {
     if (!reservationId) return;
-    setSubmitting(true);
+    setSavingRefund(true);
     setMessage(null);
 
     try {
-      const combinedAccount = `${reviewRefundBank.trim()} ${reviewRefundAccountNumber.trim()}`;
-      const res = await fetch(`/api/mypage/reservations/${reservationId}/review-link`, {
+      const res = await fetch(`/api/mypage/reservations/${reservationId}/refund-account`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reviewLink: shootingReviewLink.trim(),
-          reviewRefundAccount: combinedAccount,
+          reviewRefundBank: reviewRefundBank.trim(),
+          reviewRefundAccountNumber: reviewRefundAccountNumber.trim(),
           reviewRefundDepositorName: reviewRefundDepositorName.trim(),
         }),
       });
@@ -167,19 +168,36 @@ export default function ReviewPage() {
         setMessage({ type: 'error', text: data.error || '저장에 실패했습니다.' });
         return;
       }
-      setMessage({ type: 'success', text: '저장되었습니다. 관리자 확인 후 1만원이 환급됩니다.' });
-      setSavedReviewLink(data.reviewLink || shootingReviewLink.trim());
+      setMessage({ type: 'success', text: '환급 계좌가 저장되었습니다.' });
       setRefundInfoSaved(true);
-      if (data.reviewRefundAccount) {
-        const parts = (data.reviewRefundAccount || '').split(' ');
-        if (parts.length >= 2) {
-          setReviewRefundBank(parts[0]);
-          setReviewRefundAccountNumber(parts.slice(1).join(' '));
-        }
+    } catch {
+      setMessage({ type: 'error', text: '네트워크 오류가 발생했습니다.' });
+    } finally {
+      setSavingRefund(false);
+    }
+  };
+
+  // 촬영후기 URL 제출 (건별)
+  const handleShootingReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shootingReviewUrl.trim()) return;
+    setSubmitting(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/mypage/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewUrl: shootingReviewUrl.trim(), type: 'shooting' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage({ type: 'error', text: data.error });
+        return;
       }
-      if (data.reviewRefundDepositorName) {
-        setReviewRefundDepositorName(data.reviewRefundDepositorName);
-      }
+      setMessage({ type: 'success', text: data.message });
+      setShootingReviewUrl('');
+      fetchReviews();
     } catch {
       setMessage({ type: 'error', text: '네트워크 오류가 발생했습니다.' });
     } finally {
@@ -384,121 +402,172 @@ export default function ReviewPage() {
 
       {/* 촬영후기 탭 */}
       {activeTab === 'shooting' && (
-        <div className="bg-background rounded-xl border border-border p-6">
-          <h1 className="text-2xl font-bold mb-2">촬영후기 등록</h1>
-          {!canWriteReview ? (
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-6">
-              <p className="text-yellow-600 text-sm">
-                예약후기 또는 촬영후기 할인을 신청하신 경우에만 후기를 등록할 수 있습니다.
-                <br />
-                예약글 수정 페이지에서 할인 옵션을 체크해주세요.
-              </p>
-            </div>
-          ) : (
-            <>
-              <p className="text-muted-foreground mb-2">
-                블로그/카페에 촬영후기를 작성하시면 <strong className="text-foreground">1만원 할인</strong>이 적용됩니다.
-              </p>
-              <p className="text-xs text-muted-foreground mb-6">
-                후기 링크, 환급 계좌, 입금자명을 모두 입력 후 저장하시면 관리자 확인 후 환급이 진행됩니다.
-              </p>
-            </>
-          )}
+        <>
+          {/* 환급계좌 입력 영역 */}
+          <div className="bg-background rounded-xl border border-border p-6">
+            <h2 className="text-lg font-bold mb-2">환급 계좌 정보</h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              촬영후기 환급을 위한 계좌 정보입니다. 최초 1회만 입력 가능하며, 이후 변경은 관리자에게 문의해주세요.
+            </p>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">촬영후기 링크 (URL)</label>
-              {savedReviewLink && (
-                <p className="text-xs mb-2">
-                  등록된 링크:{' '}
-                  <a
-                    href={savedReviewLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent hover:underline break-all"
-                  >
-                    {savedReviewLink}
-                  </a>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">은행명</label>
+                <input
+                  type="text"
+                  value={reviewRefundBank}
+                  onChange={(e) => setReviewRefundBank(e.target.value)}
+                  placeholder="예: 국민은행, 신한은행, 카카오뱅크"
+                  disabled={!canWriteReview || refundInfoSaved}
+                  readOnly={refundInfoSaved}
+                  className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">계좌번호</label>
+                <input
+                  type="text"
+                  value={reviewRefundAccountNumber}
+                  onChange={(e) => setReviewRefundAccountNumber(e.target.value)}
+                  placeholder="'-' 없이 숫자만 입력"
+                  disabled={!canWriteReview || refundInfoSaved}
+                  readOnly={refundInfoSaved}
+                  className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">입금자명</label>
+                <input
+                  type="text"
+                  value={reviewRefundDepositorName}
+                  onChange={(e) => setReviewRefundDepositorName(e.target.value)}
+                  placeholder="환급받으실 분의 성함"
+                  disabled={!canWriteReview || refundInfoSaved}
+                  readOnly={refundInfoSaved}
+                  className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              {refundInfoSaved ? (
+                <p className="text-xs text-muted-foreground">
+                  환급 정보가 등록되어 있습니다. 변경이 필요하시면 관리자에게 문의해주세요.
                 </p>
+              ) : (
+                <button
+                  type="button"
+                  disabled={
+                    savingRefund ||
+                    !canWriteReview ||
+                    !reviewRefundBank.trim() ||
+                    !reviewRefundAccountNumber.trim() ||
+                    !reviewRefundDepositorName.trim()
+                  }
+                  onClick={handleSaveRefundAccount}
+                  className="w-full py-3 px-4 rounded-lg border border-accent text-accent font-medium hover:bg-accent/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingRefund ? '저장 중...' : '환급 계좌 저장'}
+                </button>
               )}
-              <input
-                type="url"
-                value={shootingReviewLink}
-                onChange={(e) => setShootingReviewLink(e.target.value)}
-                placeholder="https://blog.naver.com/..."
-                disabled={!canWriteReview}
-                className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
-              />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">환급받을 은행명</label>
-              <input
-                type="text"
-                value={reviewRefundBank}
-                onChange={(e) => setReviewRefundBank(e.target.value)}
-                placeholder="예: 국민은행, 신한은행, 카카오뱅크"
-                disabled={!canWriteReview || refundInfoSaved}
-                readOnly={refundInfoSaved}
-                className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">환급받을 계좌번호</label>
-              <input
-                type="text"
-                value={reviewRefundAccountNumber}
-                onChange={(e) => setReviewRefundAccountNumber(e.target.value)}
-                placeholder="'-' 없이 숫자만 입력"
-                disabled={!canWriteReview || refundInfoSaved}
-                readOnly={refundInfoSaved}
-                className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">입금자명</label>
-              <input
-                type="text"
-                value={reviewRefundDepositorName}
-                onChange={(e) => setReviewRefundDepositorName(e.target.value)}
-                placeholder="환급받으실 분의 성함"
-                disabled={!canWriteReview || refundInfoSaved}
-                readOnly={refundInfoSaved}
-                className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-            </div>
-
-            {refundInfoSaved && (
-              <p className="text-xs text-muted-foreground">
-                환급 정보가 이미 등록되어 있습니다. 변경이 필요하시면 관리자에게 문의해주세요.
-              </p>
-            )}
-
-            <button
-              type="button"
-              disabled={
-                submitting ||
-                !canWriteReview ||
-                !shootingReviewLink.trim() ||
-                !reviewRefundBank.trim() ||
-                !reviewRefundAccountNumber.trim() ||
-                !reviewRefundDepositorName.trim()
-              }
-              onClick={handleShootingReviewSubmit}
-              className="w-full py-3 px-4 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? '저장 중...' : '촬영후기 저장'}
-            </button>
-
-            {canWriteReview && (!shootingReviewLink.trim() || !reviewRefundBank.trim() || !reviewRefundAccountNumber.trim() || !reviewRefundDepositorName.trim()) && (
-              <p className="text-xs text-muted-foreground">
-                후기 링크, 은행명, 계좌번호, 입금자명을 모두 입력해야 저장할 수 있습니다.
-              </p>
-            )}
           </div>
-        </div>
+
+          {/* 촬영후기 URL 제출 영역 */}
+          <div className="bg-background rounded-xl border border-border p-6">
+            <h2 className="text-lg font-bold mb-2">촬영후기 제출</h2>
+            {!canWriteReview ? (
+              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-4">
+                <p className="text-yellow-600 text-sm">
+                  촬영후기 할인을 신청하신 경우에만 후기를 등록할 수 있습니다.
+                </p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground mb-4 text-sm">
+                블로그 후기 1건 + 카페 후기 1건 = 총 2건 제출 가능 (건당 1만원 환급, 최대 2만원)
+              </p>
+            )}
+
+            <form onSubmit={handleShootingReviewSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="shootingReviewUrl" className="block text-sm font-medium mb-2">
+                  후기 URL
+                </label>
+                <input
+                  type="url"
+                  id="shootingReviewUrl"
+                  value={shootingReviewUrl}
+                  onChange={(e) => setShootingReviewUrl(e.target.value)}
+                  placeholder="https://blog.naver.com/... 또는 https://cafe.naver.com/..."
+                  className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                  required
+                  disabled={!canWriteReview}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  네이버 블로그(blog.naver.com) 또는 네이버 카페(cafe.naver.com) URL을 입력해주세요.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting || !canWriteReview || !shootingReviewUrl.trim()}
+                className="w-full py-3 px-4 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? '제출 중...' : '촬영후기 제출'}
+              </button>
+            </form>
+          </div>
+
+          {/* 제출한 촬영후기 목록 */}
+          {shootingReviews.length > 0 && (
+            <div className="bg-background rounded-xl border border-border p-6">
+              <h2 className="text-lg font-semibold mb-4">제출한 촬영후기</h2>
+              <div className="space-y-3">
+                {shootingReviews.map((review) => (
+                  <div key={review.id} className="p-4 bg-muted rounded-lg">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-sm font-medium">{review.platformName}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs ${statusColors[review.status]}`}>
+                          {review.statusLabel}
+                        </span>
+                        {(review.status === 'PENDING' || review.status === 'MANUAL_REVIEW') && (
+                          <button
+                            onClick={() => handleCancel(review.id)}
+                            className="px-2 py-1 text-xs rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                          >
+                            취소
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <a
+                      href={review.reviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-accent hover:underline break-all"
+                    >
+                      {review.reviewUrl}
+                    </a>
+                    {review.characterCount !== null && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        글자 수: {review.characterCount}자
+                        {review.titleValid === false && ' | 제목 키워드 미포함'}
+                        {review.contentValid === false && ' | 500자 미만'}
+                      </p>
+                    )}
+                    {review.rejectReason && (
+                      <p className="text-xs text-red-500 mt-2">
+                        거절 사유: {review.rejectReason}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(review.createdAt).toLocaleDateString('ko-KR')} 제출
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

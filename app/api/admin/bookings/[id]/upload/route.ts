@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { validateSessionToken } from '@/lib/auth';
 import { safeParseInt, isValidUrl, sanitizeString } from '@/lib/validation';
+import { sendTemplateSms } from '@/lib/solapi';
 
 async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
@@ -91,6 +92,36 @@ export async function POST(
       where: { id: bookingId },
       data: updateData,
     });
+
+    // SMS 발송 (실패해도 업로드 자체는 성공 처리)
+    if (booking.customerPhone) {
+      if (sanitizedContractUrl && sanitizedContractUrl !== booking.contractUrl) {
+        try {
+          const result = await sendTemplateSms(
+            booking.customerPhone,
+            'contract',
+            booking.customerName,
+            sanitizedContractUrl,
+          );
+          console.log('[SMS] 계약서 안내 발송 성공:', { to: booking.customerPhone, groupId: result.groupId });
+        } catch (smsError) {
+          console.error('[SMS] 계약서 안내 발송 실패:', smsError);
+        }
+      }
+      if (sanitizedVideoUrl && sanitizedVideoUrl !== booking.videoUrl) {
+        try {
+          const result = await sendTemplateSms(
+            booking.customerPhone,
+            'video',
+            booking.customerName,
+            sanitizedVideoUrl,
+          );
+          console.log('[SMS] 영상 안내 발송 성공:', { to: booking.customerPhone, groupId: result.groupId });
+        } catch (smsError) {
+          console.error('[SMS] 영상 안내 발송 실패:', smsError);
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,

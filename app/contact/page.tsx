@@ -89,7 +89,7 @@ export default function ContactPage() {
         {/* Header */}
         <div className="mb-12 text-center">
           <h1 className="mb-4 text-4xl font-bold">문의하기</h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-muted-foreground mobile-br-hidden">
             촬영 문의, 견적 상담 등 궁금한 점을 남겨주세요.
             <br />
             24시간 내에 연락드리겠습니다.

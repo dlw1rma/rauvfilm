@@ -64,7 +64,7 @@ export default async function EventSnapPage() {
         {/* Header */}
         <div className="mb-12 text-center">
           <h1 className="mb-4 text-4xl font-bold tracking-widest">EVENT SNAP</h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground mobile-br-hidden">
             특별한 장소에서 특별한 순간을 담아드립니다.
             <br />
             원하시는 장소를 선택해 주세요.

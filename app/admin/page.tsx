@@ -170,6 +170,28 @@ export default function AdminPage() {
       description: "로고, 배경 이미지 관리",
     },
     {
+      name: "출장비 관리",
+      href: "/admin/travel-fees",
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-3m0 0V7.513c0-.731-.354-1.417-.943-1.84a2.02 2.02 0 00-.264-.172l-2.75-1.375A2.25 2.25 0 0016.5 3.75h-9A2.25 2.25 0 005.25 6v12M18 14.25h1.5" />
+        </svg>
+      ),
+      count: 0,
+      description: "지점별 출장비 기준 관리",
+    },
+    {
+      name: "알림톡 템플릿",
+      href: "/admin/sms-templates",
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+        </svg>
+      ),
+      count: 0,
+      description: "카카오 알림톡 템플릿 지정 관리",
+    },
+    {
       name: "야외스냅/프리웨딩 신청",
       href: "/admin/event-snap-applications",
       icon: (

@@ -64,7 +64,7 @@ export default function AboutTabs() {
                 <h3 className="text-2xl md:text-3xl font-bold mb-4">
                   검증된 감독진
                 </h3>
-                <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+                <p className="text-lg text-muted-foreground mb-8 leading-relaxed mobile-br-hidden">
                   대표가 직접 인정한 실력 있는 감독진만이 촬영합니다.
                   <br />
                   VFX/유튜브 프로덕션 출신 대표감독이 직접 보정하여
@@ -125,7 +125,7 @@ export default function AboutTabs() {
                 <h3 className="text-2xl md:text-3xl font-bold mb-4">
                   커스텀 촬영
                 </h3>
-                <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+                <p className="text-lg text-muted-foreground mb-8 leading-relaxed mobile-br-hidden">
                   원하시는 스타일 그대로 담아드립니다.
                   <br />
                   대표 촬영 한정으로 원하시는 형식을

@@ -87,7 +87,7 @@ export default async function ReviewsPage() {
         {/* Header */}
         <div className="mb-12 text-center">
           <h1 className="mb-4 text-4xl font-bold">고객 후기</h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground mobile-br-hidden">
             라우브필름과 함께한 신랑신부님들의
             <br />
             소중한 후기를 확인해보세요.

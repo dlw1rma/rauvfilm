@@ -86,6 +86,8 @@ export default function MypageDashboard() {
   const [weather, setWeather] = useState<WeatherData | WeatherTooFar | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showAccountInfo, setShowAccountInfo] = useState(false);
+  const [accountCopied, setAccountCopied] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -347,9 +349,34 @@ export default function MypageDashboard() {
               {balance.finalBalanceFormatted}
             </div>
             {balance.discounts.length > 0 && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-3">
                 총 {balance.totalDiscountFormatted} 할인 적용
               </p>
+            )}
+            <button
+              onClick={() => setShowAccountInfo(!showAccountInfo)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-border bg-muted hover:bg-muted/80 transition-colors text-muted-foreground"
+            >
+              {showAccountInfo ? '계좌 닫기' : '계좌 확인'}
+            </button>
+            {showAccountInfo && (
+              <div className="mt-2 p-3 rounded-lg bg-muted text-sm space-y-1">
+                <p><span className="text-muted-foreground">은행:</span> 국민은행</p>
+                <p><span className="text-muted-foreground">계좌:</span> <span className="font-mono">037437-04-012104</span></p>
+                <p><span className="text-muted-foreground">예금주:</span> 손세한</p>
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText('03743704012104');
+                      setAccountCopied(true);
+                      setTimeout(() => setAccountCopied(false), 2000);
+                    } catch { /* fallback */ }
+                  }}
+                  className="mt-2 w-full py-2 rounded-lg border border-border bg-background text-xs font-medium hover:bg-muted/80 transition-colors"
+                >
+                  {accountCopied ? '복사됨!' : '계좌번호 복사'}
+                </button>
+              </div>
             )}
           </div>
         </div>

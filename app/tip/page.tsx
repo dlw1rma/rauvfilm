@@ -195,7 +195,7 @@ export default function TipPage() {
         </div>
         
         {/* Intro */}
-        <div className="text-center mb-17 text-[#aaaaaa] text-base font-medium leading-loose">
+        <div className="text-center mb-17 text-[#aaaaaa] text-base font-medium leading-loose mobile-br-hidden">
           저희는 본래 영화, CF, 예능 등의 종합편집과 CG를 하는 사람들입니다.
           <br />
           현업에서 작업하던 방식을 웨딩영상에 적용하고 있어요.
@@ -214,7 +214,7 @@ export default function TipPage() {
               </h2>
               
               {/* Section Content */}
-              <div className="text-[#cccccc] text-base font-medium leading-loose">
+              <div className="text-[#cccccc] text-base font-medium leading-loose mobile-br-hidden">
                 {section.content}
               </div>
               

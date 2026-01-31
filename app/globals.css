@@ -81,3 +81,20 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 
 /* 커스텀 페이지 날짜/시간 입력 필드 아이콘 - Tailwind arbitrary value는 CSS에서 직접 사용 불가하므로 제거 */
 /* 필요시 해당 컴포넌트에서 인라인 스타일 또는 별도 클래스로 처리 */
+
+/* 모바일 반응형 기본 스타일 */
+* {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 모바일에서 <br> 태그 숨기기 유틸리티 */
+@media (max-width: 640px) {
+  .mobile-br-hidden br {
+    display: none;
+  }
+
+  .mobile-br-hidden {
+    word-break: keep-all;
+  }
+}

@@ -26,7 +26,13 @@
       "Bash(node -e:*)",
       "Bash(node scripts/backfill-bookings.js:*)",
       "Bash(npx dotenv -- node scripts/backfill-bookings.js)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:developers.solapi.dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:solapi.github.io)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

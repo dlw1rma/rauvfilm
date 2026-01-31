@@ -103,6 +103,8 @@ export async function POST(request: NextRequest) {
       weddingDate,
       weddingTime,
       venueName,
+      venueAddress,
+      venueRegion,
       venueFloor,
       guestCount,
       makeupShoot,
@@ -291,14 +293,46 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 출장비 자동 계산 (venueRegion 기준)
+    let travelFee = 0;
+    if (venueRegion && typeof venueRegion === "string") {
+      try {
+        const regionParts = venueRegion.trim().split(/\s+/);
+        const regionName = regionParts[0] || "";
+        const districtName = regionParts[1] || null;
+
+        // 구/군 레벨 매칭 우선
+        if (districtName) {
+          const districtRule = await prisma.travelFeeRule.findFirst({
+            where: { region: regionName, district: districtName, isActive: true },
+          });
+          if (districtRule) {
+            travelFee = districtRule.fee;
+          }
+        }
+
+        // 구/군 매칭 없으면 시/도 레벨 매칭
+        if (travelFee === 0 && regionName) {
+          const regionRule = await prisma.travelFeeRule.findFirst({
+            where: { region: regionName, district: null, isActive: true },
+          });
+          if (regionRule) {
+            travelFee = regionRule.fee;
+          }
+        }
+      } catch (err) {
+        console.error("출장비 조회 오류:", err);
+      }
+    }
+
     // 르메그라피 제휴 할인 (15만원)
     const lemeGraphyDiscountAmount = lemeGraphyDiscount || 0;
 
     // 할인 총액 계산 (신년/후기/짝꿍/르메그라피 등)
     const discountAmount = referralDiscount + reviewDiscount + lemeGraphyDiscountAmount;
 
-    // 최종 잔금 계산: 정가 - 예약금 - 할인들
-    const finalBalance = Math.max(0, totalAmount - depositAmount - discountAmount);
+    // 최종 잔금 계산: 정가 + 출장비 - 예약금 - 할인들
+    const finalBalance = Math.max(0, totalAmount + travelFee - depositAmount - discountAmount);
 
     const reservation = await prisma.reservation.create({
       data: {
@@ -328,6 +362,8 @@ export async function POST(request: NextRequest) {
         weddingDate: weddingDate || null,
         weddingTime: weddingTime || null,
         venueName: venueName || null,
+        venueAddress: venueAddress || null,
+        venueRegion: venueRegion || null,
         venueFloor: venueFloor || null,
         guestCount: guestCount ? parseInt(guestCount) : null,
         makeupShoot: makeupShoot || false,
@@ -370,6 +406,8 @@ export async function POST(request: NextRequest) {
         customEffect: Array.isArray(customEffect) ? customEffect.join(", ") : customEffect || null,
         customContent: Array.isArray(customContent) ? customContent.join(", ") : customContent || null,
         customSpecialRequest: customSpecialRequest || null,
+        // 출장비
+        travelFee,
         // 잔금 및 할인 시스템
         totalAmount,
         depositAmount,

@@ -115,7 +115,7 @@ export default function ReviewSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-center text-white/70 mb-10 text-base md:text-lg"
+          className="text-center text-white/70 mb-10 text-base md:text-lg mobile-br-hidden"
         >
           많은 신랑신부님들과 함께 하며
           <br />

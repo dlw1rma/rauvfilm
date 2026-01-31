@@ -96,3 +96,18 @@ export function formatBalanceBreakdown(calculation: BalanceCalculation): string 
 export function formatKRW(amount: number): string {
   return amount.toLocaleString('ko-KR') + '원';
 }
+
+/**
+ * venueRegion에서 시/도와 구/군을 파싱
+ * @param venueRegion "서울특별시 강남구" 형태의 문자열
+ * @returns { region: string, district: string | null }
+ */
+export function parseVenueRegion(venueRegion: string): { region: string; district: string | null } {
+  if (!venueRegion) return { region: '', district: null };
+  const parts = venueRegion.trim().split(/\s+/);
+  return {
+    region: parts[0] || '',
+    district: parts[1] || null,
+  };
+}
+

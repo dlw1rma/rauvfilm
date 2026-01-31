@@ -27,12 +27,20 @@ const STATUS_LABEL: Record<string, string> = {
   COMPLETED: "완료",
 };
 
+const DEPOSIT_AMOUNT: Record<string, number> = {
+  "야외스냅": 50000,
+  "프리웨딩": 100000,
+};
+
 export default function MypageEventSnapPage() {
   const router = useRouter();
   const [list, setList] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [depositCopied, setDepositCopied] = useState(false);
+  const [submittedType, setSubmittedType] = useState<string>("");
   const [form, setForm] = useState({
     type: "" as ApplicationType | "",
     customerName: "",
@@ -87,6 +95,7 @@ export default function MypageEventSnapPage() {
         setError(data.error || "신청에 실패했습니다.");
         return;
       }
+      setSubmittedType(form.type);
       setForm({
         type: "",
         customerName: "",
@@ -99,6 +108,7 @@ export default function MypageEventSnapPage() {
         specialNotes: "",
       });
       await fetchList();
+      setShowDepositModal(true);
     } catch {
       setError("신청 중 오류가 발생했습니다.");
     } finally {
@@ -197,7 +207,10 @@ export default function MypageEventSnapPage() {
               type="date"
               value={form.shootDate}
               onChange={(e) => setForm((p) => ({ ...p, shootDate: e.target.value }))}
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+              onKeyDown={(e) => e.preventDefault()}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+              style={{ colorScheme: 'light' }}
             />
           </div>
           <div>
@@ -206,7 +219,10 @@ export default function MypageEventSnapPage() {
               type="time"
               value={form.shootTime}
               onChange={(e) => setForm((p) => ({ ...p, shootTime: e.target.value }))}
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+              onKeyDown={(e) => e.preventDefault()}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+              style={{ colorScheme: 'light' }}
             />
           </div>
         </div>
@@ -230,6 +246,15 @@ export default function MypageEventSnapPage() {
             placeholder="추가 요청사항이 있으면 작성해주세요"
           />
         </div>
+        {form.type && (
+          <div className="rounded-lg bg-accent/5 border border-accent/20 p-4 text-sm">
+            <p className="font-medium text-accent mb-1">신청 비용 안내</p>
+            <p className="text-muted-foreground">
+              {form.type === "야외스냅" ? "야외스냅: 50,000원" : form.type === "프리웨딩" ? "프리웨딩: 100,000원" : "종류를 선택해주세요"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">신청 후 입금 안내가 표시됩니다.</p>
+          </div>
+        )}
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
@@ -239,6 +264,56 @@ export default function MypageEventSnapPage() {
           {submitting ? "신청 중..." : "신청하기"}
         </button>
       </form>
+
+      {/* 입금 안내 모달 */}
+      {showDepositModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-background p-6 shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-center">신청이 완료되었습니다</h3>
+            <p className="text-sm text-muted-foreground text-center">
+              아래 계좌로 {submittedType} 비용을 입금해주세요.
+            </p>
+            <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">금액</span>
+                <span className="font-bold text-accent">
+                  {(DEPOSIT_AMOUNT[submittedType] || 0).toLocaleString()}원
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">은행</span>
+                <span>국민은행</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">계좌</span>
+                <span className="font-mono">037437-04-012104</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">예금주</span>
+                <span>손세한</span>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText("03743704012104");
+                  setDepositCopied(true);
+                  setTimeout(() => setDepositCopied(false), 2000);
+                } catch { /* fallback */ }
+              }}
+              className="w-full py-2.5 rounded-lg border border-border bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
+            >
+              {depositCopied ? "복사됨!" : "계좌번호 복사"}
+            </button>
+            <button
+              onClick={() => setShowDepositModal(false)}
+              className="w-full py-2.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
 
       <div>
         <h2 className="text-lg font-semibold mb-4">내 신청 목록</h2>

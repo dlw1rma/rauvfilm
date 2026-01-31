@@ -38,6 +38,7 @@ export async function GET() {
         reviewDiscount: true,
         referredBy: true,
         mainSnapCompany: true,
+        travelFee: true,
         makeupShoot: true,
         paebaekShoot: true,
         receptionShoot: true,
@@ -112,7 +113,19 @@ export async function GET() {
     // 추가 옵션 금액 계산
     const additionalOptions = [];
     let additionalTotal = 0;
-    
+
+    // 출장비
+    const travelFee = reservation.travelFee || 0;
+    if (travelFee > 0) {
+      additionalOptions.push({
+        type: 'travel',
+        label: '출장비',
+        amount: travelFee,
+        amountFormatted: formatKRW(travelFee),
+      });
+      additionalTotal += travelFee;
+    }
+
     if (reservation.makeupShoot) {
       const makeupPrice = 200000;
       additionalOptions.push({
@@ -157,7 +170,7 @@ export async function GET() {
     };
     
     const basePrice = getProductBasePrice(reservation.productType);
-    const listPrice = reservation.totalAmount || 0;
+    const listPrice = (reservation.totalAmount || 0) + travelFee;
     const depositAmount = reservation.depositAmount || 100000;
     const finalBalance = Math.max(0, listPrice - depositAmount - totalDiscount);
 

@@ -45,6 +45,8 @@ model Reservation {
   weddingDate     String?   // 예식 날짜 (텍스트)
   weddingTime     String?   // 예식 시간 (텍스트)
   venueName       String?   // 장소명
+  venueAddress    String?   // 예식장 도로명/지번 주소
+  venueRegion     String?   // 시도+구군 (예: "서울특별시 강남구")
   venueFloor      String?   // 층/홀이름
   guestCount      Int?      // 초대인원
   makeupShoot     Boolean?  // 메이크업샵 촬영 O/X
@@ -87,6 +89,9 @@ model Reservation {
   customContent         String?  @db.Text // 추가 옵션 (배열을 문자열로 저장)
   customSpecialRequest  String?  @db.Text // 특별 요청사항
   
+  // 출장비
+  travelFee         Int?      @default(0)  // 출장비 금액 (원)
+
   // 잔금 및 할인 시스템
   totalAmount       Int?      @default(0)  // 계약 전체 금액 (정가)
   depositAmount     Int?      @default(100000)  // 예약금 (기본 10만원)
@@ -316,6 +321,7 @@ model ReviewSubmission {
 
   reviewUrl       String         // 후기 링크
   platform        ReviewPlatform // 플랫폼
+  type            String         @default("booking") // "booking" | "shooting"
 
   // 자동 추출된 메타데이터
   title           String?        // 후기 제목
@@ -430,6 +436,27 @@ model EventSnapImage {
   isFeatured  Boolean  @default(false) // 대표 이미지
 
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 출장비 기준
+model TravelFeeRule {
+  id          Int      @id @default(autoincrement())
+  branch      String   // "서울점" | "청주점"
+  region      String   // "서울특별시" (시/도)
+  district    String?  // "강남구" (구/군, null이면 시/도 전체)
+  fee         Int      // 출장비 금액 (원)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// SMS/알림톡 템플릿 설정
+model SmsTemplateConfig {
+  id          Int      @id @default(autoincrement())
+  type        String   @unique  // "contract" | "video"
+  templateId  String            // 솔라피 카카오 알림톡 템플릿 ID
+  channelId   String            // 카카오 채널 ID (발송에 필요)
   updatedAt   DateTime @updatedAt
 }
 
