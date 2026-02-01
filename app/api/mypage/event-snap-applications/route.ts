@@ -61,6 +61,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 같은 종류 중복 신청 방지 (야외스냅 1회, 프리웨딩 1회)
+    const existing = await prisma.eventSnapApplication.findFirst({
+      where: { reservationId: session.reservationId, type },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: `${type}은(는) 이미 신청하셨습니다. 각 종류당 1회만 신청 가능합니다.` },
+        { status: 400 }
+      );
+    }
+
     const application = await prisma.eventSnapApplication.create({
       data: {
         reservationId: session.reservationId,

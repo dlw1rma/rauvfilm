@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -24,17 +24,32 @@ export default function YouTubeFacade({
 }: YouTubeFacadeProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState("16 / 9");
+
+  useEffect(() => {
+    fetch(`/api/youtube/video-details?videoId=${videoId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.width && data.height) {
+          setAspectRatio(`${data.width} / ${data.height}`);
+        }
+      })
+      .catch(() => {});
+  }, [videoId]);
 
   if (isLoaded) {
     return (
-      <div className={cn("relative aspect-video w-full", className)}>
+      <div
+        className={cn("relative w-full", className)}
+        style={{ aspectRatio }}
+      >
         <iframe
           src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&controls=1&showinfo=0&modestbranding=1`}
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           className="absolute inset-0 w-full h-full rounded-lg"
-          style={{ border: "none", width: "100%", height: "100%" }}
+          style={{ border: "none" }}
         />
       </div>
     );
@@ -48,9 +63,10 @@ export default function YouTubeFacade({
     <button
       onClick={() => setIsLoaded(true)}
       className={cn(
-        "group relative aspect-video w-full cursor-pointer overflow-hidden rounded-lg bg-muted",
+        "group relative w-full cursor-pointer overflow-hidden rounded-lg bg-muted",
         className
       )}
+      style={{ aspectRatio }}
       aria-label={`${title} 영상 재생`}
     >
       <Image

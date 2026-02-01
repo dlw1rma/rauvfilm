@@ -44,6 +44,10 @@ export default function AdminPage() {
   });
   const [upcomingBookings, setUpcomingBookings] = useState<QuickBooking[]>([]);
   const [thisWeekBookings, setThisWeekBookings] = useState<QuickBooking[]>([]);
+  const [announcementMsg, setAnnouncementMsg] = useState("");
+  const [announcementActive, setAnnouncementActive] = useState(false);
+  const [announcementSaving, setAnnouncementSaving] = useState(false);
+  const [announcementStatus, setAnnouncementStatus] = useState("");
 
   // 페이지 로드 시 세션 확인
   useEffect(() => {
@@ -64,6 +68,13 @@ export default function AdminPage() {
         setUpcomingBookings(up.bookings || []);
         setThisWeekBookings(week.bookings || []);
       }).catch(console.error);
+      fetch("/api/admin/announcement")
+        .then((r) => r.json())
+        .then((data) => {
+          setAnnouncementMsg(data.message || "");
+          setAnnouncementActive(data.isActive || false);
+        })
+        .catch(console.error);
     }
   }, [isLoggedIn]);
 
@@ -283,6 +294,28 @@ export default function AdminPage() {
     }
   };
 
+  const handleAnnouncementSave = async () => {
+    setAnnouncementSaving(true);
+    setAnnouncementStatus("");
+    try {
+      const res = await fetch("/api/admin/announcement", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: announcementMsg, isActive: announcementActive }),
+      });
+      if (res.ok) {
+        setAnnouncementStatus("저장됨");
+        setTimeout(() => setAnnouncementStatus(""), 2000);
+      } else {
+        setAnnouncementStatus("저장 실패");
+      }
+    } catch {
+      setAnnouncementStatus("저장 실패");
+    } finally {
+      setAnnouncementSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -499,6 +532,52 @@ export default function AdminPage() {
             <p className="text-sm text-muted-foreground">고객 후기</p>
             <p className="text-3xl font-bold mt-1">{stats.reviews}</p>
             <p className="text-xs text-muted-foreground mt-2">등록된 후기</p>
+          </div>
+        </div>
+
+        {/* Announcement Management */}
+        <div className="rounded-xl border border-border bg-muted p-6 mb-8">
+          <h2 className="font-semibold mb-3">마이페이지 공지 배너</h2>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              value={announcementMsg}
+              onChange={(e) => setAnnouncementMsg(e.target.value)}
+              placeholder="공지 내용을 입력하세요"
+              className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={announcementActive}
+                  onClick={() => setAnnouncementActive(!announcementActive)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    announcementActive ? "bg-accent" : "bg-border"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform mt-0.5 ${
+                      announcementActive ? "translate-x-[22px]" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-muted-foreground">
+                  {announcementActive ? "활성" : "비활성"}
+                </span>
+              </label>
+              <button
+                onClick={handleAnnouncementSave}
+                disabled={announcementSaving}
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50 transition-colors"
+              >
+                {announcementSaving ? "저장 중..." : "저장"}
+              </button>
+              {announcementStatus && (
+                <span className="text-sm text-muted-foreground">{announcementStatus}</span>
+              )}
+            </div>
           </div>
         </div>
 

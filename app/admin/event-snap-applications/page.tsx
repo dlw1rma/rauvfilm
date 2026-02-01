@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Pagination from "@/components/ui/Pagination";
 
 interface Application {
   id: number;
@@ -35,6 +36,11 @@ const TYPE_OPTIONS = [
   { value: "프리웨딩", label: "프리웨딩" },
 ];
 
+const FEE_MAP: Record<string, number> = {
+  "야외스냅": 50000,
+  "프리웨딩": 100000,
+};
+
 export default function AdminEventSnapApplicationsPage() {
   const [list, setList] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +51,8 @@ export default function AdminEventSnapApplicationsPage() {
   const [editStatus, setEditStatus] = useState("");
   const [editAdminNote, setEditAdminNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const fetchList = async () => {
     setLoading(true);
@@ -70,6 +78,7 @@ export default function AdminEventSnapApplicationsPage() {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     fetchList();
   }, [statusFilter, typeFilter]);
 
@@ -133,6 +142,9 @@ export default function AdminEventSnapApplicationsPage() {
     }
   };
 
+  const totalPages = Math.ceil(list.length / PAGE_SIZE);
+  const paginatedList = list.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   const statusLabel: Record<string, string> = {
     PENDING: "검토 대기",
     CONFIRMED: "확정",
@@ -150,6 +162,9 @@ export default function AdminEventSnapApplicationsPage() {
           <h1 className="text-2xl font-bold mt-2">야외스냅/프리웨딩 신청 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">
             마이페이지에서 접수된 야외스냅·프리웨딩 신청을 검토하고 상태를 관리합니다.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            &ldquo;확정&rdquo; 처리 시 해당 비용이 고객 마이페이지 금액 상세에 자동 반영됩니다.
           </p>
         </div>
       </div>
@@ -188,6 +203,7 @@ export default function AdminEventSnapApplicationsPage() {
               <tr>
                 <th className="text-left p-3">ID</th>
                 <th className="text-left p-3">종류</th>
+                <th className="text-left p-3">비용</th>
                 <th className="text-left p-3">성함</th>
                 <th className="text-left p-3">연락처</th>
                 <th className="text-left p-3">장소</th>
@@ -198,10 +214,11 @@ export default function AdminEventSnapApplicationsPage() {
               </tr>
             </thead>
             <tbody>
-              {list.map((app) => (
+              {paginatedList.map((app) => (
                 <tr key={app.id} className="border-t border-border">
                   <td className="p-3">{app.id}</td>
                   <td className="p-3">{app.type}</td>
+                  <td className="p-3">{(FEE_MAP[app.type] || 0).toLocaleString()}원</td>
                   <td className="p-3">{app.customerName}</td>
                   <td className="p-3">{app.customerPhone}</td>
                   <td className="p-3 max-w-[120px] truncate" title={app.shootLocation ?? undefined}>
@@ -274,6 +291,7 @@ export default function AdminEventSnapApplicationsPage() {
               ))}
             </tbody>
           </table>
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </div>
       )}
 

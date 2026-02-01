@@ -10,6 +10,8 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 10;
+
 // 작성자 이름 마스킹 함수 (첫 글자만 보이고 나머지는 *)
 const maskAuthorName = (name: string): string => {
   if (!name || name.length === 0) return "";
@@ -18,24 +20,29 @@ const maskAuthorName = (name: string): string => {
   return name[0] + "*".repeat(name.length - 1);
 };
 
-async function getReservations() {
+async function getReservations(page: number) {
   try {
-    const reservations = await prisma.reservation.findMany({
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        author: true,
-        isPrivate: true,
-        status: true,
-        createdAt: true,
-        reply: {
-          select: { id: true },
+    const [reservations, totalCount] = await Promise.all([
+      prisma.reservation.findMany({
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+        select: {
+          id: true,
+          title: true,
+          author: true,
+          isPrivate: true,
+          status: true,
+          createdAt: true,
+          reply: {
+            select: { id: true },
+          },
         },
-      },
-    });
+      }),
+      prisma.reservation.count(),
+    ]);
 
-    return reservations.map((r) => ({
+    const items = reservations.map((r) => ({
       id: r.id,
       title: r.title,
       author: maskAuthorName(decrypt(r.author) || ""),
@@ -44,14 +51,34 @@ async function getReservations() {
       createdAt: r.createdAt.toISOString().split("T")[0],
       hasReply: !!r.reply,
     }));
+
+    return { items, totalCount };
   } catch (error) {
     console.error("Error fetching reservations:", error);
-    return [];
+    return { items: [], totalCount: 0 };
   }
 }
 
-export default async function ReservationPage() {
-  const reservations = await getReservations();
+export default async function ReservationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const params = await searchParams;
+  const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
+  const { items: reservations, totalCount } = await getReservations(currentPage);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  // 표시할 페이지 번호 계산 (최대 5개)
+  const pages: number[] = [];
+  let start = Math.max(1, currentPage - 2);
+  let end = Math.min(totalPages, start + 4);
+  if (end - start < 4) {
+    start = Math.max(1, end - 4);
+  }
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
 
   return (
     <div className="min-h-screen py-20 px-4">
@@ -173,6 +200,67 @@ export default async function ReservationPage() {
             )}
           </div>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-1 mt-6">
+            <Link
+              href={currentPage > 1 ? `?page=${currentPage - 1}` : "#"}
+              className={`px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors ${currentPage <= 1 ? "opacity-30 pointer-events-none" : ""}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </Link>
+
+            {start > 1 && (
+              <>
+                <Link
+                  href="?page=1"
+                  className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
+                >
+                  1
+                </Link>
+                {start > 2 && <span className="px-1 text-muted-foreground">...</span>}
+              </>
+            )}
+
+            {pages.map((p) => (
+              <Link
+                key={p}
+                href={`?page=${p}`}
+                className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                  p === currentPage
+                    ? "bg-accent text-white border-accent"
+                    : "border-border hover:bg-muted"
+                }`}
+              >
+                {p}
+              </Link>
+            ))}
+
+            {end < totalPages && (
+              <>
+                {end < totalPages - 1 && <span className="px-1 text-muted-foreground">...</span>}
+                <Link
+                  href={`?page=${totalPages}`}
+                  className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
+                >
+                  {totalPages}
+                </Link>
+              </>
+            )}
+
+            <Link
+              href={currentPage < totalPages ? `?page=${currentPage + 1}` : "#"}
+              className={`px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors ${currentPage >= totalPages ? "opacity-30 pointer-events-none" : ""}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

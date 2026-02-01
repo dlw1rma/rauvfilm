@@ -39,19 +39,6 @@ export async function PATCH(
       );
     }
 
-    // 이미 저장된 환급정보가 있는지 확인
-    const existing = await prisma.reservation.findUnique({
-      where: { id: reservationId },
-      select: { reviewRefundAccount: true },
-    });
-
-    if (existing?.reviewRefundAccount) {
-      return NextResponse.json(
-        { error: '환급 계좌가 이미 등록되어 있습니다. 변경이 필요하시면 관리자에게 문의해주세요.' },
-        { status: 400 }
-      );
-    }
-
     const combinedAccount = `${sanitizeString(reviewRefundBank, 50)} ${sanitizeString(reviewRefundAccountNumber, 50)}`;
 
     const updated = await prisma.reservation.update({

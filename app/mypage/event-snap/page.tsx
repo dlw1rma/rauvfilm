@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -75,6 +75,19 @@ export default function MypageEventSnapPage() {
     fetchList();
   }, [router]);
 
+  // 이미 신청한 종류 확인
+  const appliedTypes = useMemo(() => {
+    const types = new Set<string>();
+    for (const app of list) {
+      types.add(app.type);
+    }
+    return types;
+  }, [list]);
+
+  const hasSnap = appliedTypes.has("야외스냅");
+  const hasPrewedding = appliedTypes.has("프리웨딩");
+  const allApplied = hasSnap && hasPrewedding;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -138,132 +151,175 @@ export default function MypageEventSnapPage() {
       <div>
         <h1 className="text-2xl font-bold">야외스냅 / 프리웨딩 신청</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          야외스냅·프리웨딩 촬영은 예약글과 별도로 여기에서 신청해 주세요.
+          야외스냅·프리웨딩 촬영은 예약글과 별도로 여기에서 신청해 주세요. 각 종류당 1회 신청 가능합니다.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-background p-6 space-y-4">
+      {/* 신청 목록 (위) */}
+      {list.length > 0 && (
         <div>
-          <label className="mb-2 block text-sm font-medium">신청 종류 <span className="text-red-500">*</span></label>
-          <select
-            value={form.type}
-            onChange={(e) => setForm((p) => ({ ...p, type: e.target.value as ApplicationType | "" }))}
-            className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            required
-          >
-            <option value="">선택</option>
-            <option value="야외스냅">야외스냅</option>
-            <option value="프리웨딩">프리웨딩</option>
-          </select>
+          <h2 className="text-lg font-semibold mb-4">내 신청 목록</h2>
+          <ul className="space-y-3">
+            {list.map((app) => (
+              <li
+                key={app.id}
+                className="rounded-lg border border-border bg-background p-4 space-y-2"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="font-medium">{app.type}</span>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({(DEPOSIT_AMOUNT[app.type] || 0).toLocaleString()}원)
+                    </span>
+                    {app.shootLocation && <span className="text-muted-foreground text-sm ml-2">· {app.shootLocation}</span>}
+                    {app.shootDate && <span className="text-muted-foreground text-sm ml-2">· {app.shootDate}</span>}
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {STATUS_LABEL[app.status] ?? app.status} · {new Date(app.createdAt).toLocaleDateString("ko-KR")}
+                  </span>
+                </div>
+                {app.status === "CONFIRMED" && (
+                  <p className="text-xs text-green-600">금액 상세에 반영됨</p>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+      )}
+
+      {/* 신청서 (아래) - 둘 다 신청했으면 숨김 */}
+      {allApplied ? (
+        <div className="rounded-2xl border border-border bg-muted p-6 text-center">
+          <p className="text-muted-foreground">야외스냅과 프리웨딩 모두 신청 완료되었습니다.</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-background p-6 space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium">성함 <span className="text-red-500">*</span></label>
+            <label className="mb-2 block text-sm font-medium">신청 종류 <span className="text-red-500">*</span></label>
+            <select
+              value={form.type}
+              onChange={(e) => setForm((p) => ({ ...p, type: e.target.value as ApplicationType | "" }))}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              required
+            >
+              <option value="">선택</option>
+              <option value="야외스냅" disabled={hasSnap}>
+                야외스냅{hasSnap ? " (신청 완료)" : ""}
+              </option>
+              <option value="프리웨딩" disabled={hasPrewedding}>
+                프리웨딩{hasPrewedding ? " (신청 완료)" : ""}
+              </option>
+            </select>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium">성함 <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                value={form.customerName}
+                onChange={(e) => setForm((p) => ({ ...p, customerName: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                placeholder="예약자 성함"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium">연락처 <span className="text-red-500">*</span></label>
+              <input
+                type="tel"
+                value={form.customerPhone}
+                onChange={(e) => setForm((p) => ({ ...p, customerPhone: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                placeholder="010-0000-0000"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">이메일 (선택)</label>
+            <input
+              type="email"
+              value={form.customerEmail}
+              onChange={(e) => setForm((p) => ({ ...p, customerEmail: e.target.value }))}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              placeholder="example@email.com"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">희망 촬영 장소</label>
             <input
               type="text"
-              value={form.customerName}
-              onChange={(e) => setForm((p) => ({ ...p, customerName: e.target.value }))}
+              value={form.shootLocation}
+              onChange={(e) => setForm((p) => ({ ...p, shootLocation: e.target.value }))}
               className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-              placeholder="예약자 성함"
-              required
+              placeholder="예: 노을공원, 창경궁, 동작대교, 올림픽공원 등"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium">촬영 희망 날짜</label>
+              <input
+                type="date"
+                value={form.shootDate}
+                onChange={(e) => setForm((p) => ({ ...p, shootDate: e.target.value }))}
+                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                onKeyDown={(e) => e.preventDefault()}
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                style={{ colorScheme: 'light' }}
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium">촬영 희망 시간</label>
+              <input
+                type="time"
+                value={form.shootTime}
+                onChange={(e) => setForm((p) => ({ ...p, shootTime: e.target.value }))}
+                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                onKeyDown={(e) => e.preventDefault()}
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                style={{ colorScheme: 'light' }}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">원하시는 컨셉</label>
+            <textarea
+              value={form.shootConcept}
+              onChange={(e) => setForm((p) => ({ ...p, shootConcept: e.target.value }))}
+              rows={3}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+              placeholder="원하시는 촬영 컨셉을 작성해주세요"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium">연락처 <span className="text-red-500">*</span></label>
-            <input
-              type="tel"
-              value={form.customerPhone}
-              onChange={(e) => setForm((p) => ({ ...p, customerPhone: e.target.value }))}
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-              placeholder="010-0000-0000"
-              required
+            <label className="mb-2 block text-sm font-medium">특이사항</label>
+            <textarea
+              value={form.specialNotes}
+              onChange={(e) => setForm((p) => ({ ...p, specialNotes: e.target.value }))}
+              rows={2}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+              placeholder="추가 요청사항이 있으면 작성해주세요"
             />
           </div>
-        </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium">이메일 (선택)</label>
-          <input
-            type="email"
-            value={form.customerEmail}
-            onChange={(e) => setForm((p) => ({ ...p, customerEmail: e.target.value }))}
-            className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            placeholder="example@email.com"
-          />
-        </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium">희망 촬영 장소</label>
-          <input
-            type="text"
-            value={form.shootLocation}
-            onChange={(e) => setForm((p) => ({ ...p, shootLocation: e.target.value }))}
-            className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            placeholder="예: 노을공원, 창경궁, 동작대교, 올림픽공원 등"
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium">촬영 희망 날짜</label>
-            <input
-              type="date"
-              value={form.shootDate}
-              onChange={(e) => setForm((p) => ({ ...p, shootDate: e.target.value }))}
-              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-              onKeyDown={(e) => e.preventDefault()}
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-              style={{ colorScheme: 'light' }}
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium">촬영 희망 시간</label>
-            <input
-              type="time"
-              value={form.shootTime}
-              onChange={(e) => setForm((p) => ({ ...p, shootTime: e.target.value }))}
-              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-              onKeyDown={(e) => e.preventDefault()}
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-              style={{ colorScheme: 'light' }}
-            />
-          </div>
-        </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium">원하시는 컨셉</label>
-          <textarea
-            value={form.shootConcept}
-            onChange={(e) => setForm((p) => ({ ...p, shootConcept: e.target.value }))}
-            rows={3}
-            className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-            placeholder="원하시는 촬영 컨셉을 작성해주세요"
-          />
-        </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium">특이사항</label>
-          <textarea
-            value={form.specialNotes}
-            onChange={(e) => setForm((p) => ({ ...p, specialNotes: e.target.value }))}
-            rows={2}
-            className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-            placeholder="추가 요청사항이 있으면 작성해주세요"
-          />
-        </div>
-        {form.type && (
-          <div className="rounded-lg bg-accent/5 border border-accent/20 p-4 text-sm">
-            <p className="font-medium text-accent mb-1">신청 비용 안내</p>
-            <p className="text-muted-foreground">
-              {form.type === "야외스냅" ? "야외스냅: 50,000원" : form.type === "프리웨딩" ? "프리웨딩: 100,000원" : "종류를 선택해주세요"}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">신청 후 입금 안내가 표시됩니다.</p>
-          </div>
-        )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-lg bg-accent py-3 font-medium text-white transition hover:bg-accent/90 disabled:opacity-50"
-        >
-          {submitting ? "신청 중..." : "신청하기"}
-        </button>
-      </form>
+          {form.type && (
+            <div className="rounded-lg bg-accent/5 border border-accent/20 p-4 text-sm">
+              <p className="font-medium text-accent mb-1">신청 비용 안내</p>
+              <p className="text-muted-foreground">
+                {form.type === "야외스냅" ? "야외스냅: 50,000원" : form.type === "프리웨딩" ? "프리웨딩: 100,000원" : "종류를 선택해주세요"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">신청 후 입금 안내가 표시됩니다.</p>
+            </div>
+          )}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-lg bg-accent py-3 font-medium text-white transition hover:bg-accent/90 disabled:opacity-50"
+          >
+            {submitting ? "신청 중..." : "신청하기"}
+          </button>
+        </form>
+      )}
 
       {/* 입금 안내 모달 */}
       {showDepositModal && (
@@ -314,31 +370,6 @@ export default function MypageEventSnapPage() {
           </div>
         </div>
       )}
-
-      <div>
-        <h2 className="text-lg font-semibold mb-4">내 신청 목록</h2>
-        {list.length === 0 ? (
-          <p className="text-muted-foreground text-sm">아직 신청한 내역이 없습니다.</p>
-        ) : (
-          <ul className="space-y-3">
-            {list.map((app) => (
-              <li
-                key={app.id}
-                className="rounded-lg border border-border bg-background p-4 flex flex-wrap items-center justify-between gap-2"
-              >
-                <div>
-                  <span className="font-medium">{app.type}</span>
-                  {app.shootLocation && <span className="text-muted-foreground text-sm ml-2">· {app.shootLocation}</span>}
-                  {app.shootDate && <span className="text-muted-foreground text-sm ml-2">· {app.shootDate}</span>}
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {STATUS_LABEL[app.status] ?? app.status} · {new Date(app.createdAt).toLocaleDateString("ko-KR")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </div>
   );
 }

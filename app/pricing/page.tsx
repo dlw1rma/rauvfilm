@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import PricingCard from "@/components/pricing/PricingCard";
 import OptionRow from "@/components/pricing/OptionRow";
+import TravelCostGuide from "@/components/pricing/TravelCostGuide";
 
 export const metadata: Metadata = {
   title: "가격 안내 | 라우브필름",
@@ -330,6 +331,9 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
+
+      {/* 출장비 안내 섹션 */}
+      <TravelCostGuide />
 
     </div>
   );

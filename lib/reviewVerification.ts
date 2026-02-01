@@ -59,11 +59,25 @@ export function validateContent(content: string): {
   };
 }
 
+// HTML 엔티티 디코딩
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
+}
+
 // HTML에서 텍스트 추출 (태그 제거)
 function extractText(html: string): string {
   let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
   text = text.replace(/<[^>]+>/g, ' ');
+  text = decodeHtmlEntities(text);
   text = text.replace(/\s+/g, ' ').trim();
   return text;
 }
@@ -103,10 +117,44 @@ function toNaverCafeMobileUrl(url: string): string | null {
   return null;
 }
 
+// 네이버 카페 URL slug → 숫자 ID 변환
+async function resolveNaverCafeNumericId(cafeUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://m.cafe.naver.com/ca-fe/web/cafes/${cafeUrl}/cafe-info?useCafeId=false`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': `https://m.cafe.naver.com/${cafeUrl}`,
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const id = data?.cafe?.cafeId ?? data?.cafeId ?? null;
+    return id ? String(id) : null;
+  } catch {
+    return null;
+  }
+}
+
 // 네이버 카페 모바일 API로 제목/본문 가져오기
 async function fetchCafeArticleData(cafeId: string, articleId: string): Promise<{ title: string; content: string } | null> {
+  // 1차: URL slug 사용
+  const result = await fetchCafeArticleAPI(cafeId, articleId, false);
+  if (result && (result.title || result.content.length > 30)) return result;
+
+  // 2차: 숫자 ID로 재시도
+  const numericId = await resolveNaverCafeNumericId(cafeId);
+  if (numericId && numericId !== cafeId) {
+    const result2 = await fetchCafeArticleAPI(numericId, articleId, true);
+    if (result2 && (result2.title || result2.content.length > 30)) return result2;
+  }
+
+  return null;
+}
+
+async function fetchCafeArticleAPI(cafeId: string, articleId: string, useCafeId: boolean): Promise<{ title: string; content: string } | null> {
   try {
-    const apiUrl = `https://m.cafe.naver.com/ca-fe/web/cafes/${cafeId}/articles/${articleId}?useCafeId=false&requestFrom=A`;
+    const apiUrl = `https://m.cafe.naver.com/ca-fe/web/cafes/${cafeId}/articles/${articleId}?useCafeId=${useCafeId}&requestFrom=A`;
     const response = await fetch(apiUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
@@ -123,13 +171,43 @@ async function fetchCafeArticleData(cafeId: string, articleId: string): Promise<
     const article = data?.article;
     if (!article) return null;
 
-    const title = article.subject || '';
+    const title = article.subject ? decodeHtmlEntities(article.subject) : '';
     let content = '';
     if (article.contentHtml) {
       content = extractText(article.contentHtml);
     }
 
     return { title, content };
+  } catch {
+    return null;
+  }
+}
+
+// 네이버 카페 데스크톱 ArticleRead 페이지에서 제목/본문 추출 (iframe 콘텐츠)
+async function fetchCafeArticleDesktop(cafeUrl: string, articleId: string): Promise<{ title: string; content: string } | null> {
+  try {
+    // 데스크톱 iframe URL
+    const desktopUrl = `https://cafe.naver.com/ArticleRead.nhn?cluburl=${cafeUrl}&articleid=${articleId}`;
+    const response = await fetch(desktopUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ko-KR,ko;q=0.9',
+        'Referer': `https://cafe.naver.com/${cafeUrl}`,
+      },
+      redirect: 'follow',
+    });
+    if (!response.ok) return null;
+
+    const html = await response.text();
+    const title = extractTitle(html);
+    const content = extractContent(html);
+
+    if (title || content.length > 30) {
+      return { title, content };
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -188,13 +266,22 @@ function extractContent(html: string): string {
   return '';
 }
 
+// HTML에서 meta 태그의 content 값 추출 (속성 순서 무관)
+function getMetaContent(html: string, attrName: string, attrValue: string): string | null {
+  const re1 = new RegExp(`<meta[^>]+${attrName}=["']${attrValue}["'][^>]+content=["']([^"']+)["']`, "i");
+  const m1 = html.match(re1);
+  if (m1?.[1]) return decodeHtmlEntities(m1[1].trim());
+  const re2 = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+${attrName}=["']${attrValue}["']`, "i");
+  const m2 = html.match(re2);
+  if (m2?.[1]) return decodeHtmlEntities(m2[1].trim());
+  return null;
+}
+
 // HTML에서 제목 추출
 function extractTitle(html: string): string {
   // og:title 우선
-  const ogMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
-  if (ogMatch && ogMatch[1]) {
-    return ogMatch[1].trim();
-  }
+  const ogTitle = getMetaContent(html, "property", "og:title");
+  if (ogTitle) return ogTitle;
 
   // title 태그
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
@@ -252,44 +339,68 @@ export async function verifyReview(url: string): Promise<VerificationResult> {
     let content = '';
 
     if (platform === 'NAVER_CAFE') {
-      // 네이버 카페: 모바일 API 우선 시도
       const cafeIds = extractCafeIds(url);
       if (cafeIds) {
+        // 1차: 모바일 API (URL slug + 숫자 ID 재시도 포함)
         const cafeData = await fetchCafeArticleData(cafeIds.cafeId, cafeIds.articleId);
         if (cafeData && (cafeData.title || cafeData.content)) {
           title = cafeData.title;
           content = cafeData.content;
         }
+
+        // 2차: 데스크톱 ArticleRead.nhn 페이지 파싱
+        if (!title && !content) {
+          const desktopData = await fetchCafeArticleDesktop(cafeIds.cafeId, cafeIds.articleId);
+          if (desktopData) {
+            title = desktopData.title;
+            content = desktopData.content;
+          }
+        }
       }
 
-      // API 실패 시 HTML 파싱 fallback
+      // 3차: 모바일 HTML 페이지 OG 태그 fallback
       if (!title && !content) {
         const fetchUrl = toNaverCafeMobileUrl(url) || url;
-        const response = await fetch(fetchUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Referer': 'https://m.naver.com/',
-          },
-          redirect: 'follow',
-        });
+        try {
+          const response = await fetch(fetchUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Referer': 'https://m.naver.com/',
+            },
+            redirect: 'follow',
+          });
 
-        if (!response.ok) {
-          return {
-            platform,
-            canAutoVerify: false,
-            titleValid: null,
-            contentValid: null,
-            characterCount: null,
-            status: 'MANUAL_REVIEW',
-            errorMessage: '네이버 카페 후기를 확인할 수 없습니다. 게시글이 전체공개로 설정되어 있는지 확인해주세요.',
-          };
+          if (response.ok) {
+            const html = await response.text();
+            title = extractTitle(html);
+            content = extractContent(html);
+
+            // OG description fallback (모바일 SPA 페이지에서 본문 대신)
+            if (!content || content.length < 30) {
+              const ogDesc = getMetaContent(html, "property", "og:description");
+              if (ogDesc) {
+                content = ogDesc;
+              }
+            }
+          }
+        } catch {
+          // ignore
         }
+      }
 
-        const html = await response.text();
-        title = extractTitle(html);
-        content = extractContent(html);
+      // 모든 방법 실패 시
+      if (!title && !content) {
+        return {
+          platform,
+          canAutoVerify: false,
+          titleValid: null,
+          contentValid: null,
+          characterCount: null,
+          status: 'MANUAL_REVIEW',
+          errorMessage: '네이버 카페 후기를 확인할 수 없습니다. 게시글이 전체공개로 설정되어 있는지 확인해주세요.',
+        };
       }
     } else {
       // 네이버 블로그: PostView.naver 형식으로 변환

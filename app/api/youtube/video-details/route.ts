@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // YouTube Data API v3를 사용하여 영상 정보 가져오기
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=player,snippet&id=${videoId}&key=${apiKey}`;
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=player,snippet,contentDetails&id=${videoId}&key=${apiKey}&maxWidth=1920`;
     const response = await fetch(apiUrl);
 
     if (!response.ok) {
@@ -41,30 +41,40 @@ export async function GET(request: NextRequest) {
     const video = data.items[0];
     let width = 1280;
     let height = 720;
-    let aspectRatio = 16 / 9;
 
-    // player.embedWidth와 embedHeight 사용
-    if (video.player?.embedWidth && video.player?.embedHeight) {
-      width = parseInt(video.player.embedWidth);
-      height = parseInt(video.player.embedHeight);
-      aspectRatio = width / height;
-    } else if (video.snippet?.thumbnails?.maxres) {
-      // player 정보가 없으면 썸네일 비율 사용
-      const thumbnail = video.snippet.thumbnails.maxres;
-      width = thumbnail.width;
-      height = thumbnail.height;
-      aspectRatio = width / height;
-    } else if (video.snippet?.thumbnails?.standard) {
-      const thumbnail = video.snippet.thumbnails.standard;
-      width = thumbnail.width;
-      height = thumbnail.height;
-      aspectRatio = width / height;
-    } else if (video.snippet?.thumbnails?.high) {
-      const thumbnail = video.snippet.thumbnails.high;
-      width = thumbnail.width;
-      height = thumbnail.height;
-      aspectRatio = width / height;
+    // player.embedHtml에서 실제 width/height 파싱 (가장 정확)
+    if (video.player?.embedHtml) {
+      const wMatch = video.player.embedHtml.match(/width="(\d+)"/);
+      const hMatch = video.player.embedHtml.match(/height="(\d+)"/);
+      if (wMatch && hMatch) {
+        width = parseInt(wMatch[1]);
+        height = parseInt(hMatch[1]);
+      }
     }
+
+    // Shorts 감지: 태그에 shorts 포함되거나, 설명에 #Shorts, 또는 duration이 60초 이하
+    const tags = video.snippet?.tags || [];
+    const description = video.snippet?.description || "";
+    const isShorts = tags.some((t: string) => t.toLowerCase() === "shorts" || t.toLowerCase() === "#shorts")
+      || description.toLowerCase().includes("#shorts");
+
+    // contentDetails.duration으로 짧은 영상인지 확인 (PT1M 이하)
+    const duration = video.contentDetails?.duration || "";
+    const durationMatch = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const totalSeconds = durationMatch
+      ? (parseInt(durationMatch[1] || "0") * 3600) + (parseInt(durationMatch[2] || "0") * 60) + parseInt(durationMatch[3] || "0")
+      : 999;
+
+    // Shorts 영상이거나 60초 이하 + 세로형 의심 → 9:16으로 설정
+    if (isShorts || (totalSeconds <= 60 && width <= height)) {
+      // embedHtml이 16:9로 나왔어도 Shorts면 9:16으로 강제
+      if (width > height) {
+        width = 1080;
+        height = 1920;
+      }
+    }
+
+    const aspectRatio = width / height;
 
     return NextResponse.json({
       width,

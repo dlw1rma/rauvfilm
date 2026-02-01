@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Pagination from '@/components/ui/Pagination';
 
 interface EventSnapApp {
   id: number;
@@ -30,6 +31,8 @@ export default function MyReservationsPage() {
   const router = useRouter();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     fetchReservations();
@@ -84,8 +87,9 @@ export default function MyReservationsPage() {
             <p className="text-muted-foreground">작성한 예약글이 없습니다.</p>
           </div>
         ) : (
+          <>
           <div className="space-y-4">
-            {reservations.map((reservation) => (
+            {reservations.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((reservation) => (
               <div
                 key={reservation.id}
                 className="p-4 bg-muted rounded-lg border border-border hover:border-accent/50 transition-colors"
@@ -147,6 +151,8 @@ export default function MyReservationsPage() {
               </div>
             ))}
           </div>
+          <Pagination currentPage={currentPage} totalPages={Math.ceil(reservations.length / PAGE_SIZE)} onPageChange={setCurrentPage} />
+          </>
         )}
       </div>
     </div>

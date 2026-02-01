@@ -159,6 +159,22 @@ export async function GET() {
       additionalTotal += receptionPrice;
     }
 
+    // EventSnapApplication에서 CONFIRMED된 것들 조회
+    const eventSnaps = await prisma.eventSnapApplication.findMany({
+      where: { reservationId: session.reservationId, status: 'CONFIRMED' },
+    });
+
+    for (const snap of eventSnaps) {
+      const fee = snap.type === '야외스냅' ? 50000 : 100000;
+      additionalOptions.push({
+        type: 'event_snap',
+        label: snap.type,
+        amount: fee,
+        amountFormatted: formatKRW(fee),
+        isDepositOnly: true,
+      });
+    }
+
     // 기본 상품 가격 계산
     const getProductBasePrice = (productType: string | null): number => {
       switch (productType) {

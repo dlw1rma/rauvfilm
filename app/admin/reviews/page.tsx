@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import Pagination from "@/components/ui/Pagination";
 
 interface Review {
   id: number;
@@ -33,6 +34,8 @@ export default function AdminReviewsPage() {
   });
   const [fetchingThumbnail, setFetchingThumbnail] = useState(false);
   const [lastFetchedUrl, setLastFetchedUrl] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -257,6 +260,9 @@ export default function AdminReviewsPage() {
     }
   };
 
+  const totalPages = Math.ceil(reviews.length / PAGE_SIZE);
+  const paginatedReviews = reviews.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   const getSourceLabel = (type: string) => {
     switch (type) {
       case "naver_blog": return "네이버 블로그";
@@ -323,7 +329,7 @@ export default function AdminReviewsPage() {
               등록된 후기가 없습니다.
             </div>
           ) : (
-            reviews.map((review) => (
+            paginatedReviews.map((review) => (
               <div
                 key={review.id}
                 className={`rounded-xl border p-4 transition-all ${
@@ -366,6 +372,7 @@ export default function AdminReviewsPage() {
             ))
           )}
         </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
         {/* Modal */}
         {isModalOpen && (

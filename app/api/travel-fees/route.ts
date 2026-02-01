@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
         where: { branch, region, district, isActive: true },
       });
       if (districtRule) {
-        return NextResponse.json({ fee: districtRule.fee, matched: `${region} ${district}` });
+        // 출장비 10% 할증 적용
+        const adjustedFee = Math.round(districtRule.fee * 1.1);
+        return NextResponse.json({ fee: adjustedFee, matched: `${region} ${district}` });
       }
     }
 
@@ -32,7 +34,9 @@ export async function GET(request: NextRequest) {
       where: { branch, region, district: null, isActive: true },
     });
     if (regionRule) {
-      return NextResponse.json({ fee: regionRule.fee, matched: region });
+      // 출장비 10% 할증 적용
+      const adjustedFee = Math.round(regionRule.fee * 1.1);
+      return NextResponse.json({ fee: adjustedFee, matched: region });
     }
 
     return NextResponse.json({ fee: 0, matched: null });

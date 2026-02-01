@@ -214,6 +214,8 @@ export default function NewReservationPage() {
   const [showConfirmPage, setShowConfirmPage] = useState(false);
   const [lemeGraphyDiscount, setLemeGraphyDiscount] = useState(0);
   const [showDraftModal, setShowDraftModal] = useState(false);
+  const [showNewYearTooltip, setShowNewYearTooltip] = useState(false);
+  const [showPartnerCodeModal, setShowPartnerCodeModal] = useState(false);
 
 
   // 예약금 입금 안내 모달
@@ -1020,6 +1022,90 @@ export default function NewReservationPage() {
         </div>
       )}
 
+      {/* 짝궁코드 검색 모달 */}
+      {showPartnerCodeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-background border border-border shadow-xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold">짝궁코드 검색</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPartnerCodeModal(false);
+                  setPartnerCodeSearch("");
+                  setPartnerCodeResults([]);
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="relative mb-4">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={partnerCodeSearch}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPartnerCodeSearch(value);
+                    if (value.length >= 2) {
+                      searchPartnerCode(value);
+                    } else {
+                      setPartnerCodeResults([]);
+                    }
+                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="짝궁코드를 입력하세요"
+                  autoFocus
+                />
+                {isSearchingPartnerCode && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-accent" />
+                  </div>
+                )}
+              </div>
+              <div className="max-h-60 overflow-y-auto rounded-lg border border-border">
+                {partnerCodeResults.length > 0 ? (
+                  partnerCodeResults.map((result) => (
+                    <button
+                      key={result.code}
+                      type="button"
+                      onClick={() => {
+                        selectPartnerCode(result.code);
+                        setShowPartnerCodeModal(false);
+                        setPartnerCodeSearch("");
+                        setPartnerCodeResults([]);
+                      }}
+                      className={`w-full px-4 py-3 text-left text-sm border-b border-border last:border-b-0 hover:bg-muted transition-colors ${
+                        selectedPartnerCode === result.code ? "bg-muted" : ""
+                      }`}
+                    >
+                      <span className="font-medium">{result.code}</span>
+                    </button>
+                  ))
+                ) : partnerCodeSearch.length >= 2 && !isSearchingPartnerCode ? (
+                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    검색 결과가 없습니다.
+                  </div>
+                ) : (
+                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    2글자 이상 입력하면 검색됩니다.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-8">
@@ -1538,6 +1624,36 @@ export default function NewReservationPage() {
                         피로연(2부 예식) 촬영 (5만원)
                       </label>
                     </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="usbOption"
+                        name="usbOption"
+                        checked={formData.usbOption}
+                        onChange={handleChange}
+                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
+                      />
+                      <label htmlFor="usbOption" className="text-sm font-medium">
+                        USB 추가 (개당 2만원)
+                      </label>
+                    </div>
+                    {formData.usbOption && (
+                      <div className="ml-8">
+                        <label htmlFor="deliveryAddress" className="mb-2 block text-sm font-medium">
+                          (USB)상품받으실 거주지 주소 <span className="text-accent">*</span>
+                        </label>
+                        <textarea
+                          id="deliveryAddress"
+                          name="deliveryAddress"
+                          required={formData.usbOption}
+                          rows={3}
+                          value={formData.deliveryAddress}
+                          onChange={handleChange}
+                          className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                          placeholder="USB 추가 옵션 선택 시 상세 주소까지 입력해주세요"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -1582,39 +1698,6 @@ export default function NewReservationPage() {
                       />
                     </div>
                   </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="usbOption"
-                        name="usbOption"
-                        checked={formData.usbOption}
-                        onChange={handleChange}
-                        className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                      />
-                      <label htmlFor="usbOption" className="text-sm font-medium">
-                        USB 추가 (개당 2만원)
-                      </label>
-                    </div>
-                    {formData.usbOption && (
-                      <div>
-                        <label htmlFor="deliveryAddress" className="mb-2 block text-sm font-medium">
-                          (USB)상품받으실 거주지 주소 <span className="text-accent">*</span>
-            </label>
-            <textarea
-                          id="deliveryAddress"
-                          name="deliveryAddress"
-                          required={formData.usbOption}
-                          rows={3}
-                          value={formData.deliveryAddress}
-              onChange={handleChange}
-                          className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                          placeholder="USB 추가 옵션 선택 시 상세 주소까지 입력해주세요"
-            />
-                      </div>
-                    )}
-          </div>
 
                   <div>
                     <label className="mb-2 block text-sm font-medium">
@@ -1687,13 +1770,28 @@ export default function NewReservationPage() {
                       <span className="ml-2 text-xs">(르메그라피 제휴 할인 시 적용 불가)</span>
                     )}
                   </label>
+                  <div className="relative inline-block ml-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowNewYearTooltip(!showNewYearTooltip)}
+                      className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-muted-foreground/20 text-muted-foreground hover:bg-muted-foreground/30 transition-colors text-[10px] font-bold leading-none"
+                    >
+                      ?
+                    </button>
+                    {showNewYearTooltip && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowNewYearTooltip(false)} />
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 w-64 p-3 rounded-lg bg-[#1a1a1a] border border-border shadow-xl text-xs text-white/80 leading-relaxed">
+                          메인스냅이 르메그라피이고 기본형/시네마틱형이면 르메그라피 제휴 할인(15만원)이 적용되며, 이 경우 2026년 신년할인은 적용되지 않습니다.
+                          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-[#1a1a1a]" />
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </>
               );
             })()}
           </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    메인스냅이 르메그라피이고 기본형/시네마틱형이면 르메그라피 제휴 할인(15만원)이 적용되며, 이 경우 2026년 신년할인은 적용되지 않습니다.
-                  </p>
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
@@ -1722,68 +1820,24 @@ export default function NewReservationPage() {
                   </div>
                   {formData.discountCouple && (
                     <div className="mt-4">
-                      <label htmlFor="partnerCode" className="mb-2 block text-sm font-medium">
+                      <label className="mb-2 block text-sm font-medium">
                         짝궁 코드 <span className="text-accent">*</span>
                       </label>
                       <p className="mb-2 text-xs text-muted-foreground">
                         ⚠ 짝궁코드는 한번 기입 시 수정이 불가합니다. 신중하게 입력해주세요.
                       </p>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          id="partnerCode"
-                          name="partnerCode"
-                          value={formData.partnerCode || partnerCodeSearch}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setPartnerCodeSearch(value);
-                            setFormData((prev) => ({ ...prev, partnerCode: value }));
-                            setSelectedPartnerCode(""); // 직접 입력 시 선택 해제
-                            if (value.length >= 2) {
-                              searchPartnerCode(value);
-                            } else {
-                              setPartnerCodeResults([]);
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            // Enter 키로 직접 입력 방지
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                            }
-                          }}
-                          onBlur={() => {
-                            // 검색 결과만 닫기
-                            setTimeout(() => {
-                              setPartnerCodeResults([]);
-                            }, 200);
-                          }}
-                          className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                          placeholder="짝궁 코드를 검색하여 선택해주세요"
-                          required
-                        />
-                        {isSearchingPartnerCode && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-accent" />
-                          </div>
+                      <button
+                        type="button"
+                        id="partnerCode"
+                        onClick={() => setShowPartnerCodeModal(true)}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-left text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      >
+                        {formData.partnerCode ? (
+                          <span className="font-medium">{formData.partnerCode}</span>
+                        ) : (
+                          <span className="text-muted-foreground">짝궁 코드를 검색하여 선택해주세요</span>
                         )}
-                        {partnerCodeResults.length > 0 && (
-                          <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-background shadow-lg">
-                            {partnerCodeResults.map((result) => (
-                              <button
-                                key={result.code}
-                                type="button"
-                                onClick={() => selectPartnerCode(result.code)}
-                                className={`w-full px-4 py-2 text-left text-sm hover:bg-muted ${
-                                  selectedPartnerCode === result.code ? "bg-muted" : ""
-                                }`}
-                              >
-                                <div className="font-medium">{result.code}</div>
-                                <div className="text-xs text-muted-foreground">추천인: {result.author}</div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      </button>
                       {!formData.partnerCode && (
                         <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400">⚠ 짝궁코드를 검색하여 선택해주세요.</p>
                       )}
@@ -2201,7 +2255,7 @@ export default function NewReservationPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">예식 날짜:</span>
-                        <span>{formData.weddingDate}</span>
+                        <span>{formData.weddingDate ? (() => { const [y,m,d] = formData.weddingDate.split("-"); return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`; })() : ""}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">예식 시간:</span>
@@ -2246,17 +2300,13 @@ export default function NewReservationPage() {
                     {formData.discountReview && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">블로그와 카페 촬영후기:</span>
-                        <span className="text-green-600">-20,000원</span>
+                        <span className="text-blue-500">참여</span>
                       </div>
                     )}
                     {formData.discountReviewBlog && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">블로그와 카페 예약후기:</span>
-                        <span className="text-green-600">
-                          {formData.productType === "가성비형" 
-                            ? "1건 작성 시 원본 전달"
-                            : "-20,000원 + SNS영상 + 원본영상"}
-                        </span>
+                        <span className="text-blue-500">참여</span>
                       </div>
                     )}
                   </div>

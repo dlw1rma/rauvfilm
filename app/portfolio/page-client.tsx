@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import type { Portfolio } from "@prisma/client";
 
 interface PortfolioItem {
@@ -39,7 +41,7 @@ function getYoutubeThumbnail(youtubeId: string, quality: 'default' | 'hq' | 'mq'
 
 export default function PortfolioPageClient() {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
-  const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string } | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ videoId: string; title: string; aspectRatio?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
@@ -116,6 +118,11 @@ export default function PortfolioPageClient() {
   const currentHeroVideoId = isMobile ? mobileHeroVideoId : desktopHeroVideoId;
   const currentHeroVideoDimensions = isMobile ? mobileHeroVideoDimensions : desktopHeroVideoDimensions;
 
+  // 원본 비율 기반 aspect ratio
+  const heroAspectRatio = currentHeroVideoDimensions
+    ? `${currentHeroVideoDimensions.width} / ${currentHeroVideoDimensions.height}`
+    : isMobile ? "9 / 16" : "16 / 9";
+
   // 카테고리별 색상 매핑
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -165,80 +172,86 @@ export default function PortfolioPageClient() {
   return (
     <>
       <div className="min-h-screen">
-        {/* Hero Video Section - 배경 비디오 전용 */}
-        <section className="relative w-full h-[80vh] min-h-[800px] overflow-hidden bg-black mb-16 flex items-center">
-          {/* Video Background - 좌우 밀착(100vw), 수직 중앙 정렬 */}
-          <div 
-            className="bg-video-full absolute inset-0 overflow-hidden flex items-center justify-center"
-            style={currentHeroVideoDimensions ? {
-              aspectRatio: `${currentHeroVideoDimensions.width} / ${currentHeroVideoDimensions.height}`,
-              width: "100vw",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              height: "auto",
-              minHeight: "100%"
-            } : {
-              width: "100vw",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              minHeight: "100%"
-            }}
+        {/* Hero Video Section - 원본 비율 유지 */}
+        <section className="relative w-full bg-black mb-16">
+          <div
+            className="relative w-full overflow-hidden"
+            style={{ aspectRatio: heroAspectRatio }}
           >
-            {/* 데스크톱용 영상 (768px 이상) */}
-            {!isMobile && (
-              <iframe
-                src={`https://www.youtube.com/embed/${desktopHeroVideoId}?autoplay=1&mute=1&loop=1&playlist=${desktopHeroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
-                title="Portfolio Hero Video Desktop"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                className="absolute inset-0 w-full h-full"
-                style={{ 
-                  border: "none",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)"
-                }}
-                allowFullScreen
-              />
-            )}
-            
-            {/* 모바일용 영상 (768px 미만) */}
-            {isMobile && (
-              <iframe
-                src={`https://www.youtube.com/embed/${mobileHeroVideoId}?autoplay=1&mute=1&loop=1&playlist=${mobileHeroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
-                title="Portfolio Hero Video Mobile"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                className="absolute inset-0 w-full h-full"
-                style={{ 
-                  border: "none",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)"
-                }}
-                allowFullScreen
-              />
-            )}
-            
-            {/* Dark Overlay */}
-            <div className="absolute inset-0 bg-black/40 z-0" />
-          </div>
+            <iframe
+              src={`https://www.youtube.com/embed/${currentHeroVideoId}?autoplay=1&mute=1&loop=1&playlist=${currentHeroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+              title={isMobile ? "Portfolio Hero Video Mobile" : "Portfolio Hero Video Desktop"}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ border: "none" }}
+              allowFullScreen
+            />
 
-          {/* Content - Left Aligned */}
-          <div className="relative z-10 h-full flex items-center w-full">
-            <div className="container mx-auto px-6 md:px-12 lg:px-16">
-              <div className="max-w-2xl">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight drop-shadow-lg mb-6">
-                  PORTFOLIO
-                </h1>
-                <div className="space-y-2 text-white/90 text-sm md:text-base lg:text-lg leading-relaxed drop-shadow-md">
-                  <p>상품 종류, 커스텀 여부를 잘 확인해주세요!</p>
-                  <p>대표와 수석실장 촬영만이</p>
-                  <p>짐벌(움직임이 있는) 커스텀 촬영으로 진행 가능하며</p>
-                  <p>이외 촬영은 움직임이 없이 촬영됩니다.</p>
+            {/* Dark Overlay */}
+            <div className="absolute inset-0 bg-black/40" />
+
+            {/* 그라데이션 오버레이 */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+
+            {/* Content - Left Aligned */}
+            <div className="absolute inset-0 z-10 flex items-center">
+              <div className="container mx-auto px-6 md:px-12 lg:px-16">
+                <div className="max-w-2xl">
+                  <motion.h1
+                    initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
+                    className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight drop-shadow-lg mb-6"
+                  >
+                    PORTFOLIO
+                  </motion.h1>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.6 }}
+                    className="space-y-2 text-white/90 text-sm md:text-base lg:text-lg leading-relaxed drop-shadow-md"
+                  >
+                    <p>상품 종류, 커스텀 여부를 잘 확인해주세요!</p>
+                    <p>대표와 수석실장 촬영만이</p>
+                    <p>짐벌(움직임이 있는) 커스텀 촬영으로 진행 가능하며</p>
+                    <p>이외 촬영은 움직임이 없이 촬영됩니다.</p>
+                  </motion.div>
                 </div>
               </div>
             </div>
+
+            {/* 스크롤 유도 */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5, duration: 0.6 }}
+                className="flex flex-col items-center"
+              >
+                <motion.span
+                  animate={{ opacity: [0.4, 0.8, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-[10px] text-white/50 tracking-[0.25em] uppercase mb-2"
+                >
+                  Scroll
+                </motion.span>
+                <motion.div
+                  animate={{ y: [0, 6, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <ChevronDown className="w-5 h-5 text-white/50" />
+                </motion.div>
+                <motion.div
+                  animate={{ y: [0, 6, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.15 }}
+                >
+                  <ChevronDown className="w-5 h-5 text-white/30 -mt-3" />
+                </motion.div>
+              </motion.div>
+            </div>
+
+            {/* 하단 페이드 */}
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#111111] to-transparent z-10" />
           </div>
         </section>
 
@@ -351,10 +364,16 @@ export default function PortfolioPageClient() {
                     key={item.id}
                     className="group cursor-pointer"
                     onClick={() => {
-                      setSelectedVideo({ 
-                        videoId: item.videoId, 
-                        title: item.title
-                      });
+                      const vid = { videoId: item.videoId, title: item.title, aspectRatio: "16 / 9" };
+                      setSelectedVideo(vid);
+                      fetch(`/api/youtube/video-details?videoId=${item.videoId}`)
+                        .then(r => r.json())
+                        .then(d => {
+                          if (d.width && d.height) {
+                            setSelectedVideo(prev => prev?.videoId === item.videoId ? { ...prev, aspectRatio: `${d.width} / ${d.height}` } : prev);
+                          }
+                        })
+                        .catch(() => {});
                     }}
                   >
                     {/* Thumbnail - 박스형 디자인 제거, 깔끔한 디자인 */}
@@ -428,12 +447,13 @@ export default function PortfolioPageClient() {
               </svg>
             </button>
 
-            {/* Video Player - 모달 플레이어 (기본 비율 유지) */}
-            <div 
+            {/* Video Player - 모달 플레이어 (영상 비율에 맞춤) */}
+            <div
               className="relative max-w-5xl w-full"
-              style={{ 
-                aspectRatio: "16 / 9",
-                maxHeight: "85vh"
+              style={{
+                aspectRatio: selectedVideo.aspectRatio || "16 / 9",
+                maxHeight: "85vh",
+                maxWidth: selectedVideo.aspectRatio && parseFloat(selectedVideo.aspectRatio.split("/")[0]) < parseFloat(selectedVideo.aspectRatio.split("/")[1]) ? "400px" : undefined,
               }}
             >
               <iframe

@@ -71,12 +71,26 @@ function truncateText(text: string, maxLength: number): string {
   return cleanText.substring(0, maxLength).replace(/\s+\S*$/, "") + "...";
 }
 
+// HTML 엔티티 디코딩
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
+}
+
 // HTML에서 텍스트 추출 (태그 제거)
 function extractTextFromHTML(html: string, maxLength: number = 200): string {
   // HTML 태그 제거
   let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
   text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
   text = text.replace(/<[^>]+>/g, " ");
+  text = decodeHtmlEntities(text);
   text = text.replace(/\s+/g, " ").trim();
   return truncateText(text, maxLength);
 }
@@ -127,11 +141,29 @@ function convertNaverCafeToMobile(url: string): string | null {
   return null;
 }
 
-// 네이버 카페 모바일 API로 게시글 데이터 가져오기
-async function fetchNaverCafeArticleAPI(cafeId: string, articleId: string): Promise<ParsedData | null> {
+// 네이버 카페 URL slug → 숫자 ID 변환
+async function resolveNaverCafeNumericId(cafeUrl: string): Promise<string | null> {
   try {
-    // 네이버 카페 모바일 웹의 내부 API 호출
-    const apiUrl = `https://m.cafe.naver.com/ca-fe/web/cafes/${cafeId}/articles/${articleId}?useCafeId=false&requestFrom=A`;
+    const res = await fetch(`https://m.cafe.naver.com/ca-fe/web/cafes/${cafeUrl}/cafe-info?useCafeId=false`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+        "Accept": "application/json, text/plain, */*",
+        "Referer": `https://m.cafe.naver.com/${cafeUrl}`,
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const id = data?.cafe?.cafeId ?? data?.cafeId ?? null;
+    return id ? String(id) : null;
+  } catch {
+    return null;
+  }
+}
+
+// 카페 API 단일 호출
+async function fetchCafeArticleSingleAPI(cafeId: string, articleId: string, useCafeId: boolean): Promise<ParsedData | null> {
+  try {
+    const apiUrl = `https://m.cafe.naver.com/ca-fe/web/cafes/${cafeId}/articles/${articleId}?useCafeId=${useCafeId}&requestFrom=A`;
     console.log("Trying Naver cafe mobile web API:", apiUrl);
 
     const response = await fetch(apiUrl, {
@@ -150,8 +182,6 @@ async function fetchNaverCafeArticleAPI(cafeId: string, articleId: string): Prom
     }
 
     const data = await response.json();
-    console.log("Naver cafe API response keys:", Object.keys(data));
-
     const article = data?.article;
     if (!article) {
       console.log("No article data in cafe API response");
@@ -159,36 +189,29 @@ async function fetchNaverCafeArticleAPI(cafeId: string, articleId: string): Prom
     }
 
     const result: ParsedData = {
-      title: article.subject || null,
+      title: article.subject ? decodeHtmlEntities(article.subject) : null,
       excerpt: null,
       thumbnailUrl: null,
       author: null,
     };
 
-    // 본문 추출 (contentHtml 또는 contentElements)
     if (article.contentHtml) {
       result.excerpt = truncateText(extractTextFromHTML(article.contentHtml, 300), 200);
     }
 
-    // 썸네일 이미지
     if (article.representImage) {
       result.thumbnailUrl = article.representImage;
     } else if (article.openGraphImage) {
       result.thumbnailUrl = article.openGraphImage;
     }
 
-    // 작성자 (닉네임)
     const writer = article.writer;
     if (writer) {
       result.author = writer.nick || writer.nickName || writer.id || null;
     }
-
-    // 작성자를 못 가져왔으면 카페명 사용
     if (!result.author) {
       const cafeName = data?.cafe?.name || data?.cafe?.cafeName || null;
-      if (cafeName) {
-        result.author = cafeName;
-      }
+      if (cafeName) result.author = cafeName;
     }
 
     console.log("Naver cafe API parsed data:", {
@@ -205,6 +228,61 @@ async function fetchNaverCafeArticleAPI(cafeId: string, articleId: string): Prom
   }
 }
 
+// 네이버 카페 모바일 API로 게시글 데이터 가져오기 (숫자 ID 재시도 포함)
+async function fetchNaverCafeArticleAPI(cafeId: string, articleId: string): Promise<ParsedData | null> {
+  // 1차: URL slug 사용
+  const result1 = await fetchCafeArticleSingleAPI(cafeId, articleId, false);
+  if (result1 && (result1.title || result1.excerpt)) return result1;
+
+  // 2차: 숫자 ID로 재시도
+  const numericId = await resolveNaverCafeNumericId(cafeId);
+  if (numericId && numericId !== cafeId) {
+    console.log("Retrying cafe API with numeric ID:", numericId);
+    const result2 = await fetchCafeArticleSingleAPI(numericId, articleId, true);
+    if (result2 && (result2.title || result2.excerpt)) return result2;
+  }
+
+  // 3차: 데스크톱 ArticleRead.nhn 페이지 파싱
+  try {
+    const desktopUrl = `https://cafe.naver.com/ArticleRead.nhn?cluburl=${cafeId}&articleid=${articleId}`;
+    console.log("Trying desktop ArticleRead fallback:", desktopUrl);
+    const response = await fetch(desktopUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ko-KR,ko;q=0.9",
+        "Referer": `https://cafe.naver.com/${cafeId}`,
+      },
+      redirect: "follow",
+    });
+    if (response.ok) {
+      const html = await response.text();
+      const meta = extractMetaData(html);
+      if (meta.title || meta.excerpt) {
+        console.log("Desktop ArticleRead fallback succeeded:", meta.title);
+        return meta;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return result1; // 1차 결과라도 반환 (null일 수 있음)
+}
+
+// HTML에서 meta 태그의 content 값 추출 (속성 순서 무관)
+function getMetaContent(html: string, attrName: "property" | "name", attrValue: string): string | null {
+  // 패턴 1: property/name 먼저, content 나중
+  const re1 = new RegExp(`<meta[^>]+${attrName}=["']${attrValue}["'][^>]+content=["']([^"']+)["']`, "i");
+  const m1 = html.match(re1);
+  if (m1?.[1]) return decodeHtmlEntities(m1[1].trim());
+  // 패턴 2: content 먼저, property/name 나중
+  const re2 = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+${attrName}=["']${attrValue}["']`, "i");
+  const m2 = html.match(re2);
+  if (m2?.[1]) return decodeHtmlEntities(m2[1].trim());
+  return null;
+}
+
 // HTML에서 메타 데이터 추출
 function extractMetaData(html: string): ParsedData {
   const result: ParsedData = {
@@ -215,83 +293,53 @@ function extractMetaData(html: string): ParsedData {
   };
 
   // 1. Open Graph 제목
-  const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
-  if (ogTitleMatch && ogTitleMatch[1]) {
-    result.title = ogTitleMatch[1].trim();
-  }
+  result.title = getMetaContent(html, "property", "og:title");
 
   // 2. 일반 제목 태그
   if (!result.title) {
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     if (titleMatch && titleMatch[1]) {
-      result.title = titleMatch[1].trim();
+      result.title = decodeHtmlEntities(titleMatch[1].trim());
     }
   }
 
   // 3. Open Graph 설명
-  const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i);
-  if (ogDescMatch && ogDescMatch[1]) {
-    result.excerpt = truncateText(ogDescMatch[1], 200);
-  }
+  const ogDesc = getMetaContent(html, "property", "og:description");
+  if (ogDesc) result.excerpt = truncateText(ogDesc, 200);
 
   // 4. 메타 설명
   if (!result.excerpt) {
-    const metaDescMatch = html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
-    if (metaDescMatch && metaDescMatch[1]) {
-      result.excerpt = truncateText(metaDescMatch[1], 200);
-    }
+    const metaDesc = getMetaContent(html, "name", "description");
+    if (metaDesc) result.excerpt = truncateText(metaDesc, 200);
   }
 
   // 5. Open Graph 이미지
-  const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-  if (ogImageMatch && ogImageMatch[1]) {
-    const imageUrl = ogImageMatch[1].trim();
-    if (imageUrl && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))) {
-      result.thumbnailUrl = imageUrl;
-    }
+  const ogImage = getMetaContent(html, "property", "og:image");
+  if (ogImage && (ogImage.startsWith("http://") || ogImage.startsWith("https://"))) {
+    result.thumbnailUrl = ogImage;
   }
 
   // 6. Twitter Card 이미지
   if (!result.thumbnailUrl) {
-    const twitterImageMatch = html.match(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i);
-    if (twitterImageMatch && twitterImageMatch[1]) {
-      const imageUrl = twitterImageMatch[1].trim();
-      if (imageUrl && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))) {
-        result.thumbnailUrl = imageUrl;
-      }
+    const twImage = getMetaContent(html, "name", "twitter:image");
+    if (twImage && (twImage.startsWith("http://") || twImage.startsWith("https://"))) {
+      result.thumbnailUrl = twImage;
     }
   }
 
   // 7. 작성자 추출
-  // Open Graph 작성자
-  const ogAuthorMatch = html.match(/<meta\s+property=["']og:article:author["']\s+content=["']([^"']+)["']/i);
-  if (ogAuthorMatch && ogAuthorMatch[1]) {
-    result.author = ogAuthorMatch[1].trim().replace(/\|/g, '').trim();
-  }
-  
-  // 일반 메타 작성자
-  if (!result.author) {
-    const authorMatch = html.match(/<meta\s+name=["']author["']\s+content=["']([^"']+)["']/i);
-    if (authorMatch && authorMatch[1]) {
-      result.author = authorMatch[1].trim().replace(/\|/g, '').trim();
-    }
-  }
-  
-  // article:author 메타
-  if (!result.author) {
-    const articleAuthorMatch = html.match(/<meta\s+property=["']article:author["']\s+content=["']([^"']+)["']/i);
-    if (articleAuthorMatch && articleAuthorMatch[1]) {
-      result.author = articleAuthorMatch[1].trim().replace(/\|/g, '').trim();
-    }
-  }
-  
+  result.author = getMetaContent(html, "property", "og:article:author")
+    || getMetaContent(html, "name", "author")
+    || getMetaContent(html, "property", "article:author")
+    || null;
+
   // 최종적으로 "|" 문자 및 "네이버 블로그" 텍스트 제거
   if (result.author) {
     result.author = result.author
-      .replace(/네이버 블로그\s*\|\s*/gi, '') // "네이버 블로그 |" 제거
-      .replace(/\|\s*네이버 블로그/gi, '') // "| 네이버 블로그" 제거
-      .replace(/네이버 블로그/gi, '') // "네이버 블로그" 제거
-      .replace(/\|/g, '') // "|" 문자 제거
+      .replace(/네이버 블로그\s*\|\s*/gi, '')
+      .replace(/\|\s*네이버 블로그/gi, '')
+      .replace(/네이버 블로그/gi, '')
+      .replace(/\|/g, '')
       .trim();
   }
 
@@ -436,45 +484,38 @@ export async function GET(request: NextRequest) {
             
             // 네이버 카페 이미지 찾기
             if (!metaData.thumbnailUrl) {
-              const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-              if (ogImageMatch && ogImageMatch[1]) {
-                const imgUrl = ogImageMatch[1].trim();
-                if (imgUrl && (imgUrl.startsWith("http://") || imgUrl.startsWith("https://"))) {
-                  metaData.thumbnailUrl = imgUrl;
-                }
+              const ogImg = getMetaContent(html, "property", "og:image");
+              if (ogImg && (ogImg.startsWith("http://") || ogImg.startsWith("https://"))) {
+                metaData.thumbnailUrl = ogImg;
               }
             }
-            
+
             if (!metaData.thumbnailUrl) {
               metaData.thumbnailUrl = findNaverImages(html);
             }
 
             // 네이버 카페 제목 찾기
             if (!metaData.title) {
-              const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
-              if (ogTitleMatch && ogTitleMatch[1]) {
-                metaData.title = ogTitleMatch[1].trim();
-              }
-              
+              metaData.title = getMetaContent(html, "property", "og:title");
+
               if (!metaData.title) {
                 const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
                 if (titleMatch && titleMatch[1]) {
                   let title = titleMatch[1].trim();
-                  // "게시글 제목 - 카페명" 형식 처리
                   if (title.includes(" - ")) {
                     const parts = title.split(" - ");
                     title = parts[0].trim();
                   }
-                  metaData.title = title;
+                  metaData.title = decodeHtmlEntities(title);
                 }
               }
             }
 
             // 네이버 카페 본문에서 내용 추출
             if (!metaData.excerpt) {
-              const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i);
-              if (ogDescMatch && ogDescMatch[1]) {
-                metaData.excerpt = truncateText(ogDescMatch[1], 200);
+              const ogDesc = getMetaContent(html, "property", "og:description");
+              if (ogDesc) {
+                metaData.excerpt = truncateText(ogDesc, 200);
               }
               
               // 본문 영역 찾기
@@ -613,13 +654,9 @@ export async function GET(request: NextRequest) {
             
             // 네이버 이미지 찾기 (우선순위: og:image > 첫 번째 본문 이미지)
             if (!metaData.thumbnailUrl) {
-              // 1. og:image 우선
-              const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-              if (ogImageMatch && ogImageMatch[1]) {
-                const imgUrl = ogImageMatch[1].trim();
-                if (imgUrl && (imgUrl.startsWith("http://") || imgUrl.startsWith("https://"))) {
-                  metaData.thumbnailUrl = imgUrl;
-                }
+              const ogImg = getMetaContent(html, "property", "og:image");
+              if (ogImg && (ogImg.startsWith("http://") || ogImg.startsWith("https://"))) {
+                metaData.thumbnailUrl = ogImg;
               }
             }
             
@@ -645,10 +682,7 @@ export async function GET(request: NextRequest) {
             // 네이버 블로그 제목 찾기 (여러 패턴 시도)
             if (!metaData.title) {
               // 1. og:title에서 찾기
-              const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
-              if (ogTitleMatch && ogTitleMatch[1]) {
-                metaData.title = ogTitleMatch[1].trim();
-              }
+              metaData.title = getMetaContent(html, "property", "og:title");
               
               // 2. title 태그에서 찾기
               if (!metaData.title) {
@@ -795,9 +829,9 @@ export async function GET(request: NextRequest) {
             // 네이버 블로그 본문에서 내용 추출 (여러 패턴 시도)
             if (!metaData.excerpt) {
               // 1. og:description에서 찾기
-              const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i);
-              if (ogDescMatch && ogDescMatch[1]) {
-                metaData.excerpt = truncateText(ogDescMatch[1], 200);
+              const ogDesc = getMetaContent(html, "property", "og:description");
+              if (ogDesc) {
+                metaData.excerpt = truncateText(ogDesc, 200);
               }
               
               // 2. se-main-container (네이버 블로그 에디터 본문)

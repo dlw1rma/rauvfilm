@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import Pagination from '@/components/ui/Pagination';
 
 interface Booking {
   id: number;
@@ -49,6 +50,8 @@ export default function AdminBookingsPage() {
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [excelImporting, setExcelImporting] = useState(false);
   const [excelResult, setExcelResult] = useState<{ created: number; skipped: number; skippedRows?: { row: number; reason: string }[] } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -75,6 +78,7 @@ export default function AdminBookingsPage() {
   const upcomingDaysParam = searchParams.get('upcoming_days');
   const thisWeekParam = searchParams.get('this_week');
   useEffect(() => {
+    setCurrentPage(1);
     fetchBookings();
   }, [statusFilter, upcomingDaysParam, thisWeekParam]);
 
@@ -104,8 +108,12 @@ export default function AdminBookingsPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setCurrentPage(1);
     fetchBookings();
   };
+
+  const totalPages = Math.ceil(bookings.length / PAGE_SIZE);
+  const paginatedBookings = bookings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const formatPhone = (phone: string) => {
     if (phone.length === 11) {
@@ -267,7 +275,7 @@ export default function AdminBookingsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {bookings.map((booking) => (
+                {paginatedBookings.map((booking) => (
                   <tr key={booking.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <div>
@@ -312,6 +320,7 @@ export default function AdminBookingsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </div>
       )}
     </div>
