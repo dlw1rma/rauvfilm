@@ -97,10 +97,10 @@ export default function HeroVideoSlider() {
     [windowSize.h || 800, windowSize.h || 800, naturalHeight]
   );
 
-  // 전환 완료 후 스크롤을 올려도 원본 비율 유지 (맨 위로 가야 리셋)
+  // 전환 완료 후 고정, 애니메이션 구간(0.30)에 돌아오면 해제
   useMotionValueEvent(scrollYProgress, "change", (v) => {
     if (v >= 0.55 && !transitioned) setTransitioned(true);
-    if (v < 0.03 && transitioned) setTransitioned(false);
+    if (v < 0.30 && transitioned) setTransitioned(false);
   });
 
   const videoScale = transitioned ? 1 : rawVideoScale;
