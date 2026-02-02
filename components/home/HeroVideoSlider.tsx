@@ -121,7 +121,7 @@ export default function HeroVideoSlider() {
     <section ref={containerRef} className="relative h-[200vh]">
       {/* sticky 컨테이너: 100vh → 원본 비율 높이로 전환 */}
       <motion.div
-        className="sticky top-0 overflow-hidden bg-black flex items-center justify-center"
+        className="sticky top-0 overflow-hidden bg-[#111111] flex items-center justify-center"
         style={{ height: stickyHeight }}
       >
         {/* 비디오 래퍼: 원본 비율, 스케일로 cover↔fit 전환 */}

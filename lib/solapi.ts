@@ -17,7 +17,7 @@ function getMessageService(): SolapiMessageService {
   return messageService;
 }
 
-export type SmsTemplateType = 'contract' | 'video';
+export type SmsTemplateType = 'contract' | 'video' | 'post_wedding';
 
 /**
  * 카카오 알림톡 발송 (솔라피 경유)

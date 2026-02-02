@@ -1,50 +1,63 @@
 "use client";
 
-import type { Metadata } from "next";
-import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const faqs = [
   {
-    question: "예약은 어떻게 하나요?",
+    question: "하이라이트 영상은 무엇인가요?",
     answer:
-      "홈페이지 예약 페이지 또는 카카오톡 채널을 통해 예약하실 수 있습니다. 예식일, 예식장, 원하시는 상품을 말씀해 주시면 상담을 도와드립니다.",
+      "2~3분 길이의 영상으로, 예식 간의 중요한 장면만 모아서 뮤직비디오 형식으로 제작된 영상입니다.",
   },
   {
-    question: "촬영 당일 주의사항이 있나요?",
+    question: "기록 영상은 길이가 얼마나 되나요?",
     answer:
-      "특별한 주의사항은 없습니다. 저희가 예식 흐름에 맞춰 자연스럽게 촬영하기 때문에 편하게 예식에 집중하시면 됩니다. 다만, 촬영을 원하시는 특별한 순간이 있다면 미리 말씀해 주세요.",
+      "신부대기실부터 원판까지 전부 담아드리고 있습니다. 따라서 신부님들마다 진행되는 상황이 상이하기에 통상적으로 30분~1시간 30분 정도의 길이입니다.\n\n다만 1인 1캠 기록영상은 1개의 카메라로 진행되다 보니, 본식이 너무 짧은 경우 안내된 영상 길이가 미달일 수 있습니다.",
+  },
+  {
+    question: "SNS영상은 무엇인가요?",
+    answer:
+      "인스타 스토리나 릴스에 올리실 수 있는 30초~1분 길이의 영상을 4K 화질, 세로비율로 제작해드리고 있습니다.",
   },
   {
     question: "영상은 언제 받을 수 있나요?",
     answer:
-      "본식 DVD는 예식 후 약 2-3주, 시네마틱 영상은 약 4-6주 정도 소요됩니다. 성수기에는 조금 더 걸릴 수 있으며, 정확한 일정은 상담 시 안내드립니다.",
+      "순차대로 정성드려 작업하고 있기에, 예식 올리신 날로부터 3개월 이내에 전달드리고 있습니다.",
   },
   {
-    question: "수정 요청은 가능한가요?",
+    question: "원본 영상 받을 수 있나요?",
     answer:
-      "영상 전달 후 1회에 한해 간단한 수정이 가능합니다. 배경음악 변경, 자막 수정 등 간단한 수정은 무료로 진행해 드립니다.",
+      "4K로 촬영하고 있어 원본 영상이 70GB 이상으로 고용량이라 전달에 어려움이 있고, 편집을 위한 형식으로 촬영되기에 일반적인 방법으로는 시청이 어려워 전달드리지 않고 있습니다.\n\n기본적으로 기록영상에 예식 전반적인 과정이 포함되어 전달되기에 별도로 구매하실 필요는 없습니다.\n\n만약 신랑신부님들이 직접 편집 후 SNS, 유튜브 계정 업로드를 위해 원본을 원하시는 경우 5만원의 추가금이 발생하며, 이는 편하게 사용하실 수 있게 변환하는 과정과 사용법 안내 가이드, 전달드리는 USB or 클라우드 비용입니다.",
   },
   {
-    question: "계약금과 잔금은 어떻게 되나요?",
+    question: "원하는 편집 형식이 있는데 맞춰서 제작해주실 수 있나요?",
     answer:
-      "계약금은 총 금액의 30%이며, 예약 확정 시 입금해 주시면 됩니다. 잔금은 예식 1주일 전까지 입금해 주시면 됩니다.",
+      "참고영상 전달주시면 가능한 맞춰서 진행드리고 있으며, 내용에 따라서 추가비용이 발생할 수 있는 점 안내드립니다.",
   },
   {
-    question: "취소 및 환불 정책은 어떻게 되나요?",
+    question: "작가님은 언제 예식장에 도착하시나요?",
     answer:
-      "예식일 30일 전 취소 시 계약금 전액 환불, 14일 전 취소 시 50% 환불, 7일 이내 취소 시 환불이 어렵습니다. 날짜 변경은 1회에 한해 무료로 가능합니다.",
+      "예식 시작 1시간 30분 전부터 도착하고 있으며, 선원판 진행 시 2시간 정도 일찍 도착하고 있습니다.\n\n촬영 시작은 예식 1시간 전 신부대기실부터 시작됩니다.\n\n(선원판 진행 시 1시간 30분 전 선원판부터 촬영됩니다.)\n(선원판과 연출촬영은 예식장과 신부대기실 이외 다른 곳에서 진행 시 사전에 말씀주셔야 하며, 미리 말씀해 주시지 않거나 장소 여건 상 제한 시 촬영이 안될 수 있습니다.)",
   },
   {
-    question: "야외 촬영도 가능한가요?",
+    question: "현금영수증 발급 가능한가요?",
     answer:
-      "네, 가능합니다. EVENT SNAP 메뉴에서 촬영 가능한 야외 장소를 확인하실 수 있으며, 원하시는 장소가 있다면 별도 상담해 주세요.",
+      "별도의 금액 추가 없이 모든 상품의 발급 가능합니다.\n(25. 05. 01. 계약자부터)",
   },
   {
-    question: "2인 캠, 3인 캠의 차이는 무엇인가요?",
+    question: "출장비는 발생하나요?",
     answer:
-      "촬영자 수에 따라 다양한 앵글에서 촬영이 가능합니다. 2인 캠은 주요 순간을 두 가지 각도에서, 3인 캠은 더욱 풍부한 앵글로 촬영합니다. 예식장 규모와 예산에 맞게 선택하시면 됩니다.",
+      "서울 인근에 본점이 위치하고 있으며, 최근 청주점을 오픈하여 서울과 청주 이외의 도시는 출장비가 발생합니다.\n\n이외 지역 출장비는 예식장으로부터 가까운 곳으로 산출되며, 가까운 지점의 감독님 배정이 전부 완료되어 어려운 경우 거리가 먼 지역의 감독님이 배정되기에 출장비 가격이 오를 수 있습니다.",
+  },
+  {
+    question: "[기본형]에 SNS영상을 추가하고 싶어요!",
+    answer:
+      "추가 가능하시며, 본래 제공사항이 아니기에 추가금이 발생하실 수 있는 점 양해 부탁드립니다.",
+  },
+  {
+    question: "촬영 전 최종연락은 언제 주시나요?",
+    answer:
+      "예식 올리시는 주 월요일이나 화요일에 유선으로 연락드리고 있으며, 연락을 받지 못하셨을 경우 필히 카카오톡이나 전화로 연락 부탁드리겠습니다.",
   },
 ];
 
@@ -97,7 +110,7 @@ export default function FaqPage() {
                   openIndex === index ? "max-h-96" : "max-h-0"
                 )}
               >
-                <div className="px-6 pb-6 text-muted-foreground">
+                <div className="px-6 pb-6 text-muted-foreground whitespace-pre-line">
                   {faq.answer}
                 </div>
               </div>
@@ -105,28 +118,6 @@ export default function FaqPage() {
           ))}
         </div>
 
-        {/* CTA */}
-        <div className="mt-16 text-center">
-          <p className="mb-6 text-muted-foreground">
-            궁금한 점이 더 있으신가요?
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="https://pf.kakao.com/_xlXAin/chat"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-[#FEE500] px-8 text-base font-medium text-[#3C1E1E] transition-all hover:brightness-95 hover:-translate-y-1"
-            >
-              카카오톡 상담
-            </a>
-            <Link
-              href="/contact"
-              className="inline-flex h-12 items-center justify-center rounded-lg border border-border px-8 text-base font-medium transition-all hover:bg-muted hover:-translate-y-1"
-            >
-              문의하기
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );

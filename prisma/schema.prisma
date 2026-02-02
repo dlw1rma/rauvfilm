@@ -113,6 +113,9 @@ model Reservation {
   // 후기 제출
   reviewSubmissions ReviewSubmission[]
   
+  // 예식 후 SMS 발송
+  postWeddingSmsSentAt DateTime?  // 예식 안내 SMS 발송일
+
   // 입금 정보
   depositPaidAt     DateTime? // 예약금 입금일
   balancePaidAt     DateTime? // 잔금 입금일

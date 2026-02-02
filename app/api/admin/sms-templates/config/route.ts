@@ -47,8 +47,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'type, templateId, channelId는 필수입니다.' }, { status: 400 });
     }
 
-    if (!['contract', 'video'].includes(type)) {
-      return NextResponse.json({ error: 'type은 contract 또는 video만 가능합니다.' }, { status: 400 });
+    if (!['contract', 'video', 'post_wedding'].includes(type)) {
+      return NextResponse.json({ error: 'type은 contract, video, post_wedding만 가능합니다.' }, { status: 400 });
     }
 
     const config = await prisma.smsTemplateConfig.upsert({

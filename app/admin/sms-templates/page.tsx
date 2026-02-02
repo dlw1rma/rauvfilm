@@ -15,6 +15,7 @@ interface KakaoTemplate {
 interface TemplateConfig {
   contract?: { templateId: string; channelId: string };
   video?: { templateId: string; channelId: string };
+  post_wedding?: { templateId: string; channelId: string };
 }
 
 export default function SmsTemplatesPage() {
@@ -54,7 +55,7 @@ export default function SmsTemplatesPage() {
     fetchData();
   }, []);
 
-  const handleAssign = async (template: KakaoTemplate, type: 'contract' | 'video') => {
+  const handleAssign = async (template: KakaoTemplate, type: 'contract' | 'video' | 'post_wedding') => {
     const key = `${template.templateId}-${type}`;
     setAssigning(key);
     setMessage(null);
@@ -87,7 +88,8 @@ export default function SmsTemplatesPage() {
         ...prev,
         [type]: { templateId: template.templateId, channelId },
       }));
-      setMessage({ type: 'success', text: `${type === 'contract' ? '계약서용' : '영상용'} 템플릿이 지정되었습니다.` });
+      const typeLabel = type === 'contract' ? '계약서용' : type === 'video' ? '영상용' : '예식후안내용';
+      setMessage({ type: 'success', text: `${typeLabel} 템플릿이 지정되었습니다.` });
     } catch {
       setMessage({ type: 'error', text: '저장 중 오류가 발생했습니다.' });
     } finally {
@@ -95,7 +97,7 @@ export default function SmsTemplatesPage() {
     }
   };
 
-  const isAssigned = (templateId: string, type: 'contract' | 'video') => {
+  const isAssigned = (templateId: string, type: 'contract' | 'video' | 'post_wedding') => {
     return config[type]?.templateId === templateId;
   };
 
@@ -130,7 +132,7 @@ export default function SmsTemplatesPage() {
         </p>
 
         {/* 현재 설정 요약 */}
-        <div className="grid gap-4 sm:grid-cols-2 mb-6">
+        <div className="grid gap-4 sm:grid-cols-3 mb-6">
           <div className="rounded-xl border border-border bg-muted p-4">
             <p className="text-sm text-muted-foreground mb-1">계약서용 템플릿</p>
             {config.contract ? (
@@ -149,6 +151,16 @@ export default function SmsTemplatesPage() {
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">미지정 (SMS로 발송)</p>
+            )}
+          </div>
+          <div className="rounded-xl border border-border bg-muted p-4">
+            <p className="text-sm text-muted-foreground mb-1">예식 후 안내용 템플릿</p>
+            {config.post_wedding ? (
+              <p className="font-medium text-sm">
+                {templates.find(t => t.templateId === config.post_wedding?.templateId)?.name || config.post_wedding.templateId}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">미지정 (발송 안됨)</p>
             )}
           </div>
         </div>
@@ -179,11 +191,12 @@ export default function SmsTemplatesPage() {
             {templates.map((tpl) => {
               const isContract = isAssigned(tpl.templateId, 'contract');
               const isVideo = isAssigned(tpl.templateId, 'video');
+              const isPostWedding = isAssigned(tpl.templateId, 'post_wedding');
               return (
                 <div
                   key={tpl.templateId}
                   className={`rounded-xl border p-5 transition-colors ${
-                    isContract || isVideo
+                    isContract || isVideo || isPostWedding
                       ? 'border-accent/50 bg-accent/5'
                       : 'border-border bg-background'
                   }`}
@@ -198,6 +211,9 @@ export default function SmsTemplatesPage() {
                         )}
                         {isVideo && (
                           <span className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-600 font-medium">영상용</span>
+                        )}
+                        {isPostWedding && (
+                          <span className="px-2 py-0.5 rounded text-xs bg-pink-500/20 text-pink-500 font-medium">예식후안내</span>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mb-2">ID: {tpl.templateId}</p>
@@ -230,6 +246,17 @@ export default function SmsTemplatesPage() {
                       >
                         {assigning === `${tpl.templateId}-video` ? '저장중...' : isVideo ? '영상용 지정됨' : '영상용 지정'}
                       </button>
+                      <button
+                        onClick={() => handleAssign(tpl, 'post_wedding')}
+                        disabled={assigning === `${tpl.templateId}-post_wedding` || isPostWedding}
+                        className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                          isPostWedding
+                            ? 'bg-pink-500/20 text-pink-500 cursor-default'
+                            : 'bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-50'
+                        }`}
+                      >
+                        {assigning === `${tpl.templateId}-post_wedding` ? '저장중...' : isPostWedding ? '예식후안내 지정됨' : '예식후안내 지정'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -242,7 +269,8 @@ export default function SmsTemplatesPage() {
           <p className="font-medium text-foreground mb-2">알림톡 발송 안내</p>
           <ul className="space-y-1">
             <li>- 템플릿을 지정하면 계약서/영상 URL 등록 시 카카오 알림톡으로 발송됩니다.</li>
-            <li>- 미지정 시 기존 SMS로 발송됩니다.</li>
+            <li>- 예식 후 안내용 템플릿은 예식 다음 날 오전 10시에 자동 발송됩니다.</li>
+            <li>- 미지정 시 해당 유형의 알림은 발송되지 않습니다.</li>
             <li>- 솔라피에서 템플릿 승인(APPROVED) 상태여야 실제 발송이 가능합니다.</li>
           </ul>
         </div>

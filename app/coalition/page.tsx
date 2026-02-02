@@ -37,7 +37,7 @@ async function getCoalitionImage() {
 
 export default async function CoalitionPage() {
   const coalitionImage = await getCoalitionImage();
-  const lemeGraphyUrl = "https://leme-graphy.com"; // 르메그라피 링크
+  const lemeGraphyUrl = "http://leumewedding.com/"; // 르메그라피 링크
 
   return (
     <div className="min-h-screen py-20 px-4">

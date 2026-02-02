@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { User } from "lucide-react";
 
@@ -22,6 +23,11 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
   const [mobileOpenDropdown, setMobileOpenDropdown] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoMobileUrl, setLogoMobileUrl] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     fetch("/api/site-images")
@@ -57,6 +63,7 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
   ];
 
   return (
+    <>
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
@@ -176,14 +183,33 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+      </nav>
+    </header>
+
+    {/* Mobile Menu - Portal to body for true viewport center */}
+    {mounted && createPortal(
+      <>
+        {/* Dark Overlay */}
         <div
           className={cn(
-            "md:hidden overflow-hidden transition-all duration-300 ease-in-out",
-            isMobileMenuOpen ? "max-h-[500px] pb-4" : "max-h-0"
+            "md:hidden fixed inset-0 z-[9998] bg-black/70 transition-opacity duration-300",
+            isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+
+        {/* Center Panel */}
+        <div
+          className={cn(
+            "md:hidden fixed inset-0 z-[9999] flex items-center justify-center px-8 transition-opacity duration-300",
+            isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
+          onClick={() => setIsMobileMenuOpen(false)}
         >
-          <div className="space-y-1 pt-2">
+          <div
+            className="w-full max-w-sm p-6 space-y-1"
+            onClick={(e) => e.stopPropagation()}
+          >
             {navigation.map((item) => (
               <div key={item.name}>
                 {item.children ? (
@@ -194,7 +220,7 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
                           mobileOpenDropdown === item.name ? null : item.name
                         )
                       }
-                      className="w-full flex items-center justify-between px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                      className="w-full flex items-center justify-between px-4 py-3 text-lg font-medium text-muted-foreground hover:text-foreground rounded-lg transition-colors"
                     >
                       <span>{item.name}</span>
                       <svg
@@ -224,7 +250,7 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
                         <Link
                           key={child.name}
                           href={child.href}
-                          className="block pl-6 pr-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                          className="block pl-8 pr-4 py-2.5 text-base text-muted-foreground hover:text-foreground rounded-lg transition-colors"
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
                           {child.name}
@@ -235,7 +261,7 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
                 ) : (
                   <Link
                     href={item.href}
-                    className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                    className="block px-4 py-3 text-lg font-medium text-muted-foreground hover:text-foreground rounded-lg transition-colors"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     {item.name}
@@ -245,7 +271,9 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
             ))}
           </div>
         </div>
-      </nav>
-    </header>
+      </>,
+      document.body
+    )}
+    </>
   );
 }

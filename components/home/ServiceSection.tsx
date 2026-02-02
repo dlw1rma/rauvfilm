@@ -53,8 +53,8 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
+      staggerChildren: 0.07,
+      delayChildren: 0.05,
     },
   },
 };
@@ -62,15 +62,15 @@ const containerVariants = {
 const cardVariants = {
   hidden: {
     opacity: 0,
-    y: 60,
-    scale: 0.9,
+    y: 30,
+    scale: 0.95,
   },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
     transition: {
-      duration: 0.6,
+      duration: 0.45,
       ease: [0.25, 0.1, 0.25, 1] as const,
     },
   },
@@ -176,7 +176,7 @@ export default function ServiceSection() {
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-30px" }}
           className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 mb-4 md:mb-5"
         >
           {serviceItemsTop.map((item) => {
@@ -213,7 +213,7 @@ export default function ServiceSection() {
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-30px" }}
           className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5"
         >
           {serviceItemsBottom.map((item) => {

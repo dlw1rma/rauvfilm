@@ -41,6 +41,7 @@ const footerInfo = {
 const footerNavigation = {
   legal: [
     { name: "이용약관", href: "/terms" },
+    { name: "규정안내", href: "/guidelines" },
     { name: "개인정보처리방침", href: "/privacy" },
   ],
 };
@@ -54,7 +55,7 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 w-full">
             <span className="text-sm text-muted-foreground">본식스냅 제휴업체</span>
             <a
-              href="https://lemegraphy.com"
+              href="http://leumewedding.com/"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-2 border border-border rounded text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-all"

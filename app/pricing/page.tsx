@@ -20,14 +20,11 @@ const pricingPlans = [
     originalPrice: "340,000",
     price: "310,000",
     description: "신부대기실 + 본식 + 원판촬영",
-    videoUrl: "https://www.youtube.com/watch?v=BEEXhZW2GMo",
+    videoUrl: "https://youtu.be/d7dWvR3TAEo",
     features: [
       "카메라가 친터마다 움직임 없이 꼭 촬영",
-      "촬영범위: 신부대기실-본식-원판촬영",
       "화질: 4K UHD 초고화질",
       "편집: 기록영상(15-30분), SNS영상(30초~1분)",
-      "보정기법: 색감, 피부보정",
-      "제공: 클라우드 링크를 메일로 제공",
     ],
     recommendations: [
       "가성비와 시네마틱 영상을 모두 원하는 분",
@@ -41,13 +38,10 @@ const pricingPlans = [
     originalPrice: "600,000",
     price: "500,000",
     description: "신부대기실 + 본식 + 원판촬영",
-    videoUrl: "https://www.youtube.com/watch?v=BEEXhZW2GMo",
+    videoUrl: "https://youtu.be/3ieuC7Ul5ko",
     features: [
-      "촬영범위: 신부대기실-본식-원판촬영",
       "화질: 4K UHD 초고화질",
       "편집: 하이라이트(2분) + 기록영상(30분~)",
-      "보정기법: 색감, 피부보정",
-      "제공: 클라우드 링크를 메일로 제공",
       "요청 시 인터뷰 촬영",
     ],
     recommendations: [
@@ -64,16 +58,10 @@ const pricingPlans = [
     originalPrice: "950,000",
     price: "850,000",
     description: "신부대기실 + 본식 + 원판촬영",
-    videoUrl: "https://www.youtube.com/watch?v=BEEXhZW2GMo",
+    videoUrl: "https://youtu.be/sfKkrvLg_7g",
     features: [
-      "촬영범위: 신부대기실-본식-원판촬영",
       "화질: 4K UHD 초고화질",
-      "편집 (총 5개 영상)",
-      "  1. 다큐형 하이라이트(4분)",
-      "  2. 다큐형 기록영상(식전/본식/식후 총 30분~)",
-      "  3. 인터뷰 영상(4팀~)",
-      "보정기법: 색감, 피부보정",
-      "제공: 클라우드 링크를 메일로 제공",
+      "편집 (총 5개 영상)\n1. 다큐형 하이라이트(4분)\n2. 다큐형 기록영상(식전/본식/식후 총 30분~)\n3. 인터뷰 영상(4팀~)",
     ],
     recommendations: [
       "색감, 피부보정으로 예쁜 영화의 한 장면을 원하는 분",
@@ -142,8 +130,8 @@ export default function PricingPage() {
 
       {/* 상품 카드 그리드 */}
       <section className="py-16 px-4">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-6 lg:gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid gap-8">
             {pricingPlans.map((plan) => (
               <PricingCard key={plan.name} plan={plan} />
             ))}

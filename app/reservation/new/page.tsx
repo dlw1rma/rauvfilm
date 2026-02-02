@@ -1043,34 +1043,39 @@ export default function NewReservationPage() {
               </button>
             </div>
             <div className="p-5">
-              <div className="relative mb-4">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
+              <div className="relative mb-4 flex gap-2">
                 <input
                   type="text"
                   value={partnerCodeSearch}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setPartnerCodeSearch(value);
-                    if (value.length >= 2) {
-                      searchPartnerCode(value);
-                    } else {
-                      setPartnerCodeResults([]);
+                  onChange={(e) => setPartnerCodeSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (partnerCodeSearch.trim().length >= 2) {
+                        searchPartnerCode(partnerCodeSearch.trim());
+                      }
                     }
                   }}
-                  onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  className="flex-1 pl-4 pr-4 py-3 rounded-lg border border-border bg-background text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   placeholder="짝궁코드를 입력하세요"
                   autoFocus
                 />
-                {isSearchingPartnerCode && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-accent" />
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (partnerCodeSearch.trim().length >= 2) {
+                      searchPartnerCode(partnerCodeSearch.trim());
+                    }
+                  }}
+                  disabled={partnerCodeSearch.trim().length < 2 || isSearchingPartnerCode}
+                  className="px-4 py-3 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                >
+                  {isSearchingPartnerCode ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  ) : (
+                    "검색"
+                  )}
+                </button>
               </div>
               <div className="max-h-60 overflow-y-auto rounded-lg border border-border">
                 {partnerCodeResults.length > 0 ? (
@@ -1091,13 +1096,13 @@ export default function NewReservationPage() {
                       <span className="font-medium">{result.code}</span>
                     </button>
                   ))
-                ) : partnerCodeSearch.length >= 2 && !isSearchingPartnerCode ? (
+                ) : partnerCodeSearch.length >= 2 && !isSearchingPartnerCode && partnerCodeResults.length === 0 ? (
                   <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    검색 결과가 없습니다.
+                    검색 버튼을 눌러 검색하세요.
                   </div>
                 ) : (
                   <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    2글자 이상 입력하면 검색됩니다.
+                    짝궁코드를 입력 후 검색 버튼을 눌러주세요.
                   </div>
                 )}
               </div>

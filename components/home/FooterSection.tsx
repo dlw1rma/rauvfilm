@@ -10,7 +10,7 @@ const socialLinks = {
   blog: "https://blog.naver.com/rauvfilm",
 };
 
-const partnerLink = "https://www.instagram.com/lemegraphy_official/";
+const partnerLink = "http://leumewedding.com/";
 
 // 스태거 애니메이션
 const containerVariants = {
@@ -128,6 +128,7 @@ export default function FooterSection() {
         >
           {[
             { href: "/terms", label: "이용약관" },
+            { href: "/guidelines", label: "규정안내" },
             { href: "/privacy", label: "개인정보처리방침" },
           ].map(({ href, label }) => (
             <Link
