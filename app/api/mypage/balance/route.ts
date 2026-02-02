@@ -186,7 +186,8 @@ export async function GET() {
     };
     
     const basePrice = getProductBasePrice(reservation.productType);
-    const listPrice = (reservation.totalAmount || 0) + travelFee;
+    // 총 금액 = 상품 기본가 + 추가옵션(출장비, 메이크업, 폐백, 피로연) - 야외스냅/프리웨딩 제외
+    const listPrice = basePrice + additionalTotal;
     const depositAmount = reservation.depositAmount || 100000;
     const finalBalance = Math.max(0, listPrice - depositAmount - totalDiscount);
 
