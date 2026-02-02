@@ -1,0 +1,491 @@
+// Prisma Schema for Rauvfilm
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+  // 예약 게시판
+model Reservation {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String?   @db.Text // 문의 내용 (선택)
+  author      String    // 계약자(글쓴이) 성함
+  password    String    // bcrypt 해시
+  isPrivate   Boolean   @default(true) // 비밀글만 가능
+  viewCount   Int       @default(0)
+  status      String    @default("PENDING") // PENDING, CONFIRMED, COMPLETED
+  
+  // 필수 작성항목(공통)
+  brideName       String?  // 신부님 성함
+  bridePhone      String?  // 신부님 전화번호
+  groomName       String?  // 신랑님 성함
+  groomPhone      String?  // 신랑님 전화번호
+  receiptPhone    String?  // 현금 영수증 받으실 전화번호
+  depositName     String?  // 예약금 입금자명
+  productEmail    String?  // 상품 받으실 E-mail 주소
+  productType     String?  // 상품 종류 (가성비형, 기본형, 야외스냅, 프리웨딩)
+  partnerCode     String?  // 짝궁 코드
+  foundPath       String?  // 라우브필름 알게된 경로
+  termsAgreed     Boolean? @default(false) // 홈페이지 규정 안내 및 약관동의서 읽음 및 동의
+  faqRead         Boolean? @default(false) // 홈페이지 FAQ 읽음 및 숙지 여부
+  
+  // 개인정보 활용 동의
+  privacyAgreed   Boolean? @default(false) // 개인정보 수집 이용 동의
+
+  // 해외 거주 (한국 번호 없음) - 비밀번호=이메일, SMS 미발송
+  overseasResident Boolean? @default(false)
+
+  // 본식DVD 예약 고객님 필수 추가 작성 항목
+  weddingDate     String?   // 예식 날짜 (텍스트)
+  weddingTime     String?   // 예식 시간 (텍스트)
+  venueName       String?   // 장소명
+  venueAddress    String?   // 예식장 도로명/지번 주소
+  venueRegion     String?   // 시도+구군 (예: "서울특별시 강남구")
+  venueFloor      String?   // 층/홀이름
+  guestCount      Int?      // 초대인원
+  makeupShoot     Boolean?  // 메이크업샵 촬영 O/X
+  paebaekShoot    Boolean?  // 폐백 촬영 O/X
+  receptionShoot  Boolean?  // 피로연(2부 예식) 촬영 O/X
+  mainSnapCompany String?   // 메인스냅 촬영 업체명
+  makeupShop      String?   // 메이크업샵 상호명
+  dressShop       String?   // 드레스샵 상호명
+  usbOption       Boolean?  @default(false) // USB 추가 옵션
+  deliveryAddress String?   @db.Text // (USB)상품받으실 거주지 주소
+  seonwonpan      Boolean?  // 선원판 진행 여부 O/X
+  gimbalShoot     Boolean?  // 짐벌(커스텀) 촬영 O/X
+  
+  // 본식DVD 주 재생매체
+  playbackDevice  String?   // (핸드폰, LED TV/ OLED TV, 빔프로젝터)
+  
+  // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
+  eventType       String?   // 이벤트 촬영 (야외스냅, 프리웨딩)
+  shootLocation   String?   // 희망 촬영 장소
+  shootDate       String?   // 촬영 날짜 (텍스트)
+  shootTime       String?   // 촬영 시간 (텍스트)
+  shootConcept    String?   @db.Text // 원하시는 컨셉
+  
+  // 할인사항 (체크박스)
+  discountCouple      Boolean? @default(false) // 짝궁할인
+  discountReview      Boolean? @default(false) // 블로그와 카페 촬영후기 (총 2만원 페이백)
+  discountNewYear     Boolean? @default(true)  // 신년할인 (항상 체크)
+  discountReviewBlog  Boolean? @default(false) // 블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)
+  
+  // 특이사항
+  specialNotes    String?   @db.Text // 특이사항 및 요구사항
+  
+  // 커스텀 촬영 요청 필드
+  customShootingRequest Boolean? @default(false)
+  customStyle           String?  // 영상 스타일 (배열을 문자열로 저장)
+  customEditStyle       String?  // 편집 스타일 (배열을 문자열로 저장)
+  customMusic           String?  // 음악 장르 (배열을 문자열로 저장)
+  customLength          String?  // 영상 진행형식 (배열을 문자열로 저장)
+  customEffect          String?  @db.Text // 추가효과 (배열을 문자열로 저장)
+  customContent         String?  @db.Text // 추가 옵션 (배열을 문자열로 저장)
+  customSpecialRequest  String?  @db.Text // 특별 요청사항
+  
+  // 출장비
+  travelFee         Int?      @default(0)  // 출장비 금액 (원)
+
+  // 잔금 및 할인 시스템
+  totalAmount       Int?      @default(0)  // 계약 전체 금액 (정가)
+  depositAmount     Int?      @default(100000)  // 예약금 (기본 10만원)
+  discountAmount    Int?      @default(0)  // 할인 총액
+  referralDiscount  Int?      @default(0)  // 짝꿍 할인 (1만원)
+  reviewDiscount    Int?      @default(0)  // 후기 할인 (1만원)
+  finalBalance      Int?      @default(0)  // 최종 잔금 (정가 - 예약금 - 할인들)
+  
+  // 짝꿍 할인 시스템
+  referralCode      String?   @unique  // 예식날짜+성함으로 생성될 고유 코드 (예: 20250520홍길동)
+  referredBy        String?   // 나를 추천해준 사람의 코드
+  referredCount     Int?      @default(0)  // 내 코드를 사용한 사람 수
+  
+  // 후기 할인 시스템
+  reviewLink        String?   @db.Text // 후기 링크 URL
+  reviewRefundAccount    String?   @db.Text // 환급받을 계좌
+  reviewRefundDepositorName String?   // 환급 입금자명
+  
+  // 후기 제출
+  reviewSubmissions ReviewSubmission[]
+  
+  // 예식 후 SMS 발송
+  postWeddingSmsSentAt DateTime?  // 예식 안내 SMS 발송일
+
+  // 입금 정보
+  depositPaidAt     DateTime? // 예약금 입금일
+  balancePaidAt     DateTime? // 잔금 입금일
+  
+  // 다운로드 링크
+  pdfUrl            String?   @db.Text // PDF 다운로드 링크
+  videoUrl          String?   @db.Text // 영상 다운로드 링크
+  
+  // 기존 필드 (하위 호환성)
+  phone       String?  // 기존 필드 (deprecated)
+  email       String?  // 기존 필드 (deprecated)
+  location    String?  // 기존 필드 (deprecated)
+  
+  // 예약관리(Booking)와 동기화
+  bookingId   Int?      // 연결된 Booking ID
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  reply       Reply?
+}
+
+// 예약 게시판 답변
+model Reply {
+  id            Int         @id @default(autoincrement())
+  content       String      @db.Text
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  reservationId Int         @unique
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// 포트폴리오
+model Portfolio {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String?  @db.Text
+  youtubeUrl   String
+  thumbnailUrl String?
+  category     String?
+  featured     Boolean  @default(false)
+  order        Int      @default(0)
+  isVisible    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// 문의
+model Contact {
+  id          Int       @id @default(autoincrement())
+  name        String
+  phone       String
+  email       String?
+  weddingDate DateTime?
+  message     String    @db.Text
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
+
+// 고객 후기
+model Review {
+  id         Int      @id @default(autoincrement())
+  title      String
+  excerpt    String?  @db.Text
+  imageUrl   String?
+  sourceUrl  String   // 네이버 블로그/카페 원본 링크
+  sourceType String   // 'naver_blog', 'naver_cafe', 'instagram'
+  author     String?
+  order      Int      @default(0)
+  isVisible  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// 관리자 계정
+model Admin {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String    // bcrypt 해시
+  name      String?
+  role      AdminRole @default(STAFF)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// 관리자 권한
+enum AdminRole {
+  SUPER_ADMIN
+  STAFF
+}
+
+// ============================================
+// 라우브필름 예약/정산 시스템 스키마
+// ============================================
+
+// 상품 (촬영 패키지)
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String    // "1인 2캠", "2인 3캠" 등
+  price       Int       // 정가 (원)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bookings    Booking[]
+}
+
+// 할인 이벤트 (신년 할인 등)
+model DiscountEvent {
+  id        Int       @id @default(autoincrement())
+  name      String    // "2025 신년 할인"
+  amount    Int       // 할인 금액 (원)
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  bookings  Booking[]
+}
+
+// 예약 (정산 시스템 핵심 테이블)
+model Booking {
+  id              Int           @id @default(autoincrement())
+
+  // 고객 정보
+  customerName    String        // 계약자 성함
+  customerPhone   String        // 전화번호 (로그인용)
+  customerEmail   String?
+
+  // 예식 정보
+  weddingDate     DateTime
+  weddingVenue    String        // 예식장
+  weddingTime     String?       // 예식 시간
+
+  // 상품 및 가격
+  product         Product       @relation(fields: [productId], references: [id])
+  productId       Int
+  listPrice       Int           // 정가 (예약 시점 기록)
+
+  // 예약금
+  depositAmount   Int           @default(100000)  // 10만원
+  depositPaidAt   DateTime?     // 예약금 입금일
+
+  // 할인 적용
+  discountEvent   DiscountEvent? @relation(fields: [discountEventId], references: [id])
+  discountEventId Int?
+  eventDiscount   Int           @default(0)       // 이벤트 할인 금액
+
+  // 짝꿍 할인
+  referralDiscount Int          @default(0)       // 추천 할인 (1만원)
+  referredBy       String?      // 추천인 짝꿍코드
+
+  // 후기 할인
+  reviewDiscount   Int          @default(0)       // 후기 할인 (1만원)
+
+  // 출장비
+  travelFee        Int          @default(0)
+
+  // 최종 잔금 (자동 계산됨)
+  finalBalance     Int          @default(0)
+  balancePaidAt    DateTime?    // 잔금 입금일
+
+  // 짝꿍 코드 (이 고객의 코드)
+  partnerCode      String?      @unique  // "250122홍길동"
+
+  // 예약 상태
+  status           BookingStatus @default(PENDING)
+
+  // 관리자 업로드
+  videoUrl         String?      // 영상 링크
+  contractUrl      String?      // 계약서 파일
+  videoUploadedAt  DateTime?    // 영상 업로드일 (5년 파기 기준)
+
+  // 메모
+  adminNote        String?      @db.Text
+
+  // 타임스탬프
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // 개인정보 파기 여부
+  isAnonymized     Boolean      @default(false)
+  anonymizedAt     DateTime?
+
+  // 예약글(Reservation)과 동기화
+  reservationId    Int?         // 연결된 Reservation ID
+
+  // 관계
+  referrals         Booking[]    @relation("ReferralRelation")
+  referrer          Booking?     @relation("ReferralRelation", fields: [referredByBookingId], references: [id])
+  referredByBookingId Int?
+}
+
+// 예약 상태
+enum BookingStatus {
+  PENDING      // 예약 대기
+  CONFIRMED    // 확정 (짝꿍코드 생성)
+  DEPOSIT_PAID // 예약금 입금 완료
+  COMPLETED    // 촬영 완료
+  DELIVERED    // 영상 전달 완료
+  CANCELLED    // 취소
+}
+
+// 후기 제출
+model ReviewSubmission {
+  id              Int            @id @default(autoincrement())
+  reservation     Reservation    @relation(fields: [reservationId], references: [id])
+  reservationId   Int
+
+  reviewUrl       String         // 후기 링크
+  platform        ReviewPlatform // 플랫폼
+  type            String         @default("booking") // "booking" | "shooting"
+
+  // 자동 추출된 메타데이터
+  title           String?        // 후기 제목
+  excerpt         String?        @db.Text // 후기 내용 요약
+  imageUrl        String?        // 썸네일 이미지 URL
+  author          String?        // 작성자명 (블로그/카페 닉네임)
+
+  // 자동 검증 결과
+  autoVerified    Boolean        @default(false)
+  titleValid      Boolean?       // 제목 키워드 포함 여부
+  contentValid    Boolean?       // 본문 가이드 준수 여부
+  characterCount  Int?           // 글자 수
+
+  // 승인 상태
+  status          ReviewStatus   @default(PENDING)
+  verifiedAt      DateTime?
+  verifiedBy      String?        // 관리자 ID (수동 승인 시)
+
+  // 거절 사유
+  rejectReason    String?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+// 후기 플랫폼
+enum ReviewPlatform {
+  NAVER_BLOG
+  NAVER_CAFE
+  INSTAGRAM
+  OTHER
+}
+
+// 후기 상태
+enum ReviewStatus {
+  PENDING         // 검토 대기
+  AUTO_APPROVED   // 자동 승인
+  MANUAL_REVIEW   // 수동 검토 필요
+  APPROVED        // 승인 (할인 적용)
+  REJECTED        // 거절
+}
+
+// 야외스냅/프리웨딩 신청 (예약글과 별도, 마이페이지에서 신청)
+model EventSnapApplication {
+  id              Int       @id @default(autoincrement())
+  reservationId   Int?      // 로그인한 고객의 예약 ID (마이페이지 연동)
+  type            String    // "야외스냅" | "프리웨딩"
+  customerName    String    // 신청자 성함
+  customerPhone   String    // 연락처
+  customerEmail   String?   // 이메일 (선택)
+  shootLocation   String?   // 희망 촬영 장소
+  shootDate       String?   // 촬영 희망 날짜 (텍스트)
+  shootTime       String?   // 촬영 희망 시간 (텍스트)
+  shootConcept    String?   @db.Text // 원하시는 컨셉
+  specialNotes    String?   @db.Text // 특이사항
+  status          String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED
+  adminNote       String?   @db.Text // 관리자 메모
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// 시스템 설정
+model SystemSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// Cloudinary 이미지 관리 시스템
+// ============================================
+
+// 이벤트 스냅 장소
+model EventSnapLocation {
+  id          Int      @id @default(autoincrement())
+  name        String   // "동작대교", "창경궁", "노을공원", "올림픽공원"
+  nameEn      String?  // "Dongjak Bridge"
+  slug        String   @unique // "dongjak-bridge"
+  description String?  @db.Text
+  order       Int      @default(0)
+  isVisible   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  images      EventSnapImage[]
+}
+
+// 이벤트 스냅 이미지
+model EventSnapImage {
+  id          Int      @id @default(autoincrement())
+
+  // Cloudinary 정보
+  publicId    String   // Cloudinary public_id
+  url         String   // 원본 URL
+  secureUrl   String   // HTTPS URL
+  width       Int?
+  height      Int?
+  format      String?  // "jpg", "png", "webp"
+
+  // 메타 정보
+  title       String?
+  alt         String?  // 접근성용 대체 텍스트
+
+  // 관계
+  location    EventSnapLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId  Int
+
+  // 정렬 및 표시
+  order       Int      @default(0)
+  isVisible   Boolean  @default(true)
+  isFeatured  Boolean  @default(false) // 대표 이미지
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 출장비 기준
+model TravelFeeRule {
+  id          Int      @id @default(autoincrement())
+  branch      String   // "서울점" | "청주점"
+  region      String   // "서울특별시" (시/도)
+  district    String?  // "강남구" (구/군, null이면 시/도 전체)
+  fee         Int      // 출장비 금액 (원)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// SMS/알림톡 템플릿 설정
+model SmsTemplateConfig {
+  id          Int      @id @default(autoincrement())
+  type        String   @unique  // "contract" | "video"
+  templateId  String            // 솔라피 카카오 알림톡 템플릿 ID
+  channelId   String            // 카카오 채널 ID (발송에 필요)
+  updatedAt   DateTime @updatedAt
+}
+
+// 사이트 일반 이미지 (히어로, 로고 등)
+model SiteImage {
+  id          Int      @id @default(autoincrement())
+
+  // 용도 구분
+  category    String   // "hero", "logo", "about", "review", "color-before", "color-after"
+
+  // Cloudinary 정보
+  publicId    String
+  url         String
+  secureUrl   String
+  width       Int?
+  height      Int?
+
+  // 메타
+  title       String?
+  alt         String?
+
+  isActive    Boolean  @default(true) // 현재 사용 중인 이미지
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

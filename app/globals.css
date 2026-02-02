@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/* 라우브필름 디자인 시스템 - 다크 테마 고정 */
+:root {
+  --background: #111111;
+  --foreground: #ffffff;
+  --accent: #e50914;
+  --accent-hover: #ff1a1a;
+  --muted: #1a1a1a;
+  --muted-foreground: #e5e7eb;
+  --border: #2a2a2a;
+
+  /* 미니멀 모던 확장 */
+  --card: #161616;
+  --card-hover: #1c1c1c;
+  --subtle: rgba(255, 255, 255, 0.05);
+  --accent-subtle: rgba(229, 9, 20, 0.1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-subtle: var(--subtle);
+  --color-accent-subtle: var(--accent-subtle);
+  --font-sans: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* 웹 폰트 최적화 */
+@font-face {
+  font-family: 'Apple SD Gothic Neo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Apple SD Gothic Neo');
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+
+/* 스크롤바 스타일 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* 날짜/시간 입력 필드 아이콘 색상 조정 */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* 커스텀 페이지 날짜/시간 입력 필드 아이콘 - Tailwind arbitrary value는 CSS에서 직접 사용 불가하므로 제거 */
+/* 필요시 해당 컴포넌트에서 인라인 스타일 또는 별도 클래스로 처리 */
+
+/* 모바일 반응형 기본 스타일 */
+* {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 모바일에서 <br> 태그 숨기기 유틸리티 */
+@media (max-width: 640px) {
+  .mobile-br-hidden br {
+    display: none;
+  }
+
+  .mobile-br-hidden {
+    word-break: keep-all;
+  }
+}
