@@ -841,16 +841,20 @@ export default function NewReservationPage() {
     }
 
     try {
-      // 계약자 이름 설정
+      // 계약자 이름/비밀번호 자동 설정
       const contractorName = formData.isBrideContractor ? formData.brideName : formData.groomName;
-      
+      const contractorPhone = formData.isBrideContractor
+        ? removeHyphens(formData.bridePhone)
+        : removeHyphens(formData.groomPhone);
+      const autoPassword = formData.overseasResident ? formData.productEmail : contractorPhone;
+
       const res = await fetch("/api/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          author: contractorName, // 계약자 이름으로 설정
-          password: formData.overseasResident ? formData.productEmail : formData.password, // 해외거주 시 비밀번호=이메일
+          author: contractorName,
+          password: autoPassword,
           lemeGraphyDiscount: lemeGraphyDiscount, // 르메그라피 제휴 할인
           // 배열 필드를 문자열로 변환
           playbackDevice: Array.isArray(formData.playbackDevice) ? formData.playbackDevice.join(", ") : formData.playbackDevice,
