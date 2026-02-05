@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { isBudgetProduct } from "@/lib/constants";
 
 const RESERVATION_DRAFT_KEY = "rauvfilm_reservation_draft";
 
@@ -444,8 +445,8 @@ export default function NewReservationPage() {
             : value,
       };
       
-      // 상품 종류가 가성비형으로 변경되면 신년할인 해제
-      if (name === "productType" && value === "가성비형") {
+      // 상품 종류가 가성비형/1인1캠으로 변경되면 신년할인 해제
+      if (name === "productType" && isBudgetProduct(value)) {
         updated.discountNewYear = false;
       }
       
@@ -796,6 +797,15 @@ export default function NewReservationPage() {
       return;
     }
 
+    // 짝궁코드 닉네임 필수 검증
+    if (!formData.referralNickname || formData.referralNickname.trim().length < 2) {
+      setError("짝궁코드 닉네임을 2자 이상 입력해주세요.");
+      setCurrentSection(4);
+      setTimeout(() => scrollToFirstError("referralNickname"), 100);
+      setIsSubmitting(false);
+      return;
+    }
+
     // 짝궁할인 체크 시 짝궁코드 필수 검증
     if (formData.discountCouple && !formData.partnerCode) {
       setError("짝궁할인을 선택하셨습니다. 짝궁코드를 검색하여 선택해주세요.");
@@ -848,6 +858,22 @@ export default function NewReservationPage() {
         : removeHyphens(formData.groomPhone);
       const autoPassword = formData.overseasResident ? formData.productEmail : contractorPhone;
 
+      // 상품 정가 계산
+      const productPrices: Record<string, number> = {
+        '가성비형': 340000,
+        '기본형': 600000,
+        '시네마틱형': 950000,
+      };
+      const basePrice = productPrices[formData.productType] || 0;
+
+      // 추가 옵션 계산
+      const makeupShootPrice = formData.makeupShoot ? 200000 : 0;
+      const paebaekShootPrice = formData.paebaekShoot ? 50000 : 0;
+      const receptionShootPrice = formData.receptionShoot ? 50000 : 0;
+      const usbOptionPrice = formData.usbOption ? 20000 : 0;
+
+      const totalAmount = basePrice + makeupShootPrice + paebaekShootPrice + receptionShootPrice + usbOptionPrice;
+
       const res = await fetch("/api/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -855,6 +881,7 @@ export default function NewReservationPage() {
           ...formData,
           author: contractorName,
           password: autoPassword,
+          totalAmount, // 상품 정가 + 추가 옵션
           lemeGraphyDiscount: lemeGraphyDiscount, // 르메그라피 제휴 할인
           // 배열 필드를 문자열로 변환
           playbackDevice: Array.isArray(formData.playbackDevice) ? formData.playbackDevice.join(", ") : formData.playbackDevice,
@@ -1760,7 +1787,7 @@ export default function NewReservationPage() {
             {(() => {
               const isLemeGraphyDiscount = (formData.mainSnapCompany || "").toLowerCase().includes("르메그라피") || (formData.mainSnapCompany || "").toLowerCase().includes("leme");
               const lemeProduct = formData.productType === "기본형" || formData.productType === "시네마틱형";
-              const noNewYear = formData.productType === "가성비형" || (isLemeGraphyDiscount && lemeProduct);
+              const noNewYear = isBudgetProduct(formData.productType) || (isLemeGraphyDiscount && lemeProduct);
               return (
                 <>
                   <input
@@ -1774,7 +1801,7 @@ export default function NewReservationPage() {
                   />
                   <label htmlFor="discountNewYear" className={`text-sm ${noNewYear ? "text-muted-foreground" : ""}`}>
                     2026년 신년할인 (5만원)
-                    {formData.productType === "가성비형" && <span className="ml-2 text-xs">(가성비형은 신년할인 적용 불가)</span>}
+                    {isBudgetProduct(formData.productType) && <span className="ml-2 text-xs">(가성비형은 신년할인 적용 불가)</span>}
                     {isLemeGraphyDiscount && lemeProduct && (
                       <span className="ml-2 text-xs">(르메그라피 제휴 할인 시 적용 불가)</span>
                     )}
@@ -1852,6 +1879,28 @@ export default function NewReservationPage() {
                       )}
                     </div>
                   )}
+
+                  {/* 짝궁코드 닉네임 (필수) */}
+                  <div className="mt-4 p-4 rounded-lg border border-accent/30 bg-accent/5">
+                    <label htmlFor="referralNickname" className="mb-2 block text-sm font-medium">
+                      본인 짝궁코드 닉네임 <span className="text-red-500">*</span>
+                    </label>
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      예약 확정 시 생성되는 본인의 짝궁코드에 사용될 닉네임입니다. 개인정보 보호를 위해 실명 대신 닉네임을 필수로 입력해주세요.
+                    </p>
+                    <input
+                      type="text"
+                      id="referralNickname"
+                      name="referralNickname"
+                      value={formData.referralNickname}
+                      onChange={handleChange}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      placeholder="예: 라우브신부 (2~10자)"
+                      maxLength={10}
+                      minLength={2}
+                      required
+                    />
+                  </div>
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
@@ -1862,7 +1911,7 @@ export default function NewReservationPage() {
                       className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                     />
                     <label htmlFor="discountReviewBlog" className="text-sm">
-                      {formData.productType === "가성비형" 
+                      {isBudgetProduct(formData.productType)
                         ? "블로그와 카페 예약후기 (1건 작성 시 원본 전달)"
                         : "블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)"}
                     </label>
@@ -1894,19 +1943,6 @@ export default function NewReservationPage() {
                       선원판 진행 여부
                     </label>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="gimbalShoot"
-                      name="gimbalShoot"
-                      checked={formData.gimbalShoot}
-                      onChange={handleChange}
-                      className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
-                    />
-                    <label htmlFor="gimbalShoot" className="text-sm">
-                      짐벌(커스텀) 촬영 (희망 시 카카오채널로 말씀 부탁드립니다)
-                    </label>
-                  </div>
                 </div>
               )}
 
@@ -1933,26 +1969,6 @@ export default function NewReservationPage() {
                   }}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
                   placeholder="특이사항이나 요구사항이 있으시면 작성해주세요"
-                />
-              </div>
-
-              {/* 짝궁코드 닉네임 */}
-              <div>
-                <label htmlFor="referralNickname" className="mb-2 block text-sm font-medium">
-                  짝궁코드 닉네임 (선택)
-                </label>
-                <p className="mb-2 text-xs text-muted-foreground">
-                  예약 확정 시 생성되는 짝궁코드에 계약자 이름 대신 사용할 닉네임을 입력하세요. 비워두면 계약자 이름으로 생성됩니다.
-                </p>
-                <input
-                  type="text"
-                  id="referralNickname"
-                  name="referralNickname"
-                  value={formData.referralNickname}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  placeholder="예: 라우브신부"
-                  maxLength={20}
                 />
               </div>
 
@@ -1983,6 +1999,51 @@ export default function NewReservationPage() {
                         <br />
                         🚨 카카오톡 채널로 말씀없이 작성하시면 적용되지 않습니다!!
                       </p>
+                    </div>
+
+                    {/* 촬영 방법 */}
+                    <div>
+                      <label className="mb-3 block text-sm font-medium">
+                        📹 촬영 방법
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            id="shootingMethod-gimbal"
+                            name="gimbalShoot"
+                            checked={formData.gimbalShoot === true}
+                            onChange={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                gimbalShoot: true,
+                              }));
+                            }}
+                            className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                          />
+                          <label htmlFor="shootingMethod-gimbal" className="text-sm cursor-pointer">
+                            짐벌 (역동적인 촬영)
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            id="shootingMethod-monopod"
+                            name="gimbalShoot"
+                            checked={formData.gimbalShoot === false}
+                            onChange={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                gimbalShoot: false,
+                              }));
+                            }}
+                            className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                          />
+                          <label htmlFor="shootingMethod-monopod" className="text-sm cursor-pointer">
+                            모노포드 (안정적인 촬영)
+                          </label>
+                        </div>
+                      </div>
                     </div>
 
                     {/* 영상 스타일 */}
@@ -2190,21 +2251,6 @@ export default function NewReservationPage() {
                       </div>
                     </div>
 
-                    {/* 특별 요청사항 */}
-                    <div>
-                      <label htmlFor="customSpecialRequest" className="mb-2 block text-sm font-medium">
-                        💝 특별 요청사항
-                      </label>
-                      <textarea
-                        id="customSpecialRequest"
-                        name="customSpecialRequest"
-                        rows={4}
-                        value={formData.customSpecialRequest}
-                        onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                        placeholder="특별히 담고 싶은 순간이나 요청사항을 자유롭게 작성해주세요."
-                      />
-                    </div>
                   </div>
                 )}
               </div>

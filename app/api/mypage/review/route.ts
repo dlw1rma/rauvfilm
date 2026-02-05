@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCustomerSession } from '@/lib/customerAuth';
 import { prisma } from '@/lib/prisma';
 import { verifyReview, getVerificationMessage, getPlatformName } from '@/lib/reviewVerification';
+import { checkDuplicateReviewUrl } from '@/lib/urlNormalization';
+import { isBudgetProduct } from '@/lib/constants';
 
 // 후기 URL에서 메타데이터 추출
 async function fetchReviewMetadata(url: string): Promise<{
@@ -83,19 +85,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 이미 같은 URL로 제출한 후기가 있는지 확인
-    const existingReview = await prisma.reviewSubmission.findFirst({
-      where: {
-        reservationId: session.reservationId,
-        reviewUrl: reviewUrl,
-      },
+    // 중복 URL 검사 (정규화하여 교묘하게 변형된 URL도 감지)
+    const duplicateCheck = await checkDuplicateReviewUrl(reviewUrl, {
+      excludeReservationId: session.reservationId, // 같은 예약 내 중복만 특별 처리
     });
 
-    if (existingReview) {
+    if (duplicateCheck.isDuplicate) {
       return NextResponse.json(
-        { error: '이미 제출한 후기입니다.' },
+        { error: duplicateCheck.message || '이미 등록된 후기 URL입니다.' },
         { status: 400 }
       );
+    }
+
+    // 같은 예약 내 동일 URL 추가 확인 (정규화 적용)
+    const { normalizeReviewUrl } = await import('@/lib/urlNormalization');
+    const normalizedUrl = normalizeReviewUrl(reviewUrl);
+
+    const existingInSameReservation = await prisma.reviewSubmission.findMany({
+      where: {
+        reservationId: session.reservationId,
+        status: { notIn: ['REJECTED'] },
+      },
+      select: { reviewUrl: true },
+    });
+
+    for (const existing of existingInSameReservation) {
+      if (normalizeReviewUrl(existing.reviewUrl) === normalizedUrl) {
+        return NextResponse.json(
+          { error: '이미 등록한 후기 URL입니다.' },
+          { status: 400 }
+        );
+      }
     }
 
     // 예약 정보 조회 (상품 종류 확인)
@@ -144,8 +164,8 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      // 예약후기: 가성비형이면 1건, 아니면 3건 제한
-      const maxReviews = reservationInfo?.productType === '가성비형' ? 1 : 3;
+      // 예약후기: 가성비형/1인1캠이면 1건, 아니면 3건 제한
+      const maxReviews = isBudgetProduct(reservationInfo?.productType) ? 1 : 3;
       const reviewCount = await prisma.reviewSubmission.count({
         where: {
           reservationId: session.reservationId,
@@ -189,7 +209,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 자동 승인된 경우 할인 적용 (가성비형이 아닌 경우만)
+    // 자동 승인된 경우 할인 적용 여부 확인 (가성비형이 아닌 경우, 2건 이상일 때만)
     if (verification.status === 'AUTO_APPROVED') {
       // 현재 예약 정보 조회
       const currentReservation = await prisma.reservation.findUnique({
@@ -204,22 +224,33 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // 가성비형이 아니면 할인 적용
-      if (currentReservation && currentReservation.productType !== '가성비형') {
-        const newReviewDiscount = (currentReservation.reviewDiscount || 0) + 10000; // 후기 1건당 1만원
-        const newDiscountAmount = (currentReservation.discountAmount || 0) + 10000;
-        const totalAmount = currentReservation.totalAmount || 0;
-        const depositAmount = currentReservation.depositAmount || 100000;
-        const newFinalBalance = Math.max(0, totalAmount - depositAmount - newDiscountAmount);
-
-        await prisma.reservation.update({
-          where: { id: session.reservationId },
-          data: {
-            reviewDiscount: newReviewDiscount,
-            discountAmount: newDiscountAmount,
-            finalBalance: newFinalBalance,
+      // 가성비형/1인1캠이 아니면 할인 적용 가능 여부 확인
+      if (currentReservation && !isBudgetProduct(currentReservation.productType)) {
+        // 승인된 후기 수 확인 (방금 추가된 것 포함)
+        const approvedCount = await prisma.reviewSubmission.count({
+          where: {
+            reservationId: session.reservationId,
+            status: { in: ['AUTO_APPROVED', 'APPROVED'] },
           },
         });
+
+        // 2건 이상일 때만 할인 적용 (2건째일 때 전체 2만원 적용)
+        if (approvedCount >= 2 && (currentReservation.reviewDiscount || 0) === 0) {
+          const newReviewDiscount = 20000; // 2건 이상 작성 시 2만원 할인
+          const newDiscountAmount = (currentReservation.discountAmount || 0) + 20000;
+          const totalAmount = currentReservation.totalAmount || 0;
+          const depositAmount = currentReservation.depositAmount || 100000;
+          const newFinalBalance = Math.max(0, totalAmount - depositAmount - newDiscountAmount);
+
+          await prisma.reservation.update({
+            where: { id: session.reservationId },
+            data: {
+              reviewDiscount: newReviewDiscount,
+              discountAmount: newDiscountAmount,
+              finalBalance: newFinalBalance,
+            },
+          });
+        }
       }
       // 가성비형이면 할인 없이 원본영상만 전달 (할인 적용 안 함)
     }
@@ -293,8 +324,8 @@ export async function GET() {
 
     // 후기 작성 가능 여부 확인 (예약후기 또는 촬영후기 할인 체크 여부)
     const canWriteReview = reservation?.discountReview || reservation?.discountReviewBlog || false;
-    // 가성비형이면 1건, 아니면 3건 제한
-    const maxReviews = reservation?.productType === '가성비형' ? 1 : 3;
+    // 가성비형/1인1캠이면 1건, 아니면 3건 제한
+    const maxReviews = isBudgetProduct(reservation?.productType) ? 1 : 3;
 
     const mapReview = (r: typeof reviews[number]) => ({
       id: r.id,

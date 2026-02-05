@@ -22,10 +22,9 @@ interface Booking {
 }
 
 const statusLabels: Record<string, string> = {
-  PENDING: '대기',
-  CONFIRMED: '확정',
-  DEPOSIT_PAID: '입금완료',
-  COMPLETED: '촬영완료',
+  PENDING: '검토중',
+  CONFIRMED: '예약확정',
+  DEPOSIT_COMPLETED: '입금완료',
   DELIVERED: '전달완료',
   CANCELLED: '취소',
 };
@@ -33,8 +32,7 @@ const statusLabels: Record<string, string> = {
 const statusColors: Record<string, string> = {
   PENDING: 'bg-yellow-500/10 text-yellow-600',
   CONFIRMED: 'bg-blue-500/10 text-blue-600',
-  DEPOSIT_PAID: 'bg-green-500/10 text-green-600',
-  COMPLETED: 'bg-purple-500/10 text-purple-600',
+  DEPOSIT_COMPLETED: 'bg-green-500/10 text-green-600',
   DELIVERED: 'bg-accent/10 text-accent',
   CANCELLED: 'bg-red-500/10 text-red-600',
 };
@@ -49,7 +47,12 @@ export default function AdminBookingsPage() {
   const [excelOpen, setExcelOpen] = useState(false);
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [excelImporting, setExcelImporting] = useState(false);
-  const [excelResult, setExcelResult] = useState<{ created: number; skipped: number; skippedRows?: { row: number; reason: string }[] } | null>(null);
+  const [excelResult, setExcelResult] = useState<{
+    created: number;
+    skipped: number;
+    skippedRows?: { row: number; reason: string }[];
+    detectedColumns?: Record<string, string>;
+  } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
@@ -93,7 +96,12 @@ export default function AdminBookingsPage() {
       const res = await fetch('/api/admin/bookings/import-excel', { method: 'POST', body: form });
       const data = await res.json();
       if (res.ok) {
-        setExcelResult({ created: data.created ?? 0, skipped: data.skipped ?? 0, skippedRows: data.skippedRows });
+        setExcelResult({
+          created: data.created ?? 0,
+          skipped: data.skipped ?? 0,
+          skippedRows: data.skippedRows,
+          detectedColumns: data.detectedColumns,
+        });
         setExcelFile(null);
         fetchBookings();
       } else {
@@ -125,7 +133,18 @@ export default function AdminBookingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">예약 관리</h1>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            대시보드
+          </Link>
+          <h1 className="text-2xl font-bold">예약관리</h1>
+        </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -189,15 +208,30 @@ export default function AdminBookingsPage() {
             </button>
           </form>
           {excelResult && (
-            <p className="mt-3 text-sm">
-              생성 {excelResult.created}건, 스킵 {excelResult.skipped}건
+            <div className="mt-3 text-sm space-y-2">
+              <p className="font-medium">
+                생성 {excelResult.created}건, 스킵 {excelResult.skipped}건
+              </p>
+              {excelResult.detectedColumns && (
+                <div className="bg-background/50 rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">감지된 컬럼:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs">
+                    {Object.entries(excelResult.detectedColumns).map(([key, val]) => (
+                      <div key={key} className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">{key}:</span>
+                        <span className={val === '(미감지)' ? 'text-yellow-500' : 'text-green-600'}>{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {excelResult.skippedRows && excelResult.skippedRows.length > 0 && (
-                <span className="block text-muted-foreground mt-1">
+                <p className="text-muted-foreground">
                   스킵: {excelResult.skippedRows.slice(0, 5).map((s) => `행 ${s.row} ${s.reason}`).join(', ')}
                   {excelResult.skippedRows.length > 5 && ` 외 ${excelResult.skippedRows.length - 5}건`}
-                </span>
+                </p>
               )}
-            </p>
+            </div>
           )}
         </div>
       )}

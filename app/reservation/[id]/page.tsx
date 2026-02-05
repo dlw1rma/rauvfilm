@@ -26,10 +26,6 @@ interface Reservation {
   isLocked?: boolean;
   overseasResident?: boolean;
   createdAt: string;
-  reply: {
-    content: string;
-    createdAt: string;
-  } | null;
   eventSnapApplications?: EventSnapItem[];
 }
 
@@ -399,25 +395,6 @@ export default function ReservationDetailPage() {
                 </button>
               </div>
         </article>
-
-        {/* Reply */}
-        {reservation.reply && (
-          <div className="mt-6 rounded-xl border border-accent/30 bg-accent/5 overflow-hidden">
-            <div className="border-b border-accent/20 px-6 py-4 flex items-center gap-2">
-              <span className="rounded bg-accent px-2 py-1 text-xs font-medium text-white">
-                답변
-              </span>
-              <span className="text-sm text-muted-foreground">
-                라우브필름 | {reservation.reply.createdAt.split("T")[0]}
-              </span>
-            </div>
-            <div className="p-6">
-              <div className="whitespace-pre-wrap text-muted-foreground">
-                {reservation.reply.content}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Password Modal */}
         {showPasswordModal && (

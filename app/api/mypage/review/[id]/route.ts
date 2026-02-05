@@ -63,8 +63,13 @@ export async function DELETE(
 
     // 트랜잭션으로 후기 삭제 및 할인 되돌리기
     await prisma.$transaction(async (tx) => {
-      // AUTO_APPROVED 상태였고 가성비형이 아니면 할인 되돌리기
-      if (review.status === 'AUTO_APPROVED' && review.reservation.productType !== '가성비형') {
+      // 후기 삭제
+      await tx.reviewSubmission.delete({
+        where: { id: reviewId },
+      });
+
+      // 가성비형이 아니고 할인이 적용되어 있었으면 체크
+      if (review.reservation.productType !== '가성비형') {
         const reservation = await tx.reservation.findUnique({
           where: { id: review.reservationId },
           select: {
@@ -75,29 +80,36 @@ export async function DELETE(
           },
         });
 
-        if (reservation) {
-          const newReviewDiscount = Math.max(0, (reservation.reviewDiscount || 0) - 10000);
-          const newDiscountAmount = Math.max(0, (reservation.discountAmount || 0) - 10000);
-          const totalAmount = reservation.totalAmount || 0;
-          const depositAmount = reservation.depositAmount || 100000;
-          const newFinalBalance = Math.max(0, totalAmount - depositAmount - newDiscountAmount);
-
-          await tx.reservation.update({
-            where: { id: review.reservationId },
-            data: {
-              reviewDiscount: newReviewDiscount,
-              discountAmount: newDiscountAmount,
-              finalBalance: newFinalBalance,
+        // 할인이 적용되어 있는 경우에만 되돌리기 체크
+        if (reservation && (reservation.reviewDiscount || 0) > 0) {
+          // 삭제 후 남은 승인된 후기 수 확인
+          const remainingApprovedCount = await tx.reviewSubmission.count({
+            where: {
+              reservationId: review.reservationId,
+              status: { in: ['AUTO_APPROVED', 'APPROVED'] },
             },
           });
+
+          // 남은 승인 후기가 2건 미만이면 할인 전체 제거
+          if (remainingApprovedCount < 2) {
+            const currentReviewDiscount = reservation.reviewDiscount || 0;
+            const newDiscountAmount = Math.max(0, (reservation.discountAmount || 0) - currentReviewDiscount);
+            const totalAmount = reservation.totalAmount || 0;
+            const depositAmount = reservation.depositAmount || 100000;
+            const newFinalBalance = Math.max(0, totalAmount - depositAmount - newDiscountAmount);
+
+            await tx.reservation.update({
+              where: { id: review.reservationId },
+              data: {
+                reviewDiscount: 0,
+                discountAmount: newDiscountAmount,
+                finalBalance: newFinalBalance,
+              },
+            });
+          }
         }
       }
       // 가성비형이면 할인을 적용하지 않았으므로 되돌릴 것도 없음
-
-      // 후기 삭제
-      await tx.reviewSubmission.delete({
-        where: { id: reviewId },
-      });
     });
 
     return NextResponse.json({

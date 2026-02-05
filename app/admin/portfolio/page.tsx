@@ -148,6 +148,47 @@ export default function AdminPortfolioPage() {
     }
   };
 
+  // 순서 변경 함수
+  const handleMoveOrder = async (id: number, direction: 'up' | 'down') => {
+    const sorted = [...portfolios].sort((a, b) => a.order - b.order);
+    const currentIdx = sorted.findIndex((p) => p.id === id);
+    if (currentIdx === -1) return;
+
+    const targetIdx = direction === 'up' ? currentIdx - 1 : currentIdx + 1;
+    if (targetIdx < 0 || targetIdx >= sorted.length) return;
+
+    const current = sorted[currentIdx];
+    const target = sorted[targetIdx];
+
+    try {
+      // 두 항목의 순서를 바꿈
+      await Promise.all([
+        fetch(`/api/portfolio/${current.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: target.order }),
+        }),
+        fetch(`/api/portfolio/${target.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: current.order }),
+        }),
+      ]);
+
+      // 로컬 상태 업데이트
+      setPortfolios((prev) =>
+        prev.map((p) => {
+          if (p.id === current.id) return { ...p, order: target.order };
+          if (p.id === target.id) return { ...p, order: current.order };
+          return p;
+        })
+      );
+    } catch (error) {
+      console.error("Move order error:", error);
+      alert("순서 변경에 실패했습니다.");
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -213,6 +254,7 @@ export default function AdminPortfolioPage() {
           <table className="w-full">
             <thead className="bg-muted text-sm">
               <tr>
+                <th className="px-4 py-3 text-center font-medium w-20">순서</th>
                 <th className="px-4 py-3 text-left font-medium">제목</th>
                 <th className="px-4 py-3 text-left font-medium">카테고리</th>
                 <th className="px-4 py-3 text-center font-medium">대표</th>
@@ -223,59 +265,94 @@ export default function AdminPortfolioPage() {
             <tbody className="divide-y divide-border">
               {portfolios.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                     등록된 포트폴리오가 없습니다.
                   </td>
                 </tr>
               ) : (
-                portfolios.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((portfolio) => (
-                  <tr key={portfolio.id} className="hover:bg-muted/50">
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{portfolio.title}</p>
-                      <p className="text-xs text-muted-foreground truncate max-w-xs">
-                        {portfolio.youtubeUrl}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-accent/10 px-2 py-1 text-xs text-accent">
-                        {portfolio.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {portfolio.featured ? (
-                        <span className="text-accent">★</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => toggleVisibility(portfolio.id, portfolio.isVisible)}
-                        className={`rounded-full px-2 py-1 text-xs ${
-                          portfolio.isVisible
-                            ? "bg-green-500/10 text-green-500"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {portfolio.isVisible ? "공개" : "비공개"}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleEdit(portfolio)}
-                        className="text-sm text-muted-foreground hover:text-foreground mr-3"
-                      >
-                        수정
-                      </button>
-                      <button
-                        onClick={() => handleDelete(portfolio.id)}
-                        className="text-sm text-accent hover:underline"
-                      >
-                        삭제
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                [...portfolios]
+                  .sort((a, b) => a.order - b.order)
+                  .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+                  .map((portfolio, idx) => {
+                    const globalIdx = (currentPage - 1) * PAGE_SIZE + idx;
+                    const sortedPortfolios = [...portfolios].sort((a, b) => a.order - b.order);
+                    const isFirst = globalIdx === 0;
+                    const isLast = globalIdx === sortedPortfolios.length - 1;
+
+                    return (
+                      <tr key={portfolio.id} className="hover:bg-muted/50">
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => handleMoveOrder(portfolio.id, 'up')}
+                              disabled={isFirst}
+                              className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="위로"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                              </svg>
+                            </button>
+                            <span className="text-xs text-muted-foreground w-6">{portfolio.order}</span>
+                            <button
+                              onClick={() => handleMoveOrder(portfolio.id, 'down')}
+                              disabled={isLast}
+                              className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="아래로"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{portfolio.title}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-xs">
+                            {portfolio.youtubeUrl}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-accent/10 px-2 py-1 text-xs text-accent">
+                            {portfolio.category}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {portfolio.featured ? (
+                            <span className="text-accent">★</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => toggleVisibility(portfolio.id, portfolio.isVisible)}
+                            className={`rounded-full px-2 py-1 text-xs ${
+                              portfolio.isVisible
+                                ? "bg-green-500/10 text-green-500"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {portfolio.isVisible ? "공개" : "비공개"}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => handleEdit(portfolio)}
+                            className="text-sm text-muted-foreground hover:text-foreground mr-3"
+                          >
+                            수정
+                          </button>
+                          <button
+                            onClick={() => handleDelete(portfolio.id)}
+                            className="text-sm text-accent hover:underline"
+                          >
+                            삭제
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
               )}
             </tbody>
           </table>

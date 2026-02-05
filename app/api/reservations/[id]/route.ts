@@ -32,9 +32,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
-      include: {
-        reply: true,
-      },
     });
 
     if (!reservation) {
@@ -172,10 +169,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         email: null,
         weddingDate: null,
         location: null,
-        reply: reservation.reply ? {
-          content: "비밀글입니다.",
-          createdAt: reservation.reply.createdAt
-        } : null,
       });
     }
 

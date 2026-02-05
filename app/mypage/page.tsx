@@ -66,25 +66,11 @@ interface EventSnapItem {
   createdAt: string;
 }
 
-interface WeatherData {
-  temperature: number | null;
-  humidity?: number | null;
-  weatherLabel: string;
-  dateLabel?: string;
-}
-
-interface WeatherTooFar {
-  tooFar: true;
-  date?: string;
-  message?: string;
-}
-
 export default function MypageDashboard() {
   const router = useRouter();
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [balance, setBalance] = useState<BalanceData | null>(null);
   const [eventSnapList, setEventSnapList] = useState<EventSnapItem[]>([]);
-  const [weather, setWeather] = useState<WeatherData | WeatherTooFar | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showAccountInfo, setShowAccountInfo] = useState(false);
@@ -101,7 +87,12 @@ export default function MypageDashboard() {
         ]);
 
         if (!bookingRes.ok) {
-          router.push('/mypage/login');
+          const errorData = await bookingRes.json().catch(() => ({}));
+          if (errorData.accessRestricted) {
+            router.push('/mypage/access-restricted');
+          } else {
+            router.push('/mypage/login');
+          }
           return;
         }
 
@@ -134,47 +125,6 @@ export default function MypageDashboard() {
 
     fetchData();
   }, [router]);
-
-  // 날씨: 확정된 야외스냅/프리웨딩 일정에 맞춰 표시 (확정된 것만, 없으면 예식일)
-  useEffect(() => {
-    if (!booking) return;
-    const weddingDateStr = booking.weddingDate?.slice(0, 10);
-    const confirmedWithDate = eventSnapList
-      .filter((ev) => ev.status === "CONFIRMED" && !!ev.shootDate)
-      .map((ev) => ({ ...ev, shootDateNorm: ev.shootDate!.slice(0, 10) }))
-      .sort((a, b) => a.shootDateNorm.localeCompare(b.shootDateNorm));
-    const weatherDate = confirmedWithDate[0]?.shootDateNorm ?? weddingDateStr;
-    if (!weatherDate) return;
-
-    const fetchWeather = async () => {
-      try {
-        const res = await fetch(`/api/weather?date=${encodeURIComponent(weatherDate)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.tooFar) {
-          setWeather({ tooFar: true, date: data.date, message: data.message ?? '일정이 너무 멀어 아직 날씨 정보가 없습니다.' });
-          return;
-        }
-        const dateLabel = (() => {
-          try {
-            const d = new Date(weatherDate);
-            return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) + ' 예상 날씨';
-          } catch {
-            return undefined;
-          }
-        })();
-        setWeather({
-          temperature: data.temperature ?? null,
-          humidity: data.humidity ?? null,
-          weatherLabel: data.weatherLabel ?? '—',
-          dateLabel,
-        });
-      } catch {
-        // ignore
-      }
-    };
-    fetchWeather();
-  }, [booking, eventSnapList]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/customer-logout', { method: 'POST' });
@@ -270,9 +220,28 @@ export default function MypageDashboard() {
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
             </div>
 
-            {/* 최종 DVD 진행비용 (읽기 전용) */}
-            <div className="rounded-2xl border border-border bg-background p-4 sm:p-6 mb-5 sm:mb-8">
-              <h3 className="font-semibold mb-4">최종 DVD 진행비용</h3>
+            {/* 최종 DVD 진행비용 (캡처/공유 가능) */}
+            <div id="final-cost-card" className="rounded-2xl border border-border bg-background p-4 sm:p-6 mb-5 sm:mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">최종 DVD 진행비용</h3>
+                <button
+                  onClick={async () => {
+                    const costText = `[라우브필름 최종 비용]\n${booking.customerName}님\n예식일: ${weddingDate.toLocaleDateString('ko-KR')}\n장소: ${booking.weddingVenue}\n\n상품: ${balance.product.name} ${balance.product.basePriceFormatted}${balance.additionalOptions.map(o => `\n+ ${o.label}: ${o.amountFormatted}`).join('')}\n\n총 금액: ${balance.listPriceFormatted}\n예약금: -${balance.depositAmountFormatted}${balance.discounts.map(d => `\n${d.label}: -${d.amountFormatted}`).join('')}\n\n최종 잔금: ${balance.finalBalanceFormatted}`;
+                    try {
+                      await navigator.clipboard.writeText(costText);
+                      alert('비용 내역이 복사되었습니다.');
+                    } catch {
+                      alert('복사에 실패했습니다.');
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/50 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                  </svg>
+                  복사
+                </button>
+              </div>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{balance.product.name}</span>
@@ -307,10 +276,13 @@ export default function MypageDashboard() {
                   </div>
                 ))}
                 <div className="border-t border-border pt-3 mt-3">
-                  <div className="flex justify-between font-semibold">
+                  <div className="flex justify-between font-semibold text-base">
                     <span>최종 잔금</span>
                     <span className="text-green-400">{balance.finalBalanceFormatted}</span>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    잔금은 예식 당일 현장에서 입금해 주세요.
+                  </p>
                 </div>
               </div>
             </div>
@@ -397,25 +369,6 @@ export default function MypageDashboard() {
                     <span className="text-white/70">상태</span>
                     <p className="font-medium">{booking.statusLabel}</p>
                   </div>
-                  {weather && (
-                    <div className="bg-white/20 backdrop-blur rounded-lg px-3 sm:px-4 py-2">
-                      {'tooFar' in weather ? (
-                        <>
-                          <span className="text-white/70">날씨</span>
-                          <p className="font-medium">{weather.message ?? '일정이 너무 멀어 아직 날씨 정보가 없습니다.'}</p>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-white/70">{weather.dateLabel ?? '날씨'}</span>
-                          <p className="font-medium">
-                            {weather.weatherLabel}
-                            {weather.temperature != null ? ` ${Math.round(weather.temperature)}°C` : ''}
-                            {weather.humidity != null ? ` · 습도 ${weather.humidity}%` : ''}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />

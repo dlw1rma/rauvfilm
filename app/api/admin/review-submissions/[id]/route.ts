@@ -5,17 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import { validateSessionToken } from '@/lib/auth';
 import { safeParseInt } from '@/lib/validation';
-
-async function isAdminAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get('admin_session');
-  if (!adminSession?.value) return false;
-  // 서명 검증 추가
-  return validateSessionToken(adminSession.value);
-}
+import { isAdminAuthenticated } from '@/lib/api';
 
 export async function PUT(
   request: NextRequest,
@@ -63,6 +54,7 @@ export async function PUT(
 
     if (action === 'approve') {
       // 후기 승인
+      let discountApplied = false;
       await prisma.$transaction(async (tx) => {
         // 후기 상태 업데이트
         await tx.reviewSubmission.update({
@@ -74,32 +66,49 @@ export async function PUT(
           },
         });
 
-        // 예약에 후기 할인 적용 (이미 적용된 할인이 아닌 경우, 가성비형이 아닌 경우만)
-        if (review.status !== 'AUTO_APPROVED' && review.reservation.productType !== '가성비형') {
-          const currentDiscount = review.reservation.reviewDiscount || 0;
-          const currentDiscountAmount = review.reservation.discountAmount || 0;
-          const totalAmount = review.reservation.totalAmount || 0;
-          const depositAmount = review.reservation.depositAmount || 100000;
-          const newReviewDiscount = currentDiscount + 10000;
-          const newDiscountAmount = currentDiscountAmount + 10000;
-          const newFinalBalance = Math.max(0, totalAmount - depositAmount - newDiscountAmount);
-          
-          await tx.reservation.update({
-            where: { id: review.reservationId },
-            data: {
-              reviewDiscount: newReviewDiscount,
-              discountAmount: newDiscountAmount,
-              finalBalance: newFinalBalance,
+        // 예약에 후기 할인 적용 (가성비형이 아닌 경우, 2건 이상일 때만)
+        if (review.reservation.productType !== '가성비형') {
+          // 승인된 후기 수 확인 (방금 승인한 것 포함하여 다시 카운트)
+          const approvedCount = await tx.reviewSubmission.count({
+            where: {
+              reservationId: review.reservationId,
+              status: { in: ['AUTO_APPROVED', 'APPROVED'] },
             },
           });
+
+          // 2건 이상이고 아직 할인이 적용되지 않았으면 적용
+          const currentDiscount = review.reservation.reviewDiscount || 0;
+          if (approvedCount >= 2 && currentDiscount === 0) {
+            const currentDiscountAmount = review.reservation.discountAmount || 0;
+            const totalAmount = review.reservation.totalAmount || 0;
+            const depositAmount = review.reservation.depositAmount || 100000;
+            const newReviewDiscount = 20000; // 2건 작성 시 2만원 할인
+            const newDiscountAmount = currentDiscountAmount + 20000;
+            const newFinalBalance = Math.max(0, totalAmount - depositAmount - newDiscountAmount);
+
+            await tx.reservation.update({
+              where: { id: review.reservationId },
+              data: {
+                reviewDiscount: newReviewDiscount,
+                discountAmount: newDiscountAmount,
+                finalBalance: newFinalBalance,
+              },
+            });
+            discountApplied = true;
+          }
         }
         // 가성비형이면 할인 없이 원본영상만 전달 (할인 적용 안 함)
       });
 
-      // 가성비형이면 원본영상 전달, 아니면 할인 적용
-      const message = review.reservation.productType === '가성비형'
-        ? '후기가 승인되었습니다. 원본영상이 전달됩니다.'
-        : '후기가 승인되었습니다. 1만원 할인이 적용됩니다.';
+      // 가성비형이면 원본영상 전달, 아니면 할인 적용 여부에 따라 메시지
+      let message: string;
+      if (review.reservation.productType === '가성비형') {
+        message = '후기가 승인되었습니다. 원본영상이 전달됩니다.';
+      } else if (discountApplied) {
+        message = '후기가 승인되었습니다. 2건 작성 완료로 2만원 할인이 적용됩니다.';
+      } else {
+        message = '후기가 승인되었습니다. (할인은 2건 작성 시 적용됩니다)';
+      }
 
       return NextResponse.json({
         success: true,

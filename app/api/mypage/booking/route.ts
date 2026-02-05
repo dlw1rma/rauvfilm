@@ -21,9 +21,6 @@ export async function GET() {
 
     const reservation = await prisma.reservation.findUnique({
       where: { id: session.reservationId },
-      include: {
-        reply: true,
-      },
     });
 
     if (!reservation) {
@@ -33,11 +30,21 @@ export async function GET() {
       );
     }
 
-    // 예약 상태 한글 변환
+    // 예약 확정 전이면 접근 제한 (취소된 경우도 허용하여 안내 표시)
+    if (reservation.status !== 'CONFIRMED' &&
+        reservation.status !== 'DEPOSIT_COMPLETED' &&
+        reservation.status !== 'DELIVERED' &&
+        reservation.status !== 'CANCELLED') {
+      return NextResponse.json(
+        { error: '예약이 확정되지 않았습니다.', accessRestricted: true },
+        { status: 403 }
+      );
+    }
+
+    // 예약 상태 한글 변환 (간소화된 3단계)
     const statusLabels: Record<string, string> = {
-      PENDING: '예약 대기',
       CONFIRMED: '예약 확정',
-      COMPLETED: '촬영 완료',
+      DEPOSIT_COMPLETED: '입금 완료',
       DELIVERED: '영상 전달 완료',
       CANCELLED: '취소됨',
     };
@@ -56,7 +63,7 @@ export async function GET() {
         weddingVenue: reservation.venueName,
         weddingTime: reservation.weddingTime,
         status: reservation.status,
-        statusLabel: statusLabels[reservation.status || 'PENDING'] || '예약 대기',
+        statusLabel: statusLabels[reservation.status || 'CONFIRMED'] || '예약 확정',
         partnerCode: partnerCode,
         discountCouple: reservation.discountCouple,
         videoUrl: reservation.videoUrl,
@@ -72,7 +79,6 @@ export async function GET() {
           name: '2026 신년 할인',
           amount: 50000,
         } : null,
-        hasReply: !!reservation.reply,
       },
     });
   } catch (error) {

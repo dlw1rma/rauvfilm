@@ -66,8 +66,9 @@ export function encrypt(text: string | null | undefined): string | null {
     return result;
   } catch (error) {
     console.error('암호화 오류:', error);
-    // 암호화 실패 시 원본 반환 (기존 데이터 호환성)
-    return text;
+    // 암호화 실패 시 null 반환 (보안을 위해 평문 저장 대신 저장 실패 유도)
+    // 호출하는 쪽에서 null 체크 후 처리해야 함
+    return null;
   }
 }
 

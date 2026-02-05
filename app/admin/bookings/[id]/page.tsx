@@ -77,15 +77,15 @@ interface BookingDetail {
     reviewRefundAccount: string | null;
     reviewRefundDepositorName: string | null;
     reviewDiscount: boolean | null;
+    createdAt: string | null;
   } | null;
 }
 
 const statusLabels: Record<string, string> = {
-  PENDING: '예약 대기',
-  CONFIRMED: '예약 확정',
-  DEPOSIT_PAID: '예약금 입금 완료',
-  COMPLETED: '촬영 완료',
-  DELIVERED: '영상 전달 완료',
+  PENDING: '검토중',
+  CONFIRMED: '예약확정',
+  DEPOSIT_COMPLETED: '입금완료',
+  DELIVERED: '전달완료',
   CANCELLED: '취소',
 };
 
@@ -346,10 +346,13 @@ export default function AdminBookingDetailPage() {
           <h1 className="text-2xl font-bold">예약 상세</h1>
           {booking.reservationId != null && (
             <Link
-              href={`/admin/reservations?reservationId=${booking.reservationId}`}
-              className="text-sm text-accent hover:underline"
+              href={`/admin/reservations/${booking.reservationId}/edit`}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-accent text-white hover:bg-accent/90"
             >
-              연결된 예약글 보기
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+              예약글 수정
             </Link>
           )}
         </div>
@@ -392,6 +395,12 @@ export default function AdminBookingDetailPage() {
         <div className="bg-background rounded-xl border border-border p-6">
           <h2 className="text-lg font-semibold mb-4">예식 정보</h2>
           <dl className="space-y-3">
+            {booking.reservationInfo?.createdAt && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">예약글 작성일</dt>
+                <dd className="font-medium text-accent">{new Date(booking.reservationInfo.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-muted-foreground">예식일</dt>
               <dd className="font-medium">{new Date(booking.weddingDate).toLocaleDateString('ko-KR')}</dd>
@@ -463,10 +472,10 @@ export default function AdminBookingDetailPage() {
             <div className="flex items-center justify-between mb-6">
               {[
                 { key: 'CONFIRMED', label: '예약확정' },
-                { key: 'DEPOSIT_PAID', label: '입금완료' },
+                { key: 'DEPOSIT_COMPLETED', label: '입금완료' },
                 { key: 'DELIVERED', label: '전달완료' },
               ].map((step, idx, arr) => {
-                const stepOrder = ['PENDING', 'CONFIRMED', 'DEPOSIT_PAID', 'DELIVERED'];
+                const stepOrder = ['PENDING', 'CONFIRMED', 'DEPOSIT_COMPLETED', 'DELIVERED'];
                 const currentIdx = stepOrder.indexOf(booking.status);
                 const stepIdx = stepOrder.indexOf(step.key);
                 const isDone = currentIdx >= stepIdx;
@@ -518,9 +527,9 @@ export default function AdminBookingDetailPage() {
           {booking.status === 'CONFIRMED' && (
             <button
               onClick={() => {
-                setStatus('DEPOSIT_PAID');
+                setStatus('DEPOSIT_COMPLETED');
                 setTimeout(() => {
-                  handleSaveStatusDirect('DEPOSIT_PAID');
+                  handleSaveStatusDirect('DEPOSIT_COMPLETED');
                 }, 0);
               }}
               disabled={saving}
@@ -530,7 +539,7 @@ export default function AdminBookingDetailPage() {
             </button>
           )}
 
-          {booking.status === 'DEPOSIT_PAID' && (
+          {booking.status === 'DEPOSIT_COMPLETED' && (
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-600">
               영상 링크를 저장하면 자동으로 전달 완료 처리됩니다.
             </div>
@@ -566,8 +575,8 @@ export default function AdminBookingDetailPage() {
             </div>
           )}
 
-          {/* 취소 버튼 (PENDING/CONFIRMED/DEPOSIT_PAID 상태에서만) */}
-          {['PENDING', 'CONFIRMED', 'DEPOSIT_PAID'].includes(booking.status) && (
+          {/* 취소 버튼 (PENDING/CONFIRMED/DEPOSIT_COMPLETED 상태에서만) */}
+          {['PENDING', 'CONFIRMED', 'DEPOSIT_COMPLETED'].includes(booking.status) && (
             <button
               onClick={() => {
                 if (!confirm('예약을 취소하시겠습니까?')) return;

@@ -1,18 +1,35 @@
 import { SolapiMessageService } from 'solapi';
 import { prisma } from '@/lib/prisma';
 
-const apiKey = (process.env.SOLAPI_API_KEY || '').replace(/^["']|["']$/g, '');
-const apiSecret = (process.env.SOLAPI_API_SECRET || '').replace(/^["']|["']$/g, '');
-const senderNumber = (process.env.SOLAPI_SENDER_NUMBER || '').replace(/^["']|["']$/g, '').replace(/-/g, '');
+// 환경변수에서 따옴표 제거 (일부 .env 파서 호환)
+function cleanEnvValue(value: string | undefined): string {
+  if (!value) return '';
+  return value.replace(/^["']|["']$/g, '');
+}
+
+function getSolapiConfig() {
+  const apiKey = cleanEnvValue(process.env.SOLAPI_API_KEY);
+  const apiSecret = cleanEnvValue(process.env.SOLAPI_API_SECRET);
+  const senderNumber = cleanEnvValue(process.env.SOLAPI_SENDER_NUMBER).replace(/-/g, '');
+
+  if (!apiKey || !apiSecret || !senderNumber) {
+    return null;
+  }
+
+  return { apiKey, apiSecret, senderNumber };
+}
 
 let messageService: SolapiMessageService | null = null;
+let cachedSenderNumber: string | null = null;
 
 function getMessageService(): SolapiMessageService {
   if (!messageService) {
-    if (!apiKey || !apiSecret) {
-      throw new Error('SOLAPI_API_KEY 또는 SOLAPI_API_SECRET이 설정되지 않았습니다.');
+    const config = getSolapiConfig();
+    if (!config) {
+      throw new Error('SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER_NUMBER 환경변수가 설정되지 않았습니다.');
     }
-    messageService = new SolapiMessageService(apiKey, apiSecret);
+    messageService = new SolapiMessageService(config.apiKey, config.apiSecret);
+    cachedSenderNumber = config.senderNumber;
   }
   return messageService;
 }
@@ -31,9 +48,13 @@ export async function sendKakaoAlimtalk(
   const service = getMessageService();
   const cleanTo = to.replace(/-/g, '');
 
+  if (!cachedSenderNumber) {
+    throw new Error('발신 번호가 설정되지 않았습니다.');
+  }
+
   const result = await service.sendOne({
     to: cleanTo,
-    from: senderNumber,
+    from: cachedSenderNumber,
     kakaoOptions: {
       pfId: channelId,
       templateId,

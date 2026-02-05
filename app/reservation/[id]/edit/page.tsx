@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { isBudgetProduct } from "@/lib/constants";
 
 type ProductType = "가성비형" | "기본형" | "시네마틱형" | "야외스냅" | "프리웨딩" | "";
 type EventType = "야외스냅" | "프리웨딩" | "";
@@ -754,7 +755,9 @@ export default function EditReservationPage() {
                       className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                     />
                     <label htmlFor="discountReviewBlog" className="text-sm">
-                      블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)
+                      {isBudgetProduct(formData.productType)
+                        ? "블로그와 카페 예약후기 (1건 작성 시 원본 전달)"
+                        : "블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)"}
                     </label>
                   </div>
                 </div>

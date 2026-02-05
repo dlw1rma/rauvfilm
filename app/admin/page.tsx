@@ -92,18 +92,7 @@ export default function AdminPage() {
 
   const menuItems = [
     {
-      name: "예약글 관리",
-      href: "/admin/reservations",
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-        </svg>
-      ),
-      count: stats.reservations.pending,
-      description: "예약글 확인 및 편집",
-    },
-    {
-      name: "예약(북킹)",
+      name: "예약관리",
       href: "/admin/bookings",
       icon: (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
@@ -520,7 +509,7 @@ export default function AdminPage() {
             <p className="text-3xl font-bold mt-1">{stats.reservations.total}</p>
           </div>
           <div className="rounded-xl border border-border bg-muted p-6">
-            <p className="text-sm text-muted-foreground">대기중</p>
+            <p className="text-sm text-muted-foreground">검토중</p>
             <p className="text-3xl font-bold mt-1">{stats.reservations.pending}</p>
           </div>
           <div className="rounded-xl border border-border bg-muted p-6">

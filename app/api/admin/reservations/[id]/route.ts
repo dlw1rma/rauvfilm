@@ -28,9 +28,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
-      include: {
-        reply: true,
-      },
     });
 
     if (!reservation) {

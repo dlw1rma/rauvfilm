@@ -115,3 +115,122 @@ export function parseVenueRegion(venueRegion: string): { region: string; distric
   };
 }
 
+// ===== 추가 옵션 가격 =====
+export const OPTION_PRICES = {
+  makeupShoot: 200000,    // 메이크업샵 촬영
+  paebaekShoot: 50000,    // 폐백 촬영
+  receptionShoot: 50000,  // 피로연(2부) 촬영
+  usbOption: 20000,       // USB 추가
+} as const;
+
+export type OptionKey = keyof typeof OPTION_PRICES;
+
+/**
+ * 추가 옵션 총 금액 계산
+ */
+export function calculateOptionsTotal(options: Partial<Record<OptionKey, boolean>>): number {
+  let total = 0;
+  for (const [key, value] of Object.entries(options)) {
+    if (value && key in OPTION_PRICES) {
+      total += OPTION_PRICES[key as OptionKey];
+    }
+  }
+  return total;
+}
+
+/**
+ * 추가 옵션 상세 계산 결과
+ */
+export interface OptionDetail {
+  key: OptionKey;
+  label: string;
+  price: number;
+}
+
+export function getSelectedOptions(options: Partial<Record<OptionKey, boolean>>): OptionDetail[] {
+  const labels: Record<OptionKey, string> = {
+    makeupShoot: '메이크업샵 촬영',
+    paebaekShoot: '폐백 촬영',
+    receptionShoot: '피로연(2부) 촬영',
+    usbOption: 'USB 추가',
+  };
+
+  return Object.entries(options)
+    .filter(([key, value]) => value && key in OPTION_PRICES)
+    .map(([key]) => ({
+      key: key as OptionKey,
+      label: labels[key as OptionKey],
+      price: OPTION_PRICES[key as OptionKey],
+    }));
+}
+
+/**
+ * 전체 가격 계산 (상품가 + 옵션 + 출장비 - 할인 - 예약금)
+ */
+export interface FullPriceCalculation {
+  productPrice: number;
+  customPrice: number | null;
+  basePrice: number;
+  options: OptionDetail[];
+  optionsTotal: number;
+  travelFee: number;
+  subtotal: number;
+  discounts: {
+    event: { name: string; amount: number } | null;
+    couple: number;
+    special: number;
+    total: number;
+  };
+  deposit: number;
+  finalBalance: number;
+}
+
+export function calculateFullPrice(params: {
+  productPrice: number;
+  customPrice?: number | null;
+  options?: Partial<Record<OptionKey, boolean>>;
+  travelFee?: number;
+  eventDiscount?: { name: string; amount: number } | null;
+  coupleDiscount?: boolean;
+  specialDiscount?: number;
+}): FullPriceCalculation {
+  const {
+    productPrice,
+    customPrice = null,
+    options = {},
+    travelFee = 0,
+    eventDiscount = null,
+    coupleDiscount = false,
+    specialDiscount = 0,
+  } = params;
+
+  const selectedOptions = getSelectedOptions(options);
+  const optionsTotal = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
+  const basePrice = customPrice && customPrice > 0 ? customPrice : productPrice;
+  const subtotal = basePrice + optionsTotal + travelFee;
+
+  const coupleAmount = coupleDiscount ? REFERRAL_DISCOUNT_AMOUNT : 0;
+  const eventAmount = eventDiscount?.amount || 0;
+  const totalDiscount = eventAmount + coupleAmount + specialDiscount;
+
+  const finalBalance = Math.max(0, subtotal - DEFAULT_DEPOSIT_AMOUNT - totalDiscount);
+
+  return {
+    productPrice,
+    customPrice,
+    basePrice,
+    options: selectedOptions,
+    optionsTotal,
+    travelFee,
+    subtotal,
+    discounts: {
+      event: eventDiscount,
+      couple: coupleAmount,
+      special: specialDiscount,
+      total: totalDiscount,
+    },
+    deposit: DEFAULT_DEPOSIT_AMOUNT,
+    finalBalance,
+  };
+}
+

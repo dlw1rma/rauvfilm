@@ -7,18 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
 import { setCustomPartnerCode } from '@/lib/partnerCode';
-import { validateSessionToken } from '@/lib/auth';
 import { safeParseInt, sanitizeString } from '@/lib/validation';
-
-async function isAdminAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get('admin_session');
-  if (!adminSession?.value) return false;
-  // 서명 검증 추가
-  return validateSessionToken(adminSession.value);
-}
+import { isAdminAuthenticated } from '@/lib/api';
 
 export async function PUT(
   request: NextRequest,
@@ -57,9 +48,10 @@ export async function PUT(
       return NextResponse.json({ error: '예약을 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    if (booking.status === 'PENDING') {
+    // 취소된 예약은 코드 수정 불가
+    if (booking.status === 'CANCELLED') {
       return NextResponse.json(
-        { error: '예약이 확정된 후에만 짝꿍 코드를 수정할 수 있습니다.' },
+        { error: '취소된 예약은 짝꿍 코드를 수정할 수 없습니다.' },
         { status: 400 }
       );
     }

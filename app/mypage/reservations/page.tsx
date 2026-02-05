@@ -23,7 +23,6 @@ interface Reservation {
   status: string;
   statusLabel: string;
   createdAt: string;
-  hasReply: boolean;
   eventSnapApplications?: EventSnapApp[];
 }
 
@@ -56,8 +55,8 @@ export default function MyReservationsPage() {
 
   const statusColors: Record<string, string> = {
     PENDING: 'bg-yellow-500/10 text-yellow-600',
-    CONFIRMED: 'bg-green-500/10 text-green-600',
-    COMPLETED: 'bg-blue-500/10 text-blue-600',
+    CONFIRMED: 'bg-blue-500/10 text-blue-600',
+    DEPOSIT_COMPLETED: 'bg-green-500/10 text-green-600',
     DELIVERED: 'bg-purple-500/10 text-purple-600',
     CANCELLED: 'bg-red-500/10 text-red-600',
   };

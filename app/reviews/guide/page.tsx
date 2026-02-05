@@ -40,6 +40,23 @@ export default function ReviewGuidePage() {
             <span>🎁</span>
             후기 작성 혜택
           </h2>
+
+          {/* 가성비형/1인1캠 안내 */}
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-5 mb-6">
+            <div className="flex items-start gap-3">
+              <span className="text-lg flex-shrink-0">⚠️</span>
+              <div>
+                <p className="font-bold text-foreground mb-1">가성비형 (1인 1캠) 상품 안내</p>
+                <p className="text-sm text-muted-foreground">
+                  가성비형 상품은 <strong className="text-foreground">1건만 인정</strong>되며, 작성 시 <strong className="text-foreground">원본영상을 전달</strong>해드립니다.<br />
+                  (할인 혜택은 적용되지 않습니다)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground mb-4">※ 아래 혜택은 기본형, 시네마틱형 상품에 적용됩니다.</p>
+
           <div className="space-y-4">
             <div className="bg-muted rounded-xl p-6 border-l-4 border-accent">
               <div className="flex items-start gap-4">
@@ -75,15 +92,14 @@ export default function ReviewGuidePage() {
                 <div>
                   <h3 className="text-foreground font-bold text-lg mb-2">3건 작성 시</h3>
                   <p className="text-muted-foreground">
-                    <strong className="text-foreground">3만원 할인</strong> + <strong className="text-foreground">SNS 영상 제공</strong> + <strong className="text-foreground">원본 전체 제공</strong>
+                    <strong className="text-foreground">2만원 할인</strong> + <strong className="text-foreground">SNS 영상 제공</strong> + <strong className="text-foreground">원본 전체 제공</strong>
                   </p>
                 </div>
               </div>
             </div>
           </div>
           <div className="mt-4 text-sm text-muted-foreground">
-            <p>※ 블로그/카페 각 1건씩 작성 가능 (최대 2건)</p>
-            <p>※ 3건 이상은 등록할 수 없습니다</p>
+            <p>※ 블로그/카페 각 1건씩 작성 가능 (최대 3건)</p>
           </div>
         </div>
 

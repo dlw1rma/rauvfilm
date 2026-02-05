@@ -7,19 +7,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
 import { calculateBalance, formatKRW } from '@/lib/pricing';
-import { validateSessionToken } from '@/lib/auth';
-import { safeParseInt, sanitizeString } from '@/lib/validation';
+import { safeParseInt } from '@/lib/validation';
 import { encrypt, decrypt } from '@/lib/encryption';
-
-async function isAdminAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get('admin_session');
-  if (!adminSession?.value) return false;
-  // 서명 검증 추가
-  return validateSessionToken(adminSession.value);
-}
+import { isAdminAuthenticated } from '@/lib/api';
 
 /**
  * 예약 상세 조회
@@ -117,6 +108,7 @@ export async function GET(
             reviewRefundAccount: true,
             reviewRefundDepositorName: true,
             reviewDiscount: true,
+            createdAt: true,
           },
         });
         if (reservation) {
@@ -263,21 +255,11 @@ export async function PUT(
           reservationUpdateData.weddingTime = body.weddingTime;
         }
         if (body.status !== undefined) {
-          reservationUpdateData.status = body.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING';
-          
-          // 예약확정 시 Reply 생성
-          if (body.status === 'CONFIRMED') {
-            const existingReply = await prisma.reply.findUnique({
-              where: { reservationId: booking.reservationId },
-            });
-            if (!existingReply) {
-              await prisma.reply.create({
-                data: {
-                  reservationId: booking.reservationId,
-                  content: '예약 확정되었습니다.',
-                },
-              });
-            }
+          // 새로운 상태 체계에 맞춰 Reservation 상태 동기화
+          if (body.status === 'CANCELLED') {
+            reservationUpdateData.status = 'CANCELLED';
+          } else {
+            reservationUpdateData.status = 'CONFIRMED';
           }
         }
 

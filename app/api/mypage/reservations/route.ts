@@ -94,9 +94,9 @@ export async function GET() {
 
     // 예약 상태 한글 변환
     const statusLabels: Record<string, string> = {
-      PENDING: '예약 대기',
+      PENDING: '검토중',
       CONFIRMED: '예약 확정',
-      COMPLETED: '촬영 완료',
+      DEPOSIT_COMPLETED: '입금 완료',
       DELIVERED: '영상 전달 완료',
       CANCELLED: '취소됨',
     };
@@ -123,9 +123,8 @@ export async function GET() {
         venueName: reservation.venueName,
         productType: reservation.productType,
         status: reservation.status,
-        statusLabel: statusLabels[reservation.status || 'PENDING'] || '예약 대기',
+        statusLabel: statusLabels[reservation.status || 'CONFIRMED'] || '예약 확정',
         createdAt: reservation.createdAt,
-        hasReply: false,
         eventSnapApplications: eventSnapMap.get(reservation.id) ?? [],
       })),
     });

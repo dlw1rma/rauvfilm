@@ -6,22 +6,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
 import { formatKRW } from '@/lib/pricing';
-import { safeParseInt, sanitizeString, normalizePhone } from '@/lib/validation';
+import { safeParseInt, sanitizeString } from '@/lib/validation';
 import { encrypt } from '@/lib/encryption';
+import { isAdminAuthenticated } from '@/lib/api';
 import bcrypt from 'bcryptjs';
-
-import { validateSessionToken } from '@/lib/auth';
-
-// 관리자 인증 확인
-async function isAdminAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get('admin_session');
-  if (!adminSession?.value) return false;
-  // 서명 검증 추가
-  return validateSessionToken(adminSession.value);
-}
 
 /**
  * 예약 목록 조회
@@ -85,7 +74,7 @@ export async function GET(request: NextRequest) {
           product: true,
           discountEvent: true,
         },
-        orderBy: { weddingDate: 'asc' },
+        orderBy: { createdAt: 'desc' }, // 최신 등록순
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -171,9 +160,29 @@ export async function POST(request: NextRequest) {
       weddingVenue,
       weddingTime,
       productId,
+      customListPrice,
       discountEventId,
+      specialDiscount,
+      specialDiscountReason,
+      travelFee,
       referredBy,
       adminNote,
+      // 추가 필드
+      brideName,
+      bridePhone,
+      groomName,
+      groomPhone,
+      makeupShoot,
+      paebaekShoot,
+      receptionShoot,
+      usbOption,
+      seonwonpan,
+      discountNewYear,
+      discountCouple,
+      discountReview,
+      discountReviewBlog,
+      mainSnapCompany,
+      partnerCode,
     } = body;
 
     // 필수 필드 검증
@@ -213,6 +222,14 @@ export async function POST(request: NextRequest) {
     // 전화번호 정규화
     const normalizedPhone = customerPhone.replace(/[^0-9]/g, '');
 
+    // 금액 계산: 직접 입력 금액이 있으면 사용, 없으면 상품 가격
+    const listPrice = customListPrice && customListPrice > 0 ? customListPrice : product.price;
+    const travelFeeAmount = travelFee || 0;
+    const specialDiscountAmount = specialDiscount || 0;
+
+    // 잔금 계산: 금액 + 출장비 - 예약금(10만원) - 이벤트할인 - 특별할인
+    const finalBalance = Math.max(0, listPrice + travelFeeAmount - 100000 - eventDiscount - specialDiscountAmount);
+
     // 예약 생성
     const booking = await prisma.booking.create({
       data: {
@@ -223,13 +240,15 @@ export async function POST(request: NextRequest) {
         weddingVenue,
         weddingTime: weddingTime || null,
         productId,
-        listPrice: product.price,
+        listPrice,
+        travelFee: travelFeeAmount,
         discountEventId: discountEventId || null,
-        eventDiscount,
+        eventDiscount: eventDiscount + specialDiscountAmount, // 특별 할인도 이벤트 할인에 합산
         referredBy: referredBy || null,
-        adminNote: adminNote || null,
-        // 잔금 계산
-        finalBalance: product.price - 100000 - eventDiscount,
+        adminNote: specialDiscountReason
+          ? `[특별할인: ${specialDiscountAmount.toLocaleString()}원 - ${specialDiscountReason}]\n${adminNote || ''}`.trim()
+          : (adminNote || null),
+        finalBalance,
       },
       include: {
         product: true,
@@ -244,14 +263,22 @@ export async function POST(request: NextRequest) {
       const hashedPassword = await bcrypt.hash('booking-sync', 10);
       const encryptedAuthor = encrypt(customerName.trim()) ?? customerName.trim();
 
+      // 신부/신랑 정보 암호화
+      const encryptedBrideName = brideName ? (encrypt(brideName) || null) : null;
+      const encryptedBridePhone = bridePhone ? (encrypt(bridePhone) || null) : null;
+      const encryptedGroomName = groomName ? (encrypt(groomName) || null) : null;
+      const encryptedGroomPhone = groomPhone ? (encrypt(groomPhone) || null) : null;
+
       const reservation = await prisma.reservation.create({
         data: {
           title,
           author: encryptedAuthor,
           password: hashedPassword,
-          content: `예약관리에서 생성됨: ${weddingVenue}`,
+          content: specialDiscountReason
+            ? `예약관리에서 생성됨: ${weddingVenue}\n[특별할인: ${specialDiscountAmount.toLocaleString()}원 - ${specialDiscountReason}]`
+            : `예약관리에서 생성됨: ${weddingVenue}`,
           isPrivate: true,
-          status: booking.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING',
+          status: 'CONFIRMED',
           weddingDate: weddingDateStr,
           weddingTime: weddingTime || null,
           venueName: weddingVenue,
@@ -259,11 +286,29 @@ export async function POST(request: NextRequest) {
           termsAgreed: true,
           faqRead: true,
           privacyAgreed: true,
-          totalAmount: product.price,
+          travelFee: travelFeeAmount,
+          totalAmount: listPrice,
           depositAmount: 100000,
-          discountAmount: eventDiscount,
-          finalBalance: product.price - 100000 - eventDiscount,
+          discountAmount: eventDiscount + specialDiscountAmount,
+          finalBalance,
           bookingId: booking.id,
+          // 추가 필드
+          brideName: encryptedBrideName,
+          bridePhone: encryptedBridePhone,
+          groomName: encryptedGroomName,
+          groomPhone: encryptedGroomPhone,
+          makeupShoot: makeupShoot || false,
+          paebaekShoot: paebaekShoot || false,
+          receptionShoot: receptionShoot || false,
+          usbOption: usbOption || false,
+          seonwonpan: seonwonpan || false,
+          discountNewYear: discountNewYear || false,
+          discountCouple: discountCouple || false,
+          discountReview: discountReview || false,
+          discountReviewBlog: discountReviewBlog || false,
+          mainSnapCompany: mainSnapCompany || null,
+          partnerCode: partnerCode || null,
+          referredBy: referredBy || null,
         },
       });
 
@@ -272,16 +317,6 @@ export async function POST(request: NextRequest) {
         where: { id: booking.id },
         data: { reservationId: reservation.id },
       });
-
-      // 예약확정 상태면 Reply 생성
-      if (booking.status === 'CONFIRMED') {
-        await prisma.reply.create({
-          data: {
-            reservationId: reservation.id,
-            content: '예약 확정되었습니다.',
-          },
-        });
-      }
     } catch (syncError) {
       console.error('예약글 동기화 생성 오류 (계속 진행):', syncError);
       // 동기화 실패해도 Booking 생성은 성공으로 처리

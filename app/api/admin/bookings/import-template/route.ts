@@ -5,16 +5,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { validateSessionToken } from '@/lib/auth';
 import * as XLSX from 'xlsx';
-
-async function isAdminAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get('admin_session');
-  if (!adminSession?.value) return false;
-  return validateSessionToken(adminSession.value);
-}
+import { isAdminAuthenticated } from '@/lib/api';
 
 const TEMPLATE_HEADERS = [
   '계약자/이름',
@@ -27,6 +19,9 @@ const TEMPLATE_HEADERS = [
   '예식장/장소',
   '층/홀',
   '상품 종류',
+  '금액',       // 상품 가격 (비우면 상품 기본가 사용)
+  '할인금액',    // 할인 금액
+  '출장비',     // 출장비
   '현금영수증 전화',
   '예약금 입금자명',
   '상품 받을 이메일',
@@ -45,6 +40,9 @@ const EXAMPLE_ROW = [
   '그랜드볼룸',
   '3층',
   '기본형',
+  '1100000',    // 금액: 110만원
+  '100000',     // 할인: 10만원
+  '50000',      // 출장비: 5만원
   '010-1234-5678',
   '홍길동',
   'example@email.com',

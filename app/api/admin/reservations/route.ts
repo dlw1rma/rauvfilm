@@ -60,9 +60,7 @@ export async function GET(request: NextRequest) {
           weddingDate: true,
           brideName: true,
           groomName: true,
-          reply: {
-            select: { id: true },
-          },
+          status: true,
         },
       }),
       prisma.reservation.count(Object.keys(where).length > 0 ? { where } : undefined),
@@ -78,7 +76,7 @@ export async function GET(request: NextRequest) {
       weddingDate: r.weddingDate,
       brideName: decrypt(r.brideName) || '',
       groomName: decrypt(r.groomName) || '',
-      hasReply: !!r.reply,
+      status: r.status,
     }));
 
     // 이름 검색이 있는 경우 복호화 후 필터링

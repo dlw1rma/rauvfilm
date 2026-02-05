@@ -7,18 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import { validateSessionToken } from '@/lib/auth';
 import { safeParseInt, isValidUrl, sanitizeString } from '@/lib/validation';
 import { sendTemplateSms } from '@/lib/solapi';
-
-async function isAdminAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get('admin_session');
-  if (!adminSession?.value) return false;
-  // 서명 검증 추가
-  return validateSessionToken(adminSession.value);
-}
+import { isAdminAuthenticated } from '@/lib/api';
 
 export async function POST(
   request: NextRequest,
@@ -77,8 +68,8 @@ export async function POST(
         updateData.videoUploadedAt = new Date();
       }
 
-      // 영상 업로드 완료 시 상태 변경
-      if (videoUrl && ['COMPLETED', 'DEPOSIT_PAID'].includes(booking.status)) {
+      // 영상 업로드 완료 시 상태 변경 (입금 완료 상태면 영상 전달 완료로)
+      if (videoUrl && booking.status === 'DEPOSIT_COMPLETED') {
         updateData.status = 'DELIVERED';
       }
     }

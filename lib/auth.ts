@@ -57,8 +57,18 @@ export function validateSessionToken(token: string): boolean {
     hmac.update(payload);
     const expectedSignature = hmac.digest("hex");
 
-    // 서명 불일치 시 거부
-    if (signature !== expectedSignature) return false;
+    // 타이밍 공격 방지를 위한 상수 시간 비교
+    try {
+      if (!crypto.timingSafeEqual(
+        Buffer.from(signature, 'hex'),
+        Buffer.from(expectedSignature, 'hex')
+      )) {
+        return false;
+      }
+    } catch {
+      // 버퍼 길이가 다른 경우 (잘못된 서명 형식)
+      return false;
+    }
 
     // 타임스탬프 추출 및 만료 확인 (24시간)
     const timestamp = parseInt(payload.split("-")[0]);

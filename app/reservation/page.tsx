@@ -34,9 +34,6 @@ async function getReservations(page: number) {
           isPrivate: true,
           status: true,
           createdAt: true,
-          reply: {
-            select: { id: true },
-          },
         },
       }),
       prisma.reservation.count(),
@@ -49,7 +46,6 @@ async function getReservations(page: number) {
       isPrivate: r.isPrivate,
       status: r.status,
       createdAt: r.createdAt.toISOString().split("T")[0],
-      hasReply: !!r.reply,
     }));
 
     return { items, totalCount };
@@ -147,9 +143,24 @@ export default async function ReservationPage({
                         </svg>
                       )}
                       <span className="font-medium">{post.title}</span>
-                      {post.hasReply && (
+                      {post.status === 'PENDING' && (
+                        <span className="rounded bg-yellow-500/10 px-2 py-0.5 text-xs text-yellow-600">
+                          검토중
+                        </span>
+                      )}
+                      {post.status === 'CONFIRMED' && (
                         <span className="rounded bg-green-500/10 px-2 py-0.5 text-xs text-green-600">
                           예약확정
+                        </span>
+                      )}
+                      {post.status === 'DEPOSIT_COMPLETED' && (
+                        <span className="rounded bg-blue-500/10 px-2 py-0.5 text-xs text-blue-600">
+                          입금완료
+                        </span>
+                      )}
+                      {post.status === 'DELIVERED' && (
+                        <span className="rounded bg-purple-500/10 px-2 py-0.5 text-xs text-purple-600">
+                          전달완료
                         </span>
                       )}
                     </div>
@@ -184,13 +195,29 @@ export default async function ReservationPage({
                       {post.author}
                     </div>
                     <div className="col-span-2 text-center">
-                      {post.hasReply ? (
+                      {post.status === 'PENDING' && (
+                        <span className="rounded bg-yellow-500/10 px-2 py-1 text-xs text-yellow-600">
+                          검토중
+                        </span>
+                      )}
+                      {post.status === 'CONFIRMED' && (
                         <span className="rounded bg-green-500/10 px-2 py-1 text-xs text-green-600">
                           예약확정
                         </span>
-                      ) : (
-                        <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
-                          대기중
+                      )}
+                      {post.status === 'DEPOSIT_COMPLETED' && (
+                        <span className="rounded bg-blue-500/10 px-2 py-1 text-xs text-blue-600">
+                          입금완료
+                        </span>
+                      )}
+                      {post.status === 'DELIVERED' && (
+                        <span className="rounded bg-purple-500/10 px-2 py-1 text-xs text-purple-600">
+                          전달완료
+                        </span>
+                      )}
+                      {post.status === 'CANCELLED' && (
+                        <span className="rounded bg-red-500/10 px-2 py-1 text-xs text-red-600">
+                          취소됨
                         </span>
                       )}
                     </div>

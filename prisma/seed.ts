@@ -5,6 +5,43 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
+  // 상품 초기 데이터
+  const products = [
+    {
+      name: '가성비형',
+      price: 340000,
+      description: '본식 하이라이트 영상 (3~5분)',
+      isActive: true,
+    },
+    {
+      name: '기본형',
+      price: 600000,
+      description: '본식 하이라이트 영상 + 풀영상',
+      isActive: true,
+    },
+    {
+      name: '시네마틱형',
+      price: 950000,
+      description: '시네마틱 하이라이트 + 풀영상',
+      isActive: true,
+    },
+  ];
+
+  for (const product of products) {
+    const existing = await prisma.product.findFirst({
+      where: { name: product.name },
+    });
+
+    if (!existing) {
+      await prisma.product.create({
+        data: product,
+      });
+      console.log(`Created product: ${product.name}`);
+    } else {
+      console.log(`Product already exists: ${product.name}`);
+    }
+  }
+
   // 이벤트 스냅 장소 초기 데이터
   const locations = [
     {

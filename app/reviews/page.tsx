@@ -152,12 +152,9 @@ export default async function ReviewsPage() {
 
               {/* Content */}
               <div className="p-5">
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3">
                   <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
                     {getSourceLabel(review.sourceType)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(review.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "long" })}
                   </span>
                 </div>
                 <h3 className="mb-2 font-medium group-hover:text-accent transition-colors">

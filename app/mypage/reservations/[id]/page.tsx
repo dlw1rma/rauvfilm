@@ -64,6 +64,7 @@ interface ReservationDetail {
   reviewLink?: string | null;
   reviewRefundAccount?: string | null;
   reviewRefundDepositorName?: string | null;
+  createdAt?: string | null;
 }
 
 function DetailRow({
@@ -171,7 +172,14 @@ export default function MypageReservationDetailPage() {
       <div className="rounded-xl border border-border bg-background overflow-hidden">
         <div className="border-b border-border px-6 py-4 bg-muted/30">
           <h1 className="text-xl font-bold">{data.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">예약글 상세 (마이페이지)</p>
+          <div className="flex flex-wrap items-center gap-4 mt-1">
+            <p className="text-sm text-muted-foreground">예약글 상세 (마이페이지)</p>
+            {data.createdAt && (
+              <p className="text-sm text-muted-foreground">
+                작성일: {new Date(data.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="p-6 space-y-8">

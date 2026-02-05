@@ -163,6 +163,7 @@ export async function GET(
       reviewLink: reservation.reviewLink,
       reviewRefundAccount: reservation.reviewRefundAccount,
       reviewRefundDepositorName: reservation.reviewRefundDepositorName,
+      createdAt: reservation.createdAt,
     });
   } catch (error) {
     console.error('예약 조회 오류:', error);
@@ -502,19 +503,104 @@ export async function PUT(
       updateData.partnerCode = null;
     }
 
-    // 업데이트
-    console.log(`[예약 수정] 업데이트 데이터: productType=${updateData.productType}, totalAmount=${updateData.totalAmount}, discountAmount=${updateData.discountAmount}, discountNewYear=${updateData.discountNewYear}, finalBalance=${updateData.finalBalance}`);
-    
-    const updated = await prisma.reservation.update({
-      where: { id: reservationId },
-      data: updateData,
+    // 변경 사항 비교 및 PendingChange 생성
+    // 개인정보는 복호화된 값으로 비교
+    const changes: Record<string, { old: unknown; new: unknown }> = {};
+
+    // 비교할 필드 목록 (개인정보 제외)
+    const fieldsToCompare = [
+      'title', 'content', 'productType', 'foundPath', 'weddingDate', 'weddingTime',
+      'venueName', 'venueFloor', 'guestCount', 'makeupShoot', 'paebaekShoot',
+      'receptionShoot', 'mainSnapCompany', 'makeupShop', 'dressShop', 'usbOption',
+      'seonwonpan', 'gimbalShoot', 'playbackDevice', 'eventType', 'shootLocation',
+      'shootDate', 'shootTime', 'shootConcept', 'discountCouple', 'discountReview',
+      'discountNewYear', 'discountReviewBlog', 'specialNotes', 'customShootingRequest',
+      'customStyle', 'customEditStyle', 'customMusic', 'customLength', 'customEffect',
+      'customContent', 'customSpecialRequest',
+    ];
+
+    // 개인정보 필드 (복호화하여 비교, 암호화된 값으로 저장)
+    const encryptedFieldsToCompare = [
+      { key: 'author', bodyKey: 'author', oldDecrypted: rAuthor },
+      { key: 'brideName', bodyKey: 'brideName', oldDecrypted: rBrideName },
+      { key: 'bridePhone', bodyKey: 'bridePhone', oldDecrypted: rBridePhone },
+      { key: 'groomName', bodyKey: 'groomName', oldDecrypted: rGroomName },
+      { key: 'groomPhone', bodyKey: 'groomPhone', oldDecrypted: rGroomPhone },
+      { key: 'receiptPhone', bodyKey: 'receiptPhone', oldDecrypted: decrypt(reservation.receiptPhone) },
+      { key: 'productEmail', bodyKey: 'productEmail', oldDecrypted: decrypt(reservation.productEmail) },
+      { key: 'deliveryAddress', bodyKey: 'deliveryAddress', oldDecrypted: decrypt(reservation.deliveryAddress) },
+      { key: 'depositName', bodyKey: 'depositName', oldDecrypted: reservation.depositName },
+    ];
+
+    // 일반 필드 변경 감지
+    for (const field of fieldsToCompare) {
+      const oldVal = (reservation as Record<string, unknown>)[field];
+      const newVal = (updateData as Record<string, unknown>)[field];
+
+      // 값이 다르면 변경사항에 추가
+      if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+        changes[field] = { old: oldVal, new: newVal };
+      }
+    }
+
+    // 개인정보 필드 변경 감지
+    for (const { key, bodyKey, oldDecrypted } of encryptedFieldsToCompare) {
+      const newVal = body[bodyKey];
+      // 전화번호는 정규화해서 비교
+      const normalizedOld = key.includes('Phone') ? normalizePhone(oldDecrypted || '') : oldDecrypted;
+      const normalizedNew = key.includes('Phone') ? normalizePhone(newVal || '') : newVal;
+
+      if (normalizedOld !== normalizedNew && (normalizedOld || normalizedNew)) {
+        // 마스킹된 값으로 저장 (개인정보 보호)
+        changes[key] = {
+          old: key.includes('Phone') ? (normalizedOld ? normalizedOld.replace(/(\d{3})(\d{4})(\d{4})/, '$1-****-$3') : null) : (oldDecrypted || null),
+          new: key.includes('Phone') ? (normalizedNew ? normalizedNew.replace(/(\d{3})(\d{4})(\d{4})/, '$1-****-$3') : null) : (newVal || null),
+        };
+      }
+    }
+
+    // 변경사항이 없으면 바로 반환
+    if (Object.keys(changes).length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: '변경된 내용이 없습니다.',
+      });
+    }
+
+    // 기존 대기중인 변경 요청이 있는지 확인
+    const existingPending = await prisma.pendingChange.findFirst({
+      where: {
+        reservationId: reservationId,
+        status: 'PENDING',
+      },
     });
-    
-    console.log(`[예약 수정] 업데이트 완료: productType=${updated.productType}, totalAmount=${updated.totalAmount}, discountAmount=${updated.discountAmount}, discountNewYear=${updated.discountNewYear}, finalBalance=${updated.finalBalance}`);
+
+    if (existingPending) {
+      // 기존 요청이 있으면 업데이트
+      await prisma.pendingChange.update({
+        where: { id: existingPending.id },
+        data: {
+          changes: JSON.stringify(changes),
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      // 새 변경 요청 생성
+      await prisma.pendingChange.create({
+        data: {
+          reservationId: reservationId,
+          changes: JSON.stringify(changes),
+        },
+      });
+    }
+
+    console.log(`[예약 수정] 변경 요청 생성됨: reservationId=${reservationId}, 변경 필드=${Object.keys(changes).join(', ')}`);
 
     return NextResponse.json({
       success: true,
-      message: '예약이 수정되었습니다.',
+      message: '수정 요청이 접수되었습니다. 관리자 승인 후 반영됩니다.',
+      pendingApproval: true,
+      changedFields: Object.keys(changes),
     });
   } catch (error) {
     console.error('예약 수정 오류:', error);

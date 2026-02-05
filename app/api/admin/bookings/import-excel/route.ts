@@ -7,19 +7,11 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import { validateSessionToken } from '@/lib/auth';
 import { encrypt } from '@/lib/encryption';
-import { sanitizeString, normalizePhone } from '@/lib/validation';
+import { sanitizeString } from '@/lib/validation';
+import { isAdminAuthenticated } from '@/lib/api';
 import bcrypt from 'bcryptjs';
 import * as XLSX from 'xlsx';
-
-async function isAdminAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get('admin_session');
-  if (!adminSession?.value) return false;
-  return validateSessionToken(adminSession.value);
-}
 
 const AUTHOR_KEYS = ['계약자', '이름', '성함', '고객명', 'customerName', 'author'];
 const BRIDE_NAME_KEYS = ['신부', '신부 이름', '신부명', '신부님', 'brideName'];
@@ -38,6 +30,9 @@ const PARTNER_CODE_KEYS = ['짝궁', '짝궁 코드', '짝궁코드', 'partnerCo
 const GUEST_COUNT_KEYS = ['초대인원', '인원', 'guestCount'];
 const SPECIAL_NOTES_KEYS = ['특이사항', '요구사항', '메모', 'specialNotes'];
 const PHONE_KEYS = ['전화', '전화번호', '연락처', '휴대폰', 'phone'];
+const PRICE_KEYS = ['금액', '가격', '정가', '총액', 'price', 'listPrice'];
+const DISCOUNT_KEYS = ['할인', '할인금액', '할인액', 'discount'];
+const TRAVEL_FEE_KEYS = ['출장비', '출장', 'travelFee'];
 
 function findCol(row: string[], keys: string[]): number {
   for (let i = 0; i < row.length; i++) {
@@ -101,6 +96,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '엑셀 파일을 선택해주세요.' }, { status: 400 });
     }
 
+    // 파일 타입 검증 (보안)
+    const allowedMimeTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'application/octet-stream', // 일부 브라우저에서 사용
+    ];
+    const allowedExtensions = ['.xlsx', '.xls'];
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+    const hasValidMimeType = allowedMimeTypes.includes(file.type) || file.type === '';
+
+    if (!hasValidExtension) {
+      return NextResponse.json(
+        { error: '엑셀 파일(.xlsx, .xls)만 업로드할 수 있습니다.' },
+        { status: 400 }
+      );
+    }
+
+    if (!hasValidMimeType) {
+      return NextResponse.json(
+        { error: '잘못된 파일 형식입니다. 엑셀 파일을 선택해주세요.' },
+        { status: 400 }
+      );
+    }
+
+    // 파일 크기 제한 (10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: '파일 크기가 너무 큽니다. 10MB 이하의 파일만 업로드할 수 있습니다.' },
+        { status: 400 }
+      );
+    }
+
     const buf = Buffer.from(await file.arrayBuffer());
     const wb = XLSX.read(buf, { type: 'buffer', cellDates: true });
     const sn = wb.SheetNames[0];
@@ -128,6 +157,9 @@ export async function POST(request: Request) {
     const guestCountCol = findCol(header, GUEST_COUNT_KEYS);
     const specialNotesCol = findCol(header, SPECIAL_NOTES_KEYS);
     const phoneCol = findCol(header, PHONE_KEYS);
+    const priceCol = findCol(header, PRICE_KEYS);
+    const discountCol = findCol(header, DISCOUNT_KEYS);
+    const travelFeeCol = findCol(header, TRAVEL_FEE_KEYS);
 
     // 최소 필수: 계약자/이름 + 예식일 + 예식장
     if (authorCol < 0 && brideNameCol < 0 && groomNameCol < 0) {
@@ -197,6 +229,9 @@ export async function POST(request: Request) {
       const partnerCode = partnerCodeCol >= 0 ? String(row[partnerCodeCol] ?? '').trim() : '';
       const guestCount = guestCountCol >= 0 && row[guestCountCol] ? parseInt(String(row[guestCountCol])) : null;
       const specialNotes = specialNotesCol >= 0 ? String(row[specialNotesCol] ?? '').trim() : '';
+      const customPrice = priceCol >= 0 && row[priceCol] ? parseInt(String(row[priceCol]).replace(/[^0-9]/g, '')) : null;
+      const customDiscount = discountCol >= 0 && row[discountCol] ? parseInt(String(row[discountCol]).replace(/[^0-9]/g, '')) : 0;
+      const customTravelFee = travelFeeCol >= 0 && row[travelFeeCol] ? parseInt(String(row[travelFeeCol]).replace(/[^0-9]/g, '')) : 0;
 
       // 최소 필수: 이름 + 예식일 + 예식장
       if (!author) {
@@ -248,7 +283,16 @@ export async function POST(request: Request) {
           }
         }
 
-        // 1. Booking 생성
+        // 1. Booking 생성 - 금액/할인/출장비 적용
+        const listPrice = customPrice && customPrice > 0 ? customPrice : matchedProduct.price;
+        const travelFee = customTravelFee || 0;
+        // 26년 신년할인 (5만원) - 가성비형/1인1캠 제외
+        const isGaseongbiOrOneCam = productType.includes('가성비') || matchedProduct.name === '가성비형'
+          || productType.includes('1인1캠') || matchedProduct.name.includes('1인1캠');
+        const newYearDiscount = isGaseongbiOrOneCam ? 0 : 50000;
+        const eventDiscount = (customDiscount || 0) + newYearDiscount;
+        const finalBalance = Math.max(0, listPrice + travelFee - 100000 - eventDiscount);
+
         const b = await prisma.booking.create({
           data: {
             customerName: author,
@@ -260,9 +304,10 @@ export async function POST(request: Request) {
             status: 'CONFIRMED',
             partnerCode: finalPartnerCode,
             productId: matchedProduct.id,
-            listPrice: matchedProduct.price,
-            eventDiscount: 0,
-            finalBalance: matchedProduct.price - 100000,
+            listPrice,
+            travelFee,
+            eventDiscount,
+            finalBalance,
           },
         });
 
@@ -317,7 +362,7 @@ export async function POST(request: Request) {
             shootConcept: null,
             discountCouple: isCoupleDiscount,
             discountReview: false,
-            discountNewYear: true,
+            discountNewYear: !isGaseongbiOrOneCam, // 가성비형/1인1캠 제외
             discountReviewBlog: false,
             specialNotes: specialNotes || null,
             customShootingRequest: false,
@@ -328,12 +373,13 @@ export async function POST(request: Request) {
             customEffect: null,
             customContent: null,
             customSpecialRequest: null,
-            totalAmount: matchedProduct.price,
+            travelFee,
+            totalAmount: listPrice,
             depositAmount: 100000,
-            discountAmount: 0,
+            discountAmount: eventDiscount,
             referralDiscount: 0,
             reviewDiscount: 0,
-            finalBalance: matchedProduct.price - 100000,
+            finalBalance,
             referralCode,
             referredBy: null,
             referredCount: 0,
@@ -344,14 +390,6 @@ export async function POST(request: Request) {
         await prisma.booking.update({
           where: { id: b.id },
           data: { reservationId: res.id },
-        });
-
-        // 4. Reply 생성
-        await prisma.reply.create({
-          data: {
-            reservationId: res.id,
-            content: '예약 확정되었습니다. (엑셀 이관)',
-          },
         });
 
         created.push({
@@ -378,6 +416,9 @@ export async function POST(request: Request) {
         예식일: header[dateCol],
         예식장: header[venueCol],
         상품: productTypeCol >= 0 ? header[productTypeCol] : '(미감지)',
+        금액: priceCol >= 0 ? header[priceCol] : '(미감지)',
+        할인: discountCol >= 0 ? header[discountCol] : '(미감지)',
+        출장비: travelFeeCol >= 0 ? header[travelFeeCol] : '(미감지)',
         전화번호: phoneCol >= 0 ? header[phoneCol] : '(미감지)',
         신부전화: bridePhoneCol >= 0 ? header[bridePhoneCol] : '(미감지)',
         신랑전화: groomPhoneCol >= 0 ? header[groomPhoneCol] : '(미감지)',

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
 export default function HeroVideoSlider() {
@@ -13,25 +13,24 @@ export default function HeroVideoSlider() {
   const [mobileVideoDimensions, setMobileVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [windowSize, setWindowSize] = useState({ w: 0, h: 0 });
-  const [transitioned, setTransitioned] = useState(false);
 
-  // 스크롤 진행도 (0 ~ 1)
+  // 스크롤 진행도 (0 ~ 1) - 헤더 높이(64px) 고려
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end start"],
+    offset: ["start 64px", "end start"],
   });
 
-  // ── Phase 1: 텍스트 등장 (스크롤 0~30%) ──
-  const line1Opacity = useTransform(scrollYProgress, [0, 0.06, 0.12], [0, 1, 1]);
-  const line1Y = useTransform(scrollYProgress, [0, 0.06, 0.12], [30, 0, 0]);
-  const line1Filter = useTransform(scrollYProgress, [0, 0.06], ["blur(8px)", "blur(0px)"]);
+  // ── Phase 1: 텍스트 등장 (스크롤 0~25%) ──
+  const line1Opacity = useTransform(scrollYProgress, [0, 0.05, 0.10], [0, 1, 1]);
+  const line1Y = useTransform(scrollYProgress, [0, 0.05, 0.10], [30, 0, 0]);
+  const line1Filter = useTransform(scrollYProgress, [0, 0.05], ["blur(8px)", "blur(0px)"]);
 
-  const line2Opacity = useTransform(scrollYProgress, [0.06, 0.12, 0.20], [0, 1, 1]);
-  const line2Y = useTransform(scrollYProgress, [0.06, 0.12, 0.20], [30, 0, 0]);
-  const line2Filter = useTransform(scrollYProgress, [0.06, 0.12], ["blur(8px)", "blur(0px)"]);
+  const line2Opacity = useTransform(scrollYProgress, [0.05, 0.10, 0.18], [0, 1, 1]);
+  const line2Y = useTransform(scrollYProgress, [0.05, 0.10, 0.18], [30, 0, 0]);
+  const line2Filter = useTransform(scrollYProgress, [0.05, 0.10], ["blur(8px)", "blur(0px)"]);
 
-  const line3Opacity = useTransform(scrollYProgress, [0.12, 0.18, 0.28], [0, 1, 1]);
-  const line3Y = useTransform(scrollYProgress, [0.12, 0.18, 0.28], [20, 0, 0]);
+  const line3Opacity = useTransform(scrollYProgress, [0.10, 0.15, 0.25], [0, 1, 1]);
+  const line3Y = useTransform(scrollYProgress, [0.10, 0.15, 0.25], [20, 0, 0]);
 
 
   // 스크롤 인디케이터
@@ -85,26 +84,28 @@ export default function HeroVideoSlider() {
     ? Math.max(1, windowSize.h / naturalHeight)
     : 1;
 
-  // ── Phase 3: 비디오 전체화면 → 원본 비율 (스크롤 30~55%) ──
-  const rawVideoScale = useTransform(
-    scrollYProgress,
-    [0, 0.30, 0.55],
-    [coverScale, coverScale, 1]
-  );
-  const rawStickyHeight = useTransform(
-    scrollYProgress,
-    [0, 0.30, 0.55],
-    [windowSize.h || 800, windowSize.h || 800, naturalHeight]
-  );
+  // 헤더 높이 (64px = 4rem = top-16)
+  const HEADER_HEIGHT = 64;
 
-  // 전환 완료 후 고정, 애니메이션 구간(0.30)에 돌아오면 해제
-  useMotionValueEvent(scrollYProgress, "change", (v) => {
-    if (v >= 0.55 && !transitioned) setTransitioned(true);
-    if (v < 0.30 && transitioned) setTransitioned(false);
-  });
+  // 뷰포트 높이에서 헤더 높이를 뺀 실제 가용 높이
+  const viewportHeight = windowSize.h > 0 ? windowSize.h - HEADER_HEIGHT : 736;
 
-  const videoScale = transitioned ? 1 : rawVideoScale;
-  const stickyHeight = transitioned ? naturalHeight : rawStickyHeight;
+  // ── Phase 3: 비디오 전체화면 → 원본 비율 (스크롤 25~100%) ──
+  // 애니메이션이 스크롤 끝에서 완료되어 다음 섹션이 바로 나옴
+  const adjustedCoverScale = viewportHeight > 0 && naturalHeight > 0
+    ? Math.max(1, viewportHeight / naturalHeight)
+    : coverScale;
+
+  const videoScale = useTransform(
+    scrollYProgress,
+    [0, 0.25, 1],
+    [adjustedCoverScale, adjustedCoverScale, 1]
+  );
+  const stickyHeight = useTransform(
+    scrollYProgress,
+    [0, 0.25, 1],
+    [viewportHeight, viewportHeight, naturalHeight]
+  );
 
   // 파티클 위치를 useMemo로 고정
   const particles = useMemo(() =>
@@ -118,20 +119,21 @@ export default function HeroVideoSlider() {
   );
 
   return (
-    <section ref={containerRef} className="relative h-[200vh]">
-      {/* sticky 컨테이너: 100vh → 원본 비율 높이로 전환 */}
+    <section ref={containerRef} className="relative h-[200vh] bg-[#111111]">
+      {/* sticky 컨테이너: 헤더(64px) 바로 아래 고정 */}
       <motion.div
-        className="sticky top-0 overflow-hidden bg-[#111111] flex items-center justify-center"
+        className="sticky top-16 overflow-hidden bg-[#111111] flex items-center justify-center"
         style={{ height: stickyHeight }}
       >
         {/* 비디오 래퍼: 원본 비율, 스케일로 cover↔fit 전환 */}
         <motion.div
-          className="relative w-full"
+          className="relative w-full overflow-hidden"
           style={{ aspectRatio, scale: videoScale }}
         >
+          {/* 유튜브 iframe - 살짝 크게 해서 가장자리 숨김 */}
           <motion.div
-            initial={{ scale: 1 }}
-            animate={{ scale: 1.03 }}
+            initial={{ scale: 1.02 }}
+            animate={{ scale: 1.05 }}
             transition={{ duration: 20, ease: "linear" }}
             className="absolute inset-0"
           >
@@ -139,16 +141,16 @@ export default function HeroVideoSlider() {
               src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=1&loop=1&playlist=${currentVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
               title={isMobile ? "Hero Video Mobile" : "Hero Video Desktop"}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              className="absolute inset-0 w-full h-full pointer-events-none"
+              className="absolute w-[104%] h-[104%] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
               style={{ border: "none" }}
             />
           </motion.div>
 
-          {/* 어두운 오버레이 */}
-          <div className="absolute inset-0 bg-black/40" />
+          {/* 어두운 오버레이 - 전체 덮기 */}
+          <div className="absolute -inset-4 bg-black/40" />
 
           {/* 그라데이션 오버레이 */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+          <div className="absolute -inset-4 bg-gradient-to-b from-black/20 via-transparent to-black/50" />
 
           {/* 파티클 효과 */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -233,8 +235,6 @@ export default function HeroVideoSlider() {
           </motion.div>
         </motion.div>
 
-        {/* 하단 페이드 */}
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#111111] to-transparent z-10" />
       </motion.div>
     </section>
   );

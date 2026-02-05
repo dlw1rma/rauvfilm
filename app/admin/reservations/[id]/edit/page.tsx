@@ -128,6 +128,16 @@ export default function AdminReservationEditPage() {
   const [isSearchingPartnerCode, setIsSearchingPartnerCode] = useState(false);
   const [selectedPartnerCode, setSelectedPartnerCode] = useState("");
   const [eventSnapApplications, setEventSnapApplications] = useState<ReservationData["eventSnapApplications"]>([]);
+  // 커스텀 촬영 요청 개별 섹션 열림 상태
+  const [customSectionOpen, setCustomSectionOpen] = useState<Record<string, boolean>>({
+    customStyle: false,
+    customEditStyle: false,
+    customMusic: false,
+    customLength: false,
+    customEffect: false,
+    customContent: false,
+    customSpecialRequest: false,
+  });
 
   // 짝궁코드 검색 함수
   const searchPartnerCode = async (query: string) => {
@@ -1145,7 +1155,7 @@ export default function AdminReservationEditPage() {
                 </div>
 
                 {formData.customShootingRequest && (
-                  <div className="space-y-6 mt-4 pt-4 border-t border-border">
+                  <div className="space-y-4 mt-4 pt-4 border-t border-border">
                     {/* 안내 문구 */}
                     <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
                       <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1157,225 +1167,333 @@ export default function AdminReservationEditPage() {
                       </p>
                     </div>
 
+                    {/* 전체 수정하기 버튼 */}
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allOpen = Object.values(customSectionOpen).every(v => v);
+                          setCustomSectionOpen({
+                            customStyle: !allOpen,
+                            customEditStyle: !allOpen,
+                            customMusic: !allOpen,
+                            customLength: !allOpen,
+                            customEffect: !allOpen,
+                            customContent: !allOpen,
+                            customSpecialRequest: !allOpen,
+                          });
+                        }}
+                        className="text-sm text-accent hover:text-accent-hover underline"
+                      >
+                        {Object.values(customSectionOpen).every(v => v) ? "전체 접기" : "전체 수정하기"}
+                      </button>
+                    </div>
+
                     {/* 영상 스타일 */}
-                    <div>
-                      <label className="mb-3 block text-sm font-medium">
-                        🎬 영상 스타일 <span className="text-accent">*</span>
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {["시네마틱", "다큐멘터리"].map((style) => (
-                          <div key={style} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              id={`customStyle-${style}`}
-                              name="customStyle"
-                              value={style}
-                              checked={formData.customStyle.includes(style)}
-                              onChange={(e) => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  customStyle: [style],
-                                }));
-                              }}
-                              className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
-                            />
-                            <label htmlFor={`customStyle-${style}`} className="text-sm cursor-pointer">
-                              {style}
-                            </label>
+                    <div className="rounded-lg border border-border bg-background">
+                      <button
+                        type="button"
+                        onClick={() => setCustomSectionOpen(prev => ({ ...prev, customStyle: !prev.customStyle }))}
+                        className="w-full flex items-center justify-between p-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">🎬 영상 스타일</span>
+                          {formData.customStyle.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formData.customStyle.join(", ")})
+                            </span>
+                          )}
+                        </div>
+                        <svg className={`h-4 w-4 transition-transform ${customSectionOpen.customStyle ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {customSectionOpen.customStyle && (
+                        <div className="p-3 pt-0 border-t border-border">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {["시네마틱", "다큐멘터리"].map((style) => (
+                              <div key={style} className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  id={`customStyle-${style}`}
+                                  name="customStyle"
+                                  value={style}
+                                  checked={formData.customStyle.includes(style)}
+                                  onChange={() => setFormData((prev) => ({ ...prev, customStyle: [style] }))}
+                                  className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                                />
+                                <label htmlFor={`customStyle-${style}`} className="text-sm cursor-pointer">{style}</label>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 편집 스타일 */}
-                    <div>
-                      <label className="mb-3 block text-sm font-medium">
-                        ✂️ 편집 스타일 <span className="text-accent">*</span>
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {[
-                          { value: "빠른 컷 편집", label: "빠른 템포의 컷 편집" },
-                          { value: "부드러운 전환", label: "느린 템포의 컷 편집" },
-                          { value: "영화 같은 편집", label: "영화 같은 편집" },
-                        ].map((option) => (
-                          <div key={option.value} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              id={`customEditStyle-${option.value}`}
-                              name="customEditStyle"
-                              value={option.value}
-                              checked={formData.customEditStyle.includes(option.value)}
-                              onChange={(e) => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  customEditStyle: [option.value],
-                                }));
-                              }}
-                              className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
-                            />
-                            <label htmlFor={`customEditStyle-${option.value}`} className="text-sm cursor-pointer">
-                              {option.label}
-                            </label>
+                    <div className="rounded-lg border border-border bg-background">
+                      <button
+                        type="button"
+                        onClick={() => setCustomSectionOpen(prev => ({ ...prev, customEditStyle: !prev.customEditStyle }))}
+                        className="w-full flex items-center justify-between p-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">✂️ 편집 스타일</span>
+                          {formData.customEditStyle.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formData.customEditStyle.join(", ")})
+                            </span>
+                          )}
+                        </div>
+                        <svg className={`h-4 w-4 transition-transform ${customSectionOpen.customEditStyle ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {customSectionOpen.customEditStyle && (
+                        <div className="p-3 pt-0 border-t border-border">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                              { value: "빠른 컷 편집", label: "빠른 템포의 컷 편집" },
+                              { value: "부드러운 전환", label: "느린 템포의 컷 편집" },
+                              { value: "영화 같은 편집", label: "영화 같은 편집" },
+                            ].map((option) => (
+                              <div key={option.value} className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  id={`customEditStyle-${option.value}`}
+                                  name="customEditStyle"
+                                  value={option.value}
+                                  checked={formData.customEditStyle.includes(option.value)}
+                                  onChange={() => setFormData((prev) => ({ ...prev, customEditStyle: [option.value] }))}
+                                  className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                                />
+                                <label htmlFor={`customEditStyle-${option.value}`} className="text-sm cursor-pointer">{option.label}</label>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 음악 장르 */}
-                    <div>
-                      <label className="mb-3 block text-sm font-medium">
-                        🎵 음악 장르 <span className="text-accent">*</span>
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {["클래식", "팝", "발라드", "재즈", "인디", "K-pop", "영화 OST", "직접 선곡"].map((music) => (
-                          <div key={music} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              id={`customMusic-${music}`}
-                              name="customMusic"
-                              value={music}
-                              checked={formData.customMusic.includes(music)}
-                              onChange={(e) => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  customMusic: [music],
-                                }));
-                              }}
-                              className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
-                            />
-                            <label htmlFor={`customMusic-${music}`} className="text-sm cursor-pointer">
-                              {music}
-                            </label>
+                    <div className="rounded-lg border border-border bg-background">
+                      <button
+                        type="button"
+                        onClick={() => setCustomSectionOpen(prev => ({ ...prev, customMusic: !prev.customMusic }))}
+                        className="w-full flex items-center justify-between p-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">🎵 음악 장르</span>
+                          {formData.customMusic.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formData.customMusic.join(", ")})
+                            </span>
+                          )}
+                        </div>
+                        <svg className={`h-4 w-4 transition-transform ${customSectionOpen.customMusic ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {customSectionOpen.customMusic && (
+                        <div className="p-3 pt-0 border-t border-border">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {["클래식", "팝", "발라드", "재즈", "인디", "K-pop", "영화 OST", "직접 선곡"].map((music) => (
+                              <div key={music} className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  id={`customMusic-${music}`}
+                                  name="customMusic"
+                                  value={music}
+                                  checked={formData.customMusic.includes(music)}
+                                  onChange={() => setFormData((prev) => ({ ...prev, customMusic: [music] }))}
+                                  className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                                />
+                                <label htmlFor={`customMusic-${music}`} className="text-sm cursor-pointer">{music}</label>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 영상 진행형식 */}
-                    <div>
-                      <label className="mb-3 block text-sm font-medium">
-                        ⏱️ 영상 진행형식 <span className="text-accent">*</span>
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {[
-                          { value: "하이라이트 (3-5분)", label: "뮤직비디오 (2-3분)" },
-                          { value: "예능형 (10-15분)", label: "예능형 (10-15분)(추가비용 발생)" },
-                          { value: "다큐멘터리(20-30분)", label: "다큐멘터리(15-30분)" },
-                        ].map((option) => (
-                          <div key={option.value} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              id={`customLength-${option.value}`}
-                              name="customLength"
-                              value={option.value}
-                              checked={formData.customLength.includes(option.value)}
-                              onChange={(e) => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  customLength: [option.value],
-                                }));
-                              }}
-                              className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
-                            />
-                            <label htmlFor={`customLength-${option.value}`} className="text-sm cursor-pointer">
-                              {option.label}
-                            </label>
+                    <div className="rounded-lg border border-border bg-background">
+                      <button
+                        type="button"
+                        onClick={() => setCustomSectionOpen(prev => ({ ...prev, customLength: !prev.customLength }))}
+                        className="w-full flex items-center justify-between p-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">⏱️ 영상 진행형식</span>
+                          {formData.customLength.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formData.customLength.join(", ")})
+                            </span>
+                          )}
+                        </div>
+                        <svg className={`h-4 w-4 transition-transform ${customSectionOpen.customLength ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {customSectionOpen.customLength && (
+                        <div className="p-3 pt-0 border-t border-border">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                              { value: "하이라이트 (3-5분)", label: "뮤직비디오 (2-3분)" },
+                              { value: "예능형 (10-15분)", label: "예능형 (10-15분)(추가비용 발생)" },
+                              { value: "다큐멘터리(20-30분)", label: "다큐멘터리(15-30분)" },
+                            ].map((option) => (
+                              <div key={option.value} className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  id={`customLength-${option.value}`}
+                                  name="customLength"
+                                  value={option.value}
+                                  checked={formData.customLength.includes(option.value)}
+                                  onChange={() => setFormData((prev) => ({ ...prev, customLength: [option.value] }))}
+                                  className="h-4 w-4 border-border bg-background text-accent focus:ring-accent"
+                                />
+                                <label htmlFor={`customLength-${option.value}`} className="text-sm cursor-pointer">{option.label}</label>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 추가효과 */}
-                    <div>
-                      <label className="mb-3 block text-sm font-medium">✨ 추가효과</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {[
-                          { value: "타임랩스", label: "적절한 슬로우 모션" },
-                          { value: "자막/나레이션", label: "자막/나레이션(다큐멘터리 추천)" },
-                          { value: "인터뷰 삽입", label: "인터뷰 삽입" },
-                        ].map((option) => (
-                          <div key={option.value} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id={`customEffect-${option.value}`}
-                              name="customEffect"
-                              value={option.value}
-                              checked={formData.customEffect.includes(option.value)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    customEffect: [...prev.customEffect, option.value],
-                                  }));
-                                } else {
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    customEffect: prev.customEffect.filter((e) => e !== option.value),
-                                  }));
-                                }
-                              }}
-                              className="h-4 w-4 rounded border-border bg-background text-accent focus:ring-accent"
-                            />
-                            <label htmlFor={`customEffect-${option.value}`} className="text-sm cursor-pointer">
-                              {option.label}
-                            </label>
+                    <div className="rounded-lg border border-border bg-background">
+                      <button
+                        type="button"
+                        onClick={() => setCustomSectionOpen(prev => ({ ...prev, customEffect: !prev.customEffect }))}
+                        className="w-full flex items-center justify-between p-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">✨ 추가효과</span>
+                          {formData.customEffect.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formData.customEffect.join(", ")})
+                            </span>
+                          )}
+                        </div>
+                        <svg className={`h-4 w-4 transition-transform ${customSectionOpen.customEffect ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {customSectionOpen.customEffect && (
+                        <div className="p-3 pt-0 border-t border-border">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                              { value: "타임랩스", label: "적절한 슬로우 모션" },
+                              { value: "자막/나레이션", label: "자막/나레이션(다큐멘터리 추천)" },
+                              { value: "인터뷰 삽입", label: "인터뷰 삽입" },
+                            ].map((option) => (
+                              <div key={option.value} className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  id={`customEffect-${option.value}`}
+                                  name="customEffect"
+                                  value={option.value}
+                                  checked={formData.customEffect.includes(option.value)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFormData((prev) => ({ ...prev, customEffect: [...prev.customEffect, option.value] }));
+                                    } else {
+                                      setFormData((prev) => ({ ...prev, customEffect: prev.customEffect.filter((v) => v !== option.value) }));
+                                    }
+                                  }}
+                                  className="h-4 w-4 rounded border-border bg-background text-accent focus:ring-accent"
+                                />
+                                <label htmlFor={`customEffect-${option.value}`} className="text-sm cursor-pointer">{option.label}</label>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 추가 옵션 */}
-                    <div>
-                      <label className="mb-3 block text-sm font-medium">📱 추가 옵션 (추가비용 발생)</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {[
-                          { value: "드론 촬영", label: "드론 촬영 (촬영 여건에 따라 불가할 수 있습니다.)" },
-                          { value: "수석 촬영자 추가", label: "수석 촬영자 추가(25만원)" },
-                        ].map((option) => (
-                          <div key={option.value} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id={`customContent-${option.value}`}
-                              name="customContent"
-                              value={option.value}
-                              checked={formData.customContent.includes(option.value)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    customContent: [...prev.customContent, option.value],
-                                  }));
-                                } else {
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    customContent: prev.customContent.filter((c) => c !== option.value),
-                                  }));
-                                }
-                              }}
-                              className="h-4 w-4 rounded border-border bg-background text-accent focus:ring-accent"
-                            />
-                            <label htmlFor={`customContent-${option.value}`} className="text-sm cursor-pointer">
-                              {option.label}
-                            </label>
+                    <div className="rounded-lg border border-border bg-background">
+                      <button
+                        type="button"
+                        onClick={() => setCustomSectionOpen(prev => ({ ...prev, customContent: !prev.customContent }))}
+                        className="w-full flex items-center justify-between p-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">📱 추가 옵션 (추가비용 발생)</span>
+                          {formData.customContent.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formData.customContent.join(", ")})
+                            </span>
+                          )}
+                        </div>
+                        <svg className={`h-4 w-4 transition-transform ${customSectionOpen.customContent ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {customSectionOpen.customContent && (
+                        <div className="p-3 pt-0 border-t border-border">
+                          <div className="grid grid-cols-1 gap-3">
+                            {[
+                              { value: "드론 촬영", label: "드론 촬영 (촬영 여건에 따라 불가할 수 있습니다.)" },
+                              { value: "수석 촬영자 추가", label: "수석 촬영자 추가(25만원)" },
+                            ].map((option) => (
+                              <div key={option.value} className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  id={`customContent-${option.value}`}
+                                  name="customContent"
+                                  value={option.value}
+                                  checked={formData.customContent.includes(option.value)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFormData((prev) => ({ ...prev, customContent: [...prev.customContent, option.value] }));
+                                    } else {
+                                      setFormData((prev) => ({ ...prev, customContent: prev.customContent.filter((v) => v !== option.value) }));
+                                    }
+                                  }}
+                                  className="h-4 w-4 rounded border-border bg-background text-accent focus:ring-accent"
+                                />
+                                <label htmlFor={`customContent-${option.value}`} className="text-sm cursor-pointer">{option.label}</label>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 특별 요청사항 */}
-                    <div>
-                      <label htmlFor="customSpecialRequest" className="mb-2 block text-sm font-medium">
-                        특별 요청사항
-                      </label>
-                      <textarea
-                        id="customSpecialRequest"
-                        name="customSpecialRequest"
-                        rows={4}
-                        value={formData.customSpecialRequest}
-                        onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                        placeholder="특별히 담고 싶은 순간이나 요청사항을 자유롭게 작성해주세요."
-                      />
+                    <div className="rounded-lg border border-border bg-background">
+                      <button
+                        type="button"
+                        onClick={() => setCustomSectionOpen(prev => ({ ...prev, customSpecialRequest: !prev.customSpecialRequest }))}
+                        className="w-full flex items-center justify-between p-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">📝 특별 요청사항</span>
+                          {formData.customSpecialRequest && (
+                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              ({formData.customSpecialRequest.substring(0, 30)}{formData.customSpecialRequest.length > 30 ? "..." : ""})
+                            </span>
+                          )}
+                        </div>
+                        <svg className={`h-4 w-4 transition-transform ${customSectionOpen.customSpecialRequest ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {customSectionOpen.customSpecialRequest && (
+                        <div className="p-3 pt-0 border-t border-border">
+                          <textarea
+                            id="customSpecialRequest"
+                            name="customSpecialRequest"
+                            rows={4}
+                            value={formData.customSpecialRequest}
+                            onChange={handleChange}
+                            className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                            placeholder="특별히 담고 싶은 순간이나 요청사항을 자유롭게 작성해주세요."
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
 import { generatePartnerCode } from '@/lib/partnerCode';
-import { validateSessionToken } from '@/lib/auth';
 import { safeParseInt } from '@/lib/validation';
+import { isAdminAuthenticated } from '@/lib/api';
 
 /**
  * 관리자 - 예약 확정 API
@@ -12,13 +11,6 @@ import { safeParseInt } from '@/lib/validation';
  * 예약을 확정하고 짝꿍 코드를 생성합니다.
  * 추천인 코드가 있는 경우 양방향 할인을 적용합니다.
  */
-
-async function isAdminAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get('admin_session');
-  if (!adminSession?.value) return false;
-  return validateSessionToken(adminSession.value);
-}
 
 export async function PUT(
   request: NextRequest,
@@ -46,9 +38,10 @@ export async function PUT(
       return NextResponse.json({ error: '예약을 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    if (booking.status !== 'PENDING') {
+    // 이미 확정된 예약인지 확인 (상태가 PENDING이 아닌 경우)
+    if (booking.status !== 'PENDING' && booking.partnerCode) {
       return NextResponse.json(
-        { error: '대기 상태의 예약만 확정할 수 있습니다.' },
+        { error: '이미 확정된 예약입니다.', partnerCode: booking.partnerCode, status: booking.status },
         { status: 400 }
       );
     }
@@ -74,24 +67,27 @@ export async function PUT(
       suffix++;
     }
 
-    // 예약 확정 및 짝꿍 코드 저장
+    // 짝꿍 코드 저장 및 상태를 CONFIRMED로 변경
     const updatedBooking = await prisma.booking.update({
       where: { id: bookingId },
       data: {
-        status: 'CONFIRMED',
         partnerCode: finalCode,
+        status: 'CONFIRMED', // PENDING → CONFIRMED 상태 변경
       },
     });
 
-    // 연결된 Reservation도 CONFIRMED로 변경
+    // 연결된 Reservation에도 짝꿍 코드 및 상태 동기화
     if (booking.reservationId) {
       try {
         await prisma.reservation.update({
           where: { id: booking.reservationId },
-          data: { status: 'CONFIRMED' },
+          data: {
+            referralCode: finalCode.replace(/(\d{6})/, '$1 '), // "YYMMDD 이름" 형식
+            status: 'CONFIRMED', // 예약글 상태도 CONFIRMED로 변경
+          },
         });
       } catch (syncError) {
-        console.error('예약글 상태 동기화 오류 (계속 진행):', syncError);
+        console.error('예약글 동기화 오류 (계속 진행):', syncError);
       }
     }
 

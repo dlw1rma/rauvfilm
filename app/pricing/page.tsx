@@ -201,13 +201,21 @@ export default function PricingPage() {
                     <p className="text-sm text-white/40">예약확정 후 1개월 이내, 카페 또는 자신의 블로그에 후기 작성</p>
                   </div>
 
+                  {/* 가성비형 안내 */}
+                  <div className="mb-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                    <p className="text-xs text-yellow-400">
+                      <strong>1인 1캠(가성비형)</strong>: 1건만 인정, 원본영상 전달 (할인 미적용)
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-white/30 mb-3">※ 기본형, 시네마틱형 적용</p>
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors">
                       <div className="flex items-center gap-4">
                         <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold text-white">1</span>
                         <div>
                           <p className="font-medium text-white">1건 작성</p>
-                          <p className="text-xs text-white/40">가성비형은 원본전체 전달</p>
                         </div>
                       </div>
                       <span className="text-lg font-bold text-accent">1만원 할인</span>

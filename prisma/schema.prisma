@@ -19,7 +19,7 @@ model Reservation {
   password    String    // bcrypt 해시
   isPrivate   Boolean   @default(true) // 비밀글만 가능
   viewCount   Int       @default(0)
-  status      String    @default("PENDING") // PENDING, CONFIRMED, COMPLETED
+  status      String    @default("PENDING") // PENDING, CONFIRMED, DEPOSIT_COMPLETED, DELIVERED, CANCELLED
   
   // 필수 작성항목(공통)
   brideName       String?  // 신부님 성함
@@ -309,14 +309,13 @@ model Booking {
   referredByBookingId Int?
 }
 
-// 예약 상태
+// 예약 상태 (4단계 + 취소)
 enum BookingStatus {
-  PENDING      // 예약 대기
-  CONFIRMED    // 확정 (짝꿍코드 생성)
-  DEPOSIT_PAID // 예약금 입금 완료
-  COMPLETED    // 촬영 완료
-  DELIVERED    // 영상 전달 완료
-  CANCELLED    // 취소
+  PENDING           // 검토중 (초기 상태)
+  CONFIRMED         // 예약 확정 (관리자 승인)
+  DEPOSIT_COMPLETED // 입금 완료
+  DELIVERED         // 영상 전달 완료
+  CANCELLED         // 취소
 }
 
 // 후기 제출
@@ -464,6 +463,32 @@ model SmsTemplateConfig {
   templateId  String            // 솔라피 카카오 알림톡 템플릿 ID
   channelId   String            // 카카오 채널 ID (발송에 필요)
   updatedAt   DateTime @updatedAt
+}
+
+// 예약글 수정 승인 대기
+model PendingChange {
+  id            Int       @id @default(autoincrement())
+  reservationId Int
+
+  // 변경 데이터 (JSON 형식으로 저장)
+  changes       String    @db.Text  // JSON: { fieldName: { old: value, new: value }, ... }
+
+  // 승인 상태
+  status        PendingChangeStatus @default(PENDING)
+
+  // 처리 정보
+  reviewedBy    String?   // 관리자 ID
+  reviewedAt    DateTime?
+  rejectReason  String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum PendingChangeStatus {
+  PENDING     // 대기중
+  APPROVED    // 승인됨
+  REJECTED    // 거절됨
 }
 
 // 사이트 일반 이미지 (히어로, 로고 등)

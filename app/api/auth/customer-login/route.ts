@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/encryption';
+import { createCustomerSessionToken, type CustomerSession } from '@/lib/customerAuth';
+import { rateLimit } from '@/lib/rate-limit';
 
 // 전화번호 정규화 (하이픈 제거)
 function normalizePhone(phone: string): string {
@@ -16,6 +18,12 @@ function normalizePhone(phone: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // 레이트 리미팅: 15분간 최대 10회 시도
+  const rateLimitResponse = rateLimit(request, 10, 15 * 60 * 1000);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const body = await request.json();
     const { name, phone, email } = body;
@@ -82,18 +90,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 세션 토큰 생성 (해외 거주 시 customerPhone에 이메일 저장)
+    // PENDING 상태 고객은 마이페이지 접근 차단
+    if (reservation.status === 'PENDING') {
+      return NextResponse.json(
+        { error: '예약이 아직 검토중입니다.\n관리자 승인 후 마이페이지에 접속할 수 있습니다.' },
+        { status: 403 }
+      );
+    }
+
+    // HMAC 서명된 세션 토큰 생성 (해외 거주 시 customerPhone에 이메일 저장)
     const decryptedAuthor = decrypt(reservation.author) || '';
     const decryptedEmail = reservation.overseasResident ? (decrypt(reservation.productEmail) || '') : '';
-    const sessionToken = Buffer.from(
-      JSON.stringify({
-        reservationId: reservation.id,
-        customerName: decryptedAuthor,
-        customerPhone: reservation.overseasResident ? decryptedEmail : loginPhone,
-        referralCode: reservation.referralCode,
-        exp: Date.now() + 24 * 60 * 60 * 1000, // 24시간 후 만료
-      })
-    ).toString('base64');
+    const sessionData: CustomerSession = {
+      reservationId: reservation.id,
+      customerName: decryptedAuthor,
+      customerPhone: reservation.overseasResident ? decryptedEmail : loginPhone,
+      referralCode: reservation.referralCode,
+      exp: Date.now() + 24 * 60 * 60 * 1000, // 24시간 후 만료
+    };
+    const sessionToken = createCustomerSessionToken(sessionData);
 
     // 쿠키 설정
     const cookieStore = await cookies();

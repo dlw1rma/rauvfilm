@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadImageFile } from '@/lib/cloudinary';
 import { prisma } from '@/lib/prisma';
+import { requireAdminAuth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
+  // 관리자 인증 확인
+  const authResponse = await requireAdminAuth(request);
+  if (authResponse) return authResponse;
+
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -62,8 +67,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
   } catch (error) {
     console.error('Upload error:', error);
+
+    // 에러 메시지 상세화
+    let errorMessage = '이미지 업로드에 실패했습니다.';
+    if (error instanceof Error) {
+      if (error.message.includes('CLOUDINARY')) {
+        errorMessage = 'Cloudinary 서버에 연결할 수 없습니다. 환경 변수를 확인해주세요.';
+      } else if (error.message.includes('size')) {
+        errorMessage = '파일 크기가 너무 큽니다.';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Upload failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: errorMessage, details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

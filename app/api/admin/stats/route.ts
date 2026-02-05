@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     const [
       totalReservations,
-      pendingReservations,
+      upcomingReservations,
       totalContacts,
       unreadContacts,
       totalPortfolios,
@@ -22,8 +22,13 @@ export async function GET(request: NextRequest) {
       pendingReviewSubmissions,
     ] = await Promise.all([
       prisma.reservation.count(),
+      // 예식일이 아직 지나지 않은 예약 수
       prisma.reservation.count({
-        where: { reply: null },
+        where: {
+          weddingDate: {
+            gte: new Date().toISOString().slice(0, 10),
+          },
+        },
       }),
       prisma.contact.count(),
       prisma.contact.count({
@@ -52,7 +57,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       reservations: {
         total: totalReservations,
-        pending: pendingReservations,
+        upcoming: upcomingReservations,
       },
       contacts: {
         total: totalContacts,

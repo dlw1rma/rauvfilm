@@ -5,18 +5,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import {
   anonymizeOldBookings,
   getAnonymizeStats,
   getUpcomingAnonymizations,
 } from '@/lib/cron/anonymize';
-
-async function isAdminAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get('admin_session');
-  return !!adminSession?.value;
-}
+import { isAdminAuthenticated } from '@/lib/api';
 
 /**
  * 파기 통계 및 예정 목록 조회

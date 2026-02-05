@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { safeParseInt, sanitizeString, isValidUrl } from "@/lib/validation";
+import { checkDuplicateReviewUrl } from "@/lib/urlNormalization";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -113,6 +114,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         { error: "올바른 URL 형식이 아닙니다." },
         { status: 400 }
       );
+    }
+
+    // URL 변경 시 중복 검사
+    if (sourceUrl) {
+      const isCustomerReview = reviewId >= 100000;
+      const duplicateCheck = await checkDuplicateReviewUrl(sourceUrl, {
+        excludeReviewId: isCustomerReview ? undefined : reviewId,
+        excludeSubmissionId: isCustomerReview ? reviewId - 100000 : undefined,
+      });
+
+      if (duplicateCheck.isDuplicate) {
+        return NextResponse.json(
+          { error: duplicateCheck.message || "이미 등록된 후기 URL입니다." },
+          { status: 400 }
+        );
+      }
     }
 
     // ID가 100000 이상이면 고객 후기(ReviewSubmission) 수정

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isBudgetProduct } from '@/lib/constants';
 
 interface ReviewData {
   id: number;
@@ -126,7 +127,7 @@ export default function ReviewPage() {
   };
 
   const handleCancel = async (reviewId: number) => {
-    if (!confirm('후기 제출을 취소하시겠습니까? 자동 승인된 경우 할인도 되돌려집니다.')) {
+    if (!confirm('후기 제출을 취소하시겠습니까? 2건 이상 작성으로 할인이 적용된 경우, 취소 시 할인도 되돌려질 수 있습니다.')) {
       return;
     }
 
@@ -284,9 +285,9 @@ export default function ReviewPage() {
               </div>
             ) : (
               <p className="text-muted-foreground mb-6">
-                {productType === '가성비형'
+                {isBudgetProduct(productType)
                   ? '후기 1건 작성 시 원본영상 전달 (할인 없음)'
-                  : '후기 1건당 1만원 할인! (블로그/카페 각 1건씩 가능, 최대 3건)'}
+                  : '후기 2건 작성 시 2만원 할인! (블로그/카페 각 1건씩)'}
               </p>
             )}
 
@@ -319,10 +320,10 @@ export default function ReviewPage() {
             {/* 안내사항 */}
             <div className="mt-6 p-4 bg-muted rounded-lg">
               <h3 className="font-semibold mb-2">후기 작성 가이드</h3>
-              <ul className="text-sm text-muted-foreground space-y-1 mb-4">
-                <li>- 제목에 <strong>&apos;라우브필름&apos;</strong> 또는 <strong>&apos;본식DVD&apos;</strong> 포함</li>
-                <li>- 본문 500자 이상 작성</li>
-                <li>- 네이버 블로그는 자동 검증, 카페는 수동 검토</li>
+              <ul className="text-sm text-muted-foreground space-y-1.5 mb-4">
+                <li>- 제목: <strong>&apos;웨딩홀명&apos; + &apos;라우브필름&apos; + &apos;본식DVD&apos;</strong> 포함</li>
+                <li>- 본문: 포트폴리오 영상 캡쳐 <strong>10장 이상</strong> + 홈페이지/카카오톡채널 링크 기입</li>
+                <li>- 카페 글은 <strong>전체공개</strong>로 작성</li>
               </ul>
               <Link
                 href="/reviews/guide"
@@ -343,7 +344,7 @@ export default function ReviewPage() {
             <div className="bg-background rounded-xl border border-border p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">제출한 후기</h2>
-                {productType === '가성비형' && (
+                {isBudgetProduct(productType) && (
                   <span className="text-xs text-muted-foreground">
                     (최대 {maxReviews}건)
                   </span>
@@ -558,10 +559,10 @@ export default function ReviewPage() {
             {/* 안내사항 */}
             <div className="mt-6 p-4 bg-muted rounded-lg">
               <h3 className="font-semibold mb-2">후기 작성 가이드</h3>
-              <ul className="text-sm text-muted-foreground space-y-1 mb-4">
-                <li>- 제목에 <strong>&apos;라우브필름&apos;</strong> 또는 <strong>&apos;본식DVD&apos;</strong> 포함</li>
-                <li>- 본문 500자 이상 작성</li>
-                <li>- 네이버 블로그는 자동 검증, 카페는 수동 검토</li>
+              <ul className="text-sm text-muted-foreground space-y-1.5 mb-4">
+                <li>- 제목: <strong>&apos;웨딩홀명&apos; + &apos;라우브필름&apos; + &apos;본식DVD&apos;</strong> 포함</li>
+                <li>- 본문: 포트폴리오 영상 캡쳐 <strong>10장 이상</strong> + 홈페이지/카카오톡채널 링크 기입</li>
+                <li>- 카페 글은 <strong>전체공개</strong>로 작성</li>
               </ul>
               <Link
                 href="/reviews/guide"

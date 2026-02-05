@@ -36,7 +36,9 @@
       "Bash(taskkill:*)",
       "Bash(del \"C:\\\\rauvfilm\\\\rauvfilm\\\\node_modules\\\\.prisma\\\\client\\\\query_engine-windows.dll.node\")",
       "Bash(ls:*)",
-      "Bash(del \"C:\\\\rauvfilm\\\\rauvfilm\\\\public\\\\travel-cost-guide.html\")"
+      "Bash(del \"C:\\\\rauvfilm\\\\rauvfilm\\\\public\\\\travel-cost-guide.html\")",
+      "Bash(tasklist:*)",
+      "Bash(npx prisma db seed:*)"
     ]
   }
 }

@@ -97,7 +97,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             (reservation.depositAmount || 100000) -
             (reservation.discountAmount || 0)
         ),
-        status: reservation.status === "CONFIRMED" ? "CONFIRMED" : "PENDING",
+        status: reservation.status === "CANCELLED" ? "CANCELLED" : "CONFIRMED",
         reservationId: reservation.id,
         referredBy:
           reservation.discountCouple && reservation.partnerCode

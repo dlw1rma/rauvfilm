@@ -9,8 +9,8 @@ import { decrypt } from '@/lib/encryption';
 
 export async function GET(request: NextRequest) {
   try {
-    // Rate limiting 적용
-    const rateLimitResponse = rateLimit(request, 30, 60 * 1000); // 1분에 30회
+    // Rate limiting 적용 (검색은 자주 호출될 수 있음)
+    const rateLimitResponse = rateLimit(request, 60, 60 * 1000); // 1분에 60회
     if (rateLimitResponse) {
       return rateLimitResponse;
     }

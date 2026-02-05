@@ -30,9 +30,6 @@ export async function GET(request: NextRequest) {
           author: true,
           isPrivate: true,
           createdAt: true,
-          reply: {
-            select: { id: true },
-          },
         },
       }),
       prisma.reservation.count(),
@@ -44,7 +41,6 @@ export async function GET(request: NextRequest) {
       author: decrypt(r.author) || '', // 복호화
       isPrivate: r.isPrivate,
       createdAt: r.createdAt,
-      hasReply: !!r.reply,
     }));
 
     return NextResponse.json({
@@ -68,8 +64,8 @@ export async function GET(request: NextRequest) {
 // POST: 예약 작성
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting 적용 (예약 생성은 더 엄격하게)
-    const rateLimitResponse = rateLimit(request, 5, 15 * 60 * 1000); // 15분에 5회
+    // Rate limiting 적용 (예약 생성)
+    const rateLimitResponse = rateLimit(request, 15, 15 * 60 * 1000); // 15분에 15회
     if (rateLimitResponse) {
       return rateLimitResponse;
     }
@@ -201,6 +197,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 짝궁코드 닉네임 필수 검증 (2~10자)
+    const sanitizedNickname = sanitizeString(referralNickname, 10);
+    if (!sanitizedNickname || sanitizedNickname.length < 2) {
+      return NextResponse.json(
+        { error: "짝궁코드 닉네임을 2자 이상 입력해주세요." },
+        { status: 400 }
+      );
+    }
+
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -239,15 +244,19 @@ export async function POST(request: NextRequest) {
           // YYMMDD 형식으로 변환 (앞의 20 제거)
           const yy = dateStr.slice(2, 4);
           const mmdd = dateStr.slice(4, 8);
-          // 닉네임이 있으면 닉네임 사용, 없으면 계약자 이름 사용
-          const codeName = (referralNickname && typeof referralNickname === 'string' && referralNickname.trim())
-            ? referralNickname.trim()
-            : author;
+          // 닉네임 필수 사용 (실명 대신 닉네임으로 코드 생성)
+          const codeName = sanitizedNickname;
           const cleanName = codeName.replace(/\s/g, '');
-          referralCode = `${yy}${mmdd} ${cleanName}`;
-          
-          // 중복 체크 - 중복이 있어도 형식 유지 (숫자 붙이지 않음)
-          // 같은 날짜, 같은 이름이면 같은 코드 사용
+          let baseCode = `${yy}${mmdd} ${cleanName}`;
+
+          // 중복 체크 - 중복이 있으면 숫자 접미사 추가
+          let candidateCode = baseCode;
+          let suffix = 0;
+          while (await prisma.reservation.findUnique({ where: { referralCode: candidateCode } })) {
+            suffix++;
+            candidateCode = `${baseCode}(${suffix})`;
+          }
+          referralCode = candidateCode;
         }
       } catch (error) {
         console.error("Error generating referral code:", error);
@@ -334,155 +343,173 @@ export async function POST(request: NextRequest) {
     // 최종 잔금 계산: 정가 + 출장비 - 예약금 - 할인들
     const finalBalance = Math.max(0, totalAmount + travelFee - depositAmount - discountAmount);
 
-    const reservation = await prisma.reservation.create({
-      data: {
-        title: sanitizedTitle,
-        content: sanitizeString(content, 5000) || "",
-        author: encrypt(sanitizedAuthor) ?? sanitizedAuthor, // 암호화 (실패 시 원본, author 필수)
-        password: hashedPassword,
-        isPrivate: isPrivate !== undefined ? isPrivate : true, // 기본값 true (비밀글만)
-        // 필수 작성항목(공통) - 개인정보 암호화
-        brideName: encrypt(sanitizedBrideName) || null,
-        bridePhone: isOverseas ? null : (encrypt(normalizedBridePhone) || null),
-        groomName: encrypt(sanitizedGroomName) || null,
-        groomPhone: isOverseas ? null : (encrypt(normalizedGroomPhone) || null),
-        receiptPhone: isOverseas ? null : (encrypt(receiptPhone ? normalizePhone(receiptPhone) : null) || null),
-        depositName: depositName || null,
-        productEmail: encrypt(productEmail) || null, // 이메일 암호화
-        productType: productType || null,
-        // 짝궁할인을 체크하지 않으면 짝궁코드 저장하지 않음
-        partnerCode: discountCouple ? (partnerCode || null) : null,
-        foundPath: foundPath || null,
-        termsAgreed: termsAgreed || false,
-        faqRead: faqRead || false,
-        // 개인정보 활용 동의
-        privacyAgreed: privacyAgreed || false,
-        overseasResident: isOverseas,
-        // 본식DVD 예약 고객님 필수 추가 작성 항목
-        weddingDate: weddingDate || null,
-        weddingTime: weddingTime || null,
-        venueName: venueName || null,
-        venueAddress: venueAddress || null,
-        venueRegion: venueRegion || null,
-        venueFloor: venueFloor || null,
-        guestCount: guestCount ? parseInt(guestCount) : null,
-        makeupShoot: makeupShoot || false,
-        paebaekShoot: paebaekShoot || false,
-        receptionShoot: receptionShoot || false,
-        mainSnapCompany: mainSnapCompany || null,
-        makeupShop: makeupShop || null,
-        dressShop: dressShop || null,
-        deliveryAddress: encrypt(deliveryAddress) || null, // 주소 암호화
-        usbOption: usbOption || false,
-        seonwonpan: seonwonpan || false,
-        gimbalShoot: gimbalShoot || false,
-        // 본식DVD 주 재생매체
-        playbackDevice: playbackDevice || null,
-        // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
-        eventType: eventType || null,
-        shootLocation: shootLocation || null,
-        shootDate: shootDate || null,
-        shootTime: shootTime || null,
-        shootConcept: shootConcept || null,
-        // 할인사항 (체크박스) - 가성비형·르메그라피 제휴 시 신년할인 적용 불가
-        discountCouple: discountCouple || false,
-        discountReview: discountReview || false,
-        discountNewYear: (() => {
-          if (productType === "가성비형") return false; // 가성비형은 신년할인 적용 대상 아님
-          const isLeme = (mainSnapCompany || "").toLowerCase().includes("르메그라피") || (mainSnapCompany || "").toLowerCase().includes("leme");
-          const lemeProduct = productType === "기본형" || productType === "시네마틱형";
-          if (isLeme && lemeProduct) return false;
-          return discountNewYear !== undefined ? discountNewYear : true;
-        })(),
-        discountReviewBlog: discountReviewBlog || false,
-        // 특이사항
-        specialNotes: specialNotes || null,
-        // 커스텀 촬영 요청 필드
-        customShootingRequest: customShootingRequest || false,
-        customStyle: Array.isArray(customStyle) ? customStyle.join(", ") : customStyle || null,
-        customEditStyle: Array.isArray(customEditStyle) ? customEditStyle.join(", ") : customEditStyle || null,
-        customMusic: Array.isArray(customMusic) ? customMusic.join(", ") : customMusic || null,
-        customLength: Array.isArray(customLength) ? customLength.join(", ") : customLength || null,
-        customEffect: Array.isArray(customEffect) ? customEffect.join(", ") : customEffect || null,
-        customContent: Array.isArray(customContent) ? customContent.join(", ") : customContent || null,
-        customSpecialRequest: customSpecialRequest || null,
-        // 출장비
-        travelFee,
-        // 잔금 및 할인 시스템
-        totalAmount,
-        depositAmount,
-        discountAmount,
-        referralDiscount,
-        reviewDiscount,
-        finalBalance,
-        referralCode,
-        referredBy: partnerCode || null,
-        referredCount: 0,
-      },
-    });
+    // 트랜잭션으로 예약글 + 예약관리 동시 생성 (원자적 작업)
+    // 하나라도 실패하면 전체 롤백되어 "등록 실패" 시 실제로 데이터가 남지 않음
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. 예약글(Reservation) 생성
+      const reservation = await tx.reservation.create({
+        data: {
+          title: sanitizedTitle,
+          content: sanitizeString(content, 5000) || "",
+          author: encrypt(sanitizedAuthor) ?? sanitizedAuthor, // 암호화 (실패 시 원본, author 필수)
+          password: hashedPassword,
+          isPrivate: isPrivate !== undefined ? isPrivate : true, // 기본값 true (비밀글만)
+          // 필수 작성항목(공통) - 개인정보 암호화
+          brideName: encrypt(sanitizedBrideName) || null,
+          bridePhone: isOverseas ? null : (encrypt(normalizedBridePhone) || null),
+          groomName: encrypt(sanitizedGroomName) || null,
+          groomPhone: isOverseas ? null : (encrypt(normalizedGroomPhone) || null),
+          receiptPhone: isOverseas ? null : (encrypt(receiptPhone ? normalizePhone(receiptPhone) : null) || null),
+          depositName: depositName || null,
+          productEmail: encrypt(productEmail) || null, // 이메일 암호화
+          productType: productType || null,
+          // 짝궁할인을 체크하지 않으면 짝궁코드 저장하지 않음
+          partnerCode: discountCouple ? (partnerCode || null) : null,
+          foundPath: foundPath || null,
+          termsAgreed: termsAgreed || false,
+          faqRead: faqRead || false,
+          // 개인정보 활용 동의
+          privacyAgreed: privacyAgreed || false,
+          overseasResident: isOverseas,
+          // 본식DVD 예약 고객님 필수 추가 작성 항목
+          weddingDate: weddingDate || null,
+          weddingTime: weddingTime || null,
+          venueName: venueName || null,
+          venueAddress: venueAddress || null,
+          venueRegion: venueRegion || null,
+          venueFloor: venueFloor || null,
+          guestCount: guestCount ? parseInt(guestCount) : null,
+          makeupShoot: makeupShoot || false,
+          paebaekShoot: paebaekShoot || false,
+          receptionShoot: receptionShoot || false,
+          mainSnapCompany: mainSnapCompany || null,
+          makeupShop: makeupShop || null,
+          dressShop: dressShop || null,
+          deliveryAddress: encrypt(deliveryAddress) || null, // 주소 암호화
+          usbOption: usbOption || false,
+          seonwonpan: seonwonpan || false,
+          gimbalShoot: gimbalShoot || false,
+          // 본식DVD 주 재생매체
+          playbackDevice: playbackDevice || null,
+          // 야외스냅, 프리웨딩 이벤트 예약 고객님 필수 추가 작성 항목
+          eventType: eventType || null,
+          shootLocation: shootLocation || null,
+          shootDate: shootDate || null,
+          shootTime: shootTime || null,
+          shootConcept: shootConcept || null,
+          // 할인사항 (체크박스) - 가성비형·르메그라피 제휴 시 신년할인 적용 불가
+          discountCouple: discountCouple || false,
+          discountReview: discountReview || false,
+          discountNewYear: (() => {
+            if (productType === "가성비형") return false; // 가성비형은 신년할인 적용 대상 아님
+            const isLeme = (mainSnapCompany || "").toLowerCase().includes("르메그라피") || (mainSnapCompany || "").toLowerCase().includes("leme");
+            const lemeProduct = productType === "기본형" || productType === "시네마틱형";
+            if (isLeme && lemeProduct) return false;
+            return discountNewYear !== undefined ? discountNewYear : true;
+          })(),
+          discountReviewBlog: discountReviewBlog || false,
+          // 특이사항
+          specialNotes: specialNotes || null,
+          // 커스텀 촬영 요청 필드
+          customShootingRequest: customShootingRequest || false,
+          customStyle: Array.isArray(customStyle) ? customStyle.join(", ") : customStyle || null,
+          customEditStyle: Array.isArray(customEditStyle) ? customEditStyle.join(", ") : customEditStyle || null,
+          customMusic: Array.isArray(customMusic) ? customMusic.join(", ") : customMusic || null,
+          customLength: Array.isArray(customLength) ? customLength.join(", ") : customLength || null,
+          customEffect: Array.isArray(customEffect) ? customEffect.join(", ") : customEffect || null,
+          customContent: Array.isArray(customContent) ? customContent.join(", ") : customContent || null,
+          customSpecialRequest: customSpecialRequest || null,
+          // 출장비
+          travelFee,
+          // 잔금 및 할인 시스템
+          totalAmount,
+          depositAmount,
+          discountAmount,
+          referralDiscount,
+          reviewDiscount,
+          finalBalance,
+          referralCode,
+          referredBy: partnerCode || null,
+          referredCount: 0,
+        },
+      });
 
-    // 예약관리(Booking) 동기화 생성 - 항상 생성
-    try {
-      let defaultProduct = await prisma.product.findFirst({ where: {} });
-      if (!defaultProduct) {
-        defaultProduct = await prisma.product.create({
+      // 2. 상품 조회 - productType에 맞는 상품 찾기
+      let matchedProduct = null;
+      if (productType) {
+        matchedProduct = await tx.product.findFirst({
+          where: { name: productType, isActive: true },
+        });
+      }
+      // 매칭 안 되면 기본 상품 사용
+      if (!matchedProduct) {
+        matchedProduct = await tx.product.findFirst({ where: { isActive: true } });
+      }
+      if (!matchedProduct) {
+        matchedProduct = await tx.product.create({
           data: { name: "기본 상품", price: 0, description: "자동 생성", isActive: true },
         });
       }
-      {
-        // 예식일 처리: 없으면 기본값 사용
-        let weddingDateObj: Date;
-        if (weddingDate) {
-          weddingDateObj = new Date(weddingDate);
-          if (isNaN(weddingDateObj.getTime())) {
-            weddingDateObj = new Date("2099-12-31");
-          }
-        } else {
+
+      // 상품 정가 (클라이언트에서 전달받은 totalAmount 또는 상품 가격)
+      const listPrice = totalAmount > 0 ? totalAmount : matchedProduct.price;
+
+      // 3. 예식일 처리: 없으면 기본값 사용
+      let weddingDateObj: Date;
+      if (weddingDate) {
+        weddingDateObj = new Date(weddingDate);
+        if (isNaN(weddingDateObj.getTime())) {
           weddingDateObj = new Date("2099-12-31");
         }
-
-        // 전화번호 처리: 해외거주면 이메일, 없으면 플레이스홀더
-        let phoneForBooking: string;
-        if (isOverseas) {
-          phoneForBooking = productEmail || "no-email@placeholder.local";
-        } else {
-          phoneForBooking = normalizedBridePhone || normalizedGroomPhone || "00000000000";
-        }
-
-        const booking = await prisma.booking.create({
-          data: {
-            customerName: sanitizedAuthor,
-            customerPhone: phoneForBooking,
-            customerEmail: productEmail || null,
-            weddingDate: weddingDateObj,
-            weddingVenue: venueName || "미정",
-            weddingTime: weddingTime || null,
-            productId: defaultProduct.id,
-            listPrice: totalAmount || defaultProduct.price,
-            depositAmount: depositAmount || 100000,
-            eventDiscount: discountAmount || 0,
-            referralDiscount: referralDiscount || 0,
-            reviewDiscount: reviewDiscount || 0,
-            finalBalance: finalBalance || Math.max(0, (totalAmount || defaultProduct.price) - (depositAmount || 100000) - (discountAmount || 0)),
-            status: reservation.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING',
-            reservationId: reservation.id,
-            referredBy: discountCouple && partnerCode ? partnerCode : null,
-          },
-        });
-
-        // Reservation에 bookingId 연결
-        await prisma.reservation.update({
-          where: { id: reservation.id },
-          data: { bookingId: booking.id },
-        });
+      } else {
+        weddingDateObj = new Date("2099-12-31");
       }
-    } catch (syncError) {
-      console.error('예약관리 동기화 생성 오류 (계속 진행):', syncError);
-      // 동기화 실패해도 Reservation 생성은 성공으로 처리
-    }
+
+      // 4. 전화번호 처리: 해외거주면 이메일, 없으면 플레이스홀더
+      let phoneForBooking: string;
+      if (isOverseas) {
+        phoneForBooking = productEmail || "no-email@placeholder.local";
+      } else {
+        phoneForBooking = normalizedBridePhone || normalizedGroomPhone || "00000000000";
+      }
+
+      // 5. 예약관리(Booking) 생성
+      // 잔금 재계산: listPrice + travelFee - depositAmount - discountAmount
+      const calculatedFinalBalance = Math.max(0, listPrice + travelFee - depositAmount - discountAmount);
+
+      const booking = await tx.booking.create({
+        data: {
+          customerName: sanitizedAuthor,
+          customerPhone: phoneForBooking,
+          customerEmail: productEmail || null,
+          weddingDate: weddingDateObj,
+          weddingVenue: venueName || "미정",
+          weddingTime: weddingTime || null,
+          productId: matchedProduct.id,
+          listPrice: listPrice,
+          travelFee: travelFee,
+          depositAmount: depositAmount,
+          eventDiscount: discountAmount,
+          referralDiscount: referralDiscount,
+          reviewDiscount: reviewDiscount,
+          finalBalance: calculatedFinalBalance,
+          status: 'PENDING', // 예약 생성 시 검토중 상태 (관리자 승인 후 CONFIRMED)
+          reservationId: reservation.id,
+          referredBy: discountCouple && partnerCode ? partnerCode : null,
+        },
+      });
+
+      // 6. Reservation에 bookingId 연결
+      await tx.reservation.update({
+        where: { id: reservation.id },
+        data: { bookingId: booking.id },
+      });
+
+      return { reservation, booking };
+    });
 
     return NextResponse.json(
-      { message: "예약 문의가 등록되었습니다.", id: reservation.id },
+      { message: "예약 문의가 등록되었습니다.", id: result.reservation.id },
       { status: 201 }
     );
   } catch (error) {

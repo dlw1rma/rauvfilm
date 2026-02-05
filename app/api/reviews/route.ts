@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/encryption";
+import { checkDuplicateReviewUrl } from "@/lib/urlNormalization";
 
 // 플랫폼 enum을 sourceType으로 변환
 function platformToSourceType(platform: string): string {
@@ -138,6 +139,15 @@ export async function POST(request: NextRequest) {
     if (!sourceUrl) {
       return NextResponse.json(
         { error: "원본 URL은 필수입니다." },
+        { status: 400 }
+      );
+    }
+
+    // 중복 URL 검사 (정규화하여 변형된 URL도 감지)
+    const duplicateCheck = await checkDuplicateReviewUrl(sourceUrl);
+    if (duplicateCheck.isDuplicate) {
+      return NextResponse.json(
+        { error: duplicateCheck.message || "이미 등록된 후기 URL입니다." },
         { status: 400 }
       );
     }

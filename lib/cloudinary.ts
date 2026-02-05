@@ -169,6 +169,18 @@ export async function deleteFromCloudinary(publicId: string): Promise<{
   return result;
 }
 
+// 허용된 이미지 MIME 타입
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+];
+
+// 최대 파일 크기 (5MB)
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
 /**
  * File 객체를 Cloudinary에 업로드
  * @param file - 업로드할 File 객체
@@ -186,6 +198,16 @@ export async function uploadImageFile(
   height: number;
   format: string;
 }> {
+  // 파일 타입 검증 (보안)
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    throw new Error(`허용되지 않는 파일 형식입니다. (허용: ${ALLOWED_IMAGE_TYPES.join(', ')})`);
+  }
+
+  // 파일 크기 검증
+  if (file.size > MAX_IMAGE_SIZE) {
+    throw new Error('파일 크기가 너무 큽니다. 5MB 이하의 파일만 업로드할 수 있습니다.');
+  }
+
   const buffer = await file.arrayBuffer();
   const base64 = Buffer.from(buffer).toString('base64');
   const mimeType = file.type;
