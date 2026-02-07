@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  compress: true,
+  poweredByHeader: false,
+  headers: async () => [
+    {
+      source: '/',
+      headers: [
+        { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=300' },
+      ],
+    },
+  ],
   images: {
     remotePatterns: [
       {

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
+import LocaleLink from "@/components/ui/LocaleLink";
 import { Instagram, Youtube, BookOpen } from "lucide-react";
 
 const socialLinks = {
@@ -131,7 +131,7 @@ export default function FooterSection() {
             { href: "/guidelines", label: "규정안내" },
             { href: "/privacy", label: "개인정보처리방침" },
           ].map(({ href, label }) => (
-            <Link
+            <LocaleLink
               key={href}
               href={href}
               className="relative group"
@@ -143,7 +143,7 @@ export default function FooterSection() {
                 whileHover={{ width: "100%" }}
                 transition={{ duration: 0.3 }}
               />
-            </Link>
+            </LocaleLink>
           ))}
         </motion.div>
 

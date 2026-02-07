@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { isBudgetProduct } from '@/lib/constants';
+import { formatDateKorean } from '@/lib/formatDate';
+import { useMypageTranslation } from '@/components/mypage/MypageTranslationProvider';
 
 interface ReviewData {
   id: number;
@@ -35,6 +37,7 @@ type TabType = 'booking' | 'shooting';
 
 export default function ReviewPage() {
   const router = useRouter();
+  const t = useMypageTranslation();
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -120,14 +123,14 @@ export default function ReviewPage() {
       setReviewUrl('');
       fetchReviews();
     } catch {
-      setMessage({ type: 'error', text: '네트워크 오류가 발생했습니다.' });
+      setMessage({ type: 'error', text: t.networkError || '네트워크 오류가 발생했습니다.' });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleCancel = async (reviewId: number) => {
-    if (!confirm('후기 제출을 취소하시겠습니까? 2건 이상 작성으로 할인이 적용된 경우, 취소 시 할인도 되돌려질 수 있습니다.')) {
+    if (!confirm(t.reviewCancelConfirm || '후기 제출을 취소하시겠습니까? 2건 이상 작성으로 할인이 적용된 경우, 취소 시 할인도 되돌려질 수 있습니다.')) {
       return;
     }
 
@@ -146,7 +149,7 @@ export default function ReviewPage() {
       setMessage({ type: 'success', text: data.message });
       fetchReviews();
     } catch {
-      setMessage({ type: 'error', text: '네트워크 오류가 발생했습니다.' });
+      setMessage({ type: 'error', text: t.networkError || '네트워크 오류가 발생했습니다.' });
     }
   };
 
@@ -168,13 +171,13 @@ export default function ReviewPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage({ type: 'error', text: data.error || '저장에 실패했습니다.' });
+        setMessage({ type: 'error', text: data.error || (t.saveFailed || '저장에 실패했습니다.') });
         return;
       }
-      setMessage({ type: 'success', text: '환급 계좌가 저장되었습니다.' });
+      setMessage({ type: 'success', text: t.refundAccountSaved || '환급 계좌가 저장되었습니다.' });
       setRefundInfoSaved(true);
     } catch {
-      setMessage({ type: 'error', text: '네트워크 오류가 발생했습니다.' });
+      setMessage({ type: 'error', text: t.networkError || '네트워크 오류가 발생했습니다.' });
     } finally {
       setSavingRefund(false);
     }
@@ -202,7 +205,7 @@ export default function ReviewPage() {
       setShootingReviewUrl('');
       fetchReviews();
     } catch {
-      setMessage({ type: 'error', text: '네트워크 오류가 발생했습니다.' });
+      setMessage({ type: 'error', text: t.networkError || '네트워크 오류가 발생했습니다.' });
     } finally {
       setSubmitting(false);
     }
@@ -230,7 +233,7 @@ export default function ReviewPage() {
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
         </svg>
-        돌아가기
+        {t.goBack || '돌아가기'}
       </Link>
 
       {/* 탭 선택 */}
@@ -243,7 +246,7 @@ export default function ReviewPage() {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          예약후기
+          {t.bookingReviewTab || '예약후기'}
         </button>
         <button
           onClick={() => { setActiveTab('shooting'); setMessage(null); }}
@@ -253,7 +256,7 @@ export default function ReviewPage() {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          촬영후기
+          {t.shootingReviewTab || '촬영후기'}
         </button>
       </div>
 
@@ -274,27 +277,27 @@ export default function ReviewPage() {
       {activeTab === 'booking' && (
         <>
           <div className="bg-background rounded-xl border border-border p-6">
-            <h1 className="text-2xl font-bold mb-2">예약후기 제출</h1>
+            <h1 className="text-2xl font-bold mb-2">{t.bookingReviewSubmit || '예약후기 제출'}</h1>
             {!canWriteReview ? (
               <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-6">
                 <p className="text-yellow-600 text-sm">
-                  예약후기 또는 촬영후기 할인을 신청하신 경우에만 후기를 작성할 수 있습니다.
+                  {t.reviewNotEligible || '예약후기 또는 촬영후기 할인을 신청하신 경우에만 후기를 작성할 수 있습니다.'}
                   <br />
-                  예약글 수정 페이지에서 할인 옵션을 체크해주세요.
+                  {t.reviewCheckDiscount || '예약글 수정 페이지에서 할인 옵션을 체크해주세요.'}
                 </p>
               </div>
             ) : (
               <p className="text-muted-foreground mb-6">
                 {isBudgetProduct(productType)
-                  ? '후기 1건 작성 시 원본영상 전달 (할인 없음)'
-                  : '후기 2건 작성 시 2만원 할인! (블로그/카페 각 1건씩)'}
+                  ? (t.reviewBudgetDesc || '후기 1건 작성 시 원본영상 전달 (할인 없음)')
+                  : (t.reviewStandardDesc || '후기 2건 작성 시 2만원 할인! (블로그/카페 각 1건씩)')}
               </p>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="reviewUrl" className="block text-sm font-medium mb-2">
-                  후기 URL
+                  {t.reviewUrlLabel || '후기 URL'}
                 </label>
                 <input
                   type="url"
@@ -313,17 +316,17 @@ export default function ReviewPage() {
                 disabled={submitting || !canWriteReview}
                 className="w-full py-3 px-4 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? '제출 중...' : '후기 제출하기'}
+                {submitting ? (t.submitting || '제출 중...') : (t.submitReview || '후기 제출하기')}
               </button>
             </form>
 
             {/* 안내사항 */}
             <div className="mt-6 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold mb-2">후기 작성 가이드</h3>
+              <h3 className="font-semibold mb-2">{t.reviewGuideTitle || '후기 작성 가이드'}</h3>
               <ul className="text-sm text-muted-foreground space-y-1.5 mb-4">
-                <li>- 제목: <strong>&apos;웨딩홀명&apos; + &apos;라우브필름&apos; + &apos;본식DVD&apos;</strong> 포함</li>
-                <li>- 본문: 포트폴리오 영상 캡쳐 <strong>10장 이상</strong> + 홈페이지/카카오톡채널 링크 기입</li>
-                <li>- 카페 글은 <strong>전체공개</strong>로 작성</li>
+                <li>- {t.reviewGuide1 || "제목: '웨딩홀명' + '라우브필름' + '본식DVD' 포함"}</li>
+                <li>- {t.reviewGuide2 || "본문: 포트폴리오 영상 캡쳐 10장 이상 + 홈페이지/카카오톡채널 링크 기입"}</li>
+                <li>- {t.reviewGuide3 || "카페 글은 전체공개로 작성"}</li>
               </ul>
               <Link
                 href="/reviews/guide"
@@ -334,7 +337,7 @@ export default function ReviewPage() {
                   <polyline points="15 3 21 3 21 9"></polyline>
                   <line x1="10" y1="14" x2="21" y2="3"></line>
                 </svg>
-                후기 가이드 보기
+                {t.viewReviewGuide || '후기 가이드 보기'}
               </Link>
             </div>
           </div>
@@ -343,10 +346,10 @@ export default function ReviewPage() {
           {reviews.length > 0 && (
             <div className="bg-background rounded-xl border border-border p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">제출한 후기</h2>
+                <h2 className="text-lg font-semibold">{t.submittedReviews || '제출한 후기'}</h2>
                 {isBudgetProduct(productType) && (
                   <span className="text-xs text-muted-foreground">
-                    (최대 {maxReviews}건)
+                    ({t.maxLabel || '최대'} {maxReviews}{t.countUnit || '건'})
                   </span>
                 )}
               </div>
@@ -367,7 +370,7 @@ export default function ReviewPage() {
                             onClick={() => handleCancel(review.id)}
                             className="px-2 py-1 text-xs rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
                           >
-                            취소
+                            {t.cancel || '취소'}
                           </button>
                         )}
                       </div>
@@ -382,18 +385,18 @@ export default function ReviewPage() {
                     </a>
                     {review.characterCount !== null && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        글자 수: {review.characterCount}자
-                        {review.titleValid === false && ' | 제목 키워드 미포함'}
-                        {review.contentValid === false && ' | 500자 미만'}
+                        {t.characterCount || '글자 수'}: {review.characterCount}{t.charUnit || '자'}
+                        {review.titleValid === false && ` | ${t.titleKeywordMissing || '제목 키워드 미포함'}`}
+                        {review.contentValid === false && ` | ${t.under500Chars || '500자 미만'}`}
                       </p>
                     )}
                     {review.rejectReason && (
                       <p className="text-xs text-red-500 mt-2">
-                        거절 사유: {review.rejectReason}
+                        {t.rejectReason || '거절 사유'}: {review.rejectReason}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(review.createdAt).toLocaleDateString('ko-KR')} 제출
+                      {formatDateKorean(review.createdAt)} {t.submitted || '제출'}
                     </p>
                   </div>
                 ))}
@@ -408,23 +411,23 @@ export default function ReviewPage() {
         <>
           {/* 촬영후기 URL 제출 영역 */}
           <div className="bg-background rounded-xl border border-border p-6">
-            <h1 className="text-2xl font-bold mb-2">촬영후기 제출</h1>
+            <h1 className="text-2xl font-bold mb-2">{t.shootingReviewSubmit || '촬영후기 제출'}</h1>
             {!canWriteReview ? (
               <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-6">
                 <p className="text-yellow-600 text-sm">
-                  촬영후기 할인을 신청하신 경우에만 후기를 등록할 수 있습니다.
+                  {t.shootingReviewNotEligible || '촬영후기 할인을 신청하신 경우에만 후기를 등록할 수 있습니다.'}
                 </p>
               </div>
             ) : (
               <p className="text-muted-foreground mb-6">
-                블로그 후기 1건 + 카페 후기 1건 = 총 2건 제출 가능 (건당 1만원 환급, 최대 2만원)
+                {t.shootingReviewDesc || '블로그 후기 1건 + 카페 후기 1건 = 총 2건 제출 가능 (건당 1만원 환급, 최대 2만원)'}
               </p>
             )}
 
             <form onSubmit={handleShootingReviewSubmit} className="space-y-4">
               <div>
                 <label htmlFor="shootingReviewUrl" className="block text-sm font-medium mb-2">
-                  후기 URL
+                  {t.reviewUrlLabel || '후기 URL'}
                 </label>
                 <input
                   type="url"
@@ -443,7 +446,7 @@ export default function ReviewPage() {
                 disabled={submitting || !canWriteReview || !shootingReviewUrl.trim()}
                 className="w-full py-3 px-4 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? '제출 중...' : '후기 제출하기'}
+                {submitting ? (t.submitting || '제출 중...') : (t.submitReview || '후기 제출하기')}
               </button>
             </form>
 
@@ -458,21 +461,21 @@ export default function ReviewPage() {
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
                   </svg>
-                  {showRefundInfo ? '계좌 정보 닫기' : '환급 계좌 확인'}
+                  {showRefundInfo ? (t.closeAccountInfo || '계좌 정보 닫기') : (t.checkRefundAccount || '환급 계좌 확인')}
                 </button>
                 {showRefundInfo && (
                   <>
                     <div className="p-4 bg-muted rounded-lg space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">은행명</span>
+                        <span className="text-muted-foreground">{t.bankNameLabel || '은행명'}</span>
                         <span className="font-medium">{reviewRefundBank}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">계좌번호</span>
+                        <span className="text-muted-foreground">{t.accountNumberLabel || '계좌번호'}</span>
                         <span className="font-medium font-mono">{reviewRefundAccountNumber}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">입금자명</span>
+                        <span className="text-muted-foreground">{t.depositorNameLabel || '입금자명'}</span>
                         <span className="font-medium">{reviewRefundDepositorName}</span>
                       </div>
                     </div>
@@ -481,43 +484,43 @@ export default function ReviewPage() {
                       onClick={() => { setEditingRefund(true); setShowRefundInfo(false); }}
                       className="w-full py-2.5 px-4 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     >
-                      계좌 수정하기
+                      {t.editAccount || '계좌 수정하기'}
                     </button>
                   </>
                 )}
               </div>
             ) : (
               <div className="mt-4 pt-4 border-t border-border space-y-3">
-                <h3 className="text-sm font-semibold">환급 계좌 {editingRefund ? '수정' : '등록'}</h3>
+                <h3 className="text-sm font-semibold">{t.refundAccountTitle || '환급 계좌'} {editingRefund ? (t.editLabel || '수정') : (t.registerLabel || '등록')}</h3>
                 <div>
-                  <label className="block text-sm font-medium mb-1">은행명</label>
+                  <label className="block text-sm font-medium mb-1">{t.bankNameLabel || '은행명'}</label>
                   <input
                     type="text"
                     value={reviewRefundBank}
                     onChange={(e) => setReviewRefundBank(e.target.value)}
-                    placeholder="예: 국민은행, 신한은행, 카카오뱅크"
+                    placeholder={t.bankNamePlaceholder || '예: 국민은행, 신한은행, 카카오뱅크'}
                     disabled={!canWriteReview}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">계좌번호</label>
+                  <label className="block text-sm font-medium mb-1">{t.accountNumberLabel || '계좌번호'}</label>
                   <input
                     type="text"
                     value={reviewRefundAccountNumber}
                     onChange={(e) => setReviewRefundAccountNumber(e.target.value)}
-                    placeholder="'-' 없이 숫자만 입력"
+                    placeholder={t.accountNumberPlaceholder || "'-' 없이 숫자만 입력"}
                     disabled={!canWriteReview}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">입금자명</label>
+                  <label className="block text-sm font-medium mb-1">{t.depositorNameLabel || '입금자명'}</label>
                   <input
                     type="text"
                     value={reviewRefundDepositorName}
                     onChange={(e) => setReviewRefundDepositorName(e.target.value)}
-                    placeholder="환급받으실 분의 성함"
+                    placeholder={t.depositorNamePlaceholder || '환급받으실 분의 성함'}
                     disabled={!canWriteReview}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
                   />
@@ -532,7 +535,7 @@ export default function ReviewPage() {
                       }}
                       className="flex-1 py-3 px-4 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
                     >
-                      취소
+                      {t.cancel || '취소'}
                     </button>
                   )}
                   <button
@@ -550,7 +553,7 @@ export default function ReviewPage() {
                     }}
                     className="flex-1 py-3 px-4 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {savingRefund ? '저장 중...' : '환급 계좌 저장'}
+                    {savingRefund ? (t.saving || '저장 중...') : (t.saveRefundAccount || '환급 계좌 저장')}
                   </button>
                 </div>
               </div>
@@ -558,11 +561,11 @@ export default function ReviewPage() {
 
             {/* 안내사항 */}
             <div className="mt-6 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold mb-2">후기 작성 가이드</h3>
+              <h3 className="font-semibold mb-2">{t.reviewGuideTitle || '후기 작성 가이드'}</h3>
               <ul className="text-sm text-muted-foreground space-y-1.5 mb-4">
-                <li>- 제목: <strong>&apos;웨딩홀명&apos; + &apos;라우브필름&apos; + &apos;본식DVD&apos;</strong> 포함</li>
-                <li>- 본문: 포트폴리오 영상 캡쳐 <strong>10장 이상</strong> + 홈페이지/카카오톡채널 링크 기입</li>
-                <li>- 카페 글은 <strong>전체공개</strong>로 작성</li>
+                <li>- {t.reviewGuide1 || "제목: '웨딩홀명' + '라우브필름' + '본식DVD' 포함"}</li>
+                <li>- {t.reviewGuide2 || "본문: 포트폴리오 영상 캡쳐 10장 이상 + 홈페이지/카카오톡채널 링크 기입"}</li>
+                <li>- {t.reviewGuide3 || "카페 글은 전체공개로 작성"}</li>
               </ul>
               <Link
                 href="/reviews/guide"
@@ -573,7 +576,7 @@ export default function ReviewPage() {
                   <polyline points="15 3 21 3 21 9"></polyline>
                   <line x1="10" y1="14" x2="21" y2="3"></line>
                 </svg>
-                후기 가이드 보기
+                {t.viewReviewGuide || '후기 가이드 보기'}
               </Link>
             </div>
           </div>
@@ -581,7 +584,7 @@ export default function ReviewPage() {
           {/* 제출한 촬영후기 목록 */}
           {shootingReviews.length > 0 && (
             <div className="bg-background rounded-xl border border-border p-6">
-              <h2 className="text-lg font-semibold mb-4">제출한 촬영후기</h2>
+              <h2 className="text-lg font-semibold mb-4">{t.submittedShootingReviews || '제출한 촬영후기'}</h2>
               <div className="space-y-3">
                 {shootingReviews.map((review) => (
                   <div key={review.id} className="p-4 bg-muted rounded-lg">
@@ -596,7 +599,7 @@ export default function ReviewPage() {
                             onClick={() => handleCancel(review.id)}
                             className="px-2 py-1 text-xs rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
                           >
-                            취소
+                            {t.cancel || '취소'}
                           </button>
                         )}
                       </div>
@@ -611,18 +614,18 @@ export default function ReviewPage() {
                     </a>
                     {review.characterCount !== null && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        글자 수: {review.characterCount}자
-                        {review.titleValid === false && ' | 제목 키워드 미포함'}
-                        {review.contentValid === false && ' | 500자 미만'}
+                        {t.characterCount || '글자 수'}: {review.characterCount}{t.charUnit || '자'}
+                        {review.titleValid === false && ` | ${t.titleKeywordMissing || '제목 키워드 미포함'}`}
+                        {review.contentValid === false && ` | ${t.under500Chars || '500자 미만'}`}
                       </p>
                     )}
                     {review.rejectReason && (
                       <p className="text-xs text-red-500 mt-2">
-                        거절 사유: {review.rejectReason}
+                        {t.rejectReason || '거절 사유'}: {review.rejectReason}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(review.createdAt).toLocaleDateString('ko-KR')} 제출
+                      {formatDateKorean(review.createdAt)} {t.submitted || '제출'}
                     </p>
                   </div>
                 ))}

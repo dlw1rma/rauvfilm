@@ -24,14 +24,17 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, nameEn, slug, description, order } = body;
+    const { name, nameEn, nameJa, slug, description, descriptionEn, descriptionJa, order } = body;
 
     const location = await prisma.eventSnapLocation.create({
       data: {
         name,
         nameEn,
+        nameJa,
         slug,
         description,
+        descriptionEn,
+        descriptionJa,
         order: order || 0,
       },
     });

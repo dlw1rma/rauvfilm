@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { formatDateKorean } from '@/lib/formatDate';
+import { useMypageTranslation } from '@/components/mypage/MypageTranslationProvider';
 
 interface BookingData {
   id: number;
@@ -68,6 +70,7 @@ interface EventSnapItem {
 
 export default function MypageDashboard() {
   const router = useRouter();
+  const t = useMypageTranslation();
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [balance, setBalance] = useState<BalanceData | null>(null);
   const [eventSnapList, setEventSnapList] = useState<EventSnapItem[]>([]);
@@ -147,7 +150,7 @@ export default function MypageDashboard() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 rounded-full border-2 border-muted border-t-accent animate-spin mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">로딩 중...</p>
+          <p className="text-sm text-muted-foreground">{t.loading}</p>
         </div>
       </div>
     );
@@ -177,14 +180,14 @@ export default function MypageDashboard() {
           <div>
             <h1 className="text-3xl font-bold mb-2">{booking.customerName}님</h1>
             <p className="text-muted-foreground">
-              {isWeddingDone ? '라우브필름을 선택해주셔서 감사합니다' : '라우브필름과 함께하는 특별한 날'}
+              {isWeddingDone ? t.thankYou : t.specialDay}
             </p>
           </div>
           <button
             onClick={handleLogout}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            로그아웃
+            {t.logout}
           </button>
         </div>
 
@@ -202,17 +205,17 @@ export default function MypageDashboard() {
             {/* 축하 히어로 카드 */}
             <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-accent/90 to-accent p-5 sm:p-8 mb-5 sm:mb-8 text-white">
               <div className="relative z-10">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-3">결혼을 진심으로 축하드립니다!</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t.congratsTitle}</h2>
                 <p className="text-white/80 mb-1">
-                  {weddingDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} · {booking.weddingVenue}
+                  {formatDateKorean(weddingDate)} · {booking.weddingVenue}
                 </p>
                 <div className="mt-5 space-y-3 text-sm text-white/90 bg-white/10 backdrop-blur rounded-xl p-4">
-                  <h3 className="font-semibold text-white text-base">DVD 안내사항</h3>
+                  <h3 className="font-semibold text-white text-base">{t.dvdGuideTitle}</h3>
                   <ul className="space-y-2 list-disc list-inside">
-                    <li>본식 영상은 촬영일 기준 약 <strong>60~80일</strong>이 소요됩니다.</li>
-                    <li>영상 업로드 시 알림톡으로 안내드립니다.</li>
-                    <li>영상 원본과 편집본은 최종 발송일 기준 <strong>2개월간 보관</strong> 후 삭제됩니다.</li>
-                    <li>다운로드 페이지에서 영상을 확인하실 수 있습니다.</li>
+                    <li dangerouslySetInnerHTML={{ __html: t.dvdGuide1 }} />
+                    <li dangerouslySetInnerHTML={{ __html: t.dvdGuide2 }} />
+                    <li dangerouslySetInnerHTML={{ __html: t.dvdGuide3 }} />
+                    <li dangerouslySetInnerHTML={{ __html: t.dvdGuide4 }} />
                   </ul>
                 </div>
               </div>
@@ -223,15 +226,15 @@ export default function MypageDashboard() {
             {/* 최종 DVD 진행비용 (캡처/공유 가능) */}
             <div id="final-cost-card" className="rounded-2xl border border-border bg-background p-4 sm:p-6 mb-5 sm:mb-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">최종 DVD 진행비용</h3>
+                <h3 className="font-semibold">{t.finalDvdCost}</h3>
                 <button
                   onClick={async () => {
-                    const costText = `[라우브필름 최종 비용]\n${booking.customerName}님\n예식일: ${weddingDate.toLocaleDateString('ko-KR')}\n장소: ${booking.weddingVenue}\n\n상품: ${balance.product.name} ${balance.product.basePriceFormatted}${balance.additionalOptions.map(o => `\n+ ${o.label}: ${o.amountFormatted}`).join('')}\n\n총 금액: ${balance.listPriceFormatted}\n예약금: -${balance.depositAmountFormatted}${balance.discounts.map(d => `\n${d.label}: -${d.amountFormatted}`).join('')}\n\n최종 잔금: ${balance.finalBalanceFormatted}`;
+                    const costText = `[라우브필름 최종 비용]\n${booking.customerName}님\n예식일: ${formatDateKorean(weddingDate)}\n장소: ${booking.weddingVenue}\n\n상품: ${balance.product.name} ${balance.product.basePriceFormatted}${balance.additionalOptions.map(o => `\n+ ${o.label}: ${o.amountFormatted}`).join('')}\n\n총 금액: ${balance.listPriceFormatted}\n예약금: -${balance.depositAmountFormatted}${balance.discounts.map(d => `\n${d.label}: -${d.amountFormatted}`).join('')}\n\n최종 잔금: ${balance.finalBalanceFormatted}`;
                     try {
                       await navigator.clipboard.writeText(costText);
-                      alert('비용 내역이 복사되었습니다.');
+                      alert(t.costCopied);
                     } catch {
-                      alert('복사에 실패했습니다.');
+                      alert(t.costCopyFailed);
                     }
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/50 transition-colors"
@@ -239,7 +242,7 @@ export default function MypageDashboard() {
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
                   </svg>
-                  복사
+                  {t.copy}
                 </button>
               </div>
               <div className="space-y-3 text-sm">
@@ -251,7 +254,7 @@ export default function MypageDashboard() {
                   <>
                     {balance.additionalOptions.map((option, idx) => (
                       <div key={idx} className="flex justify-between pl-4">
-                        <span className="text-muted-foreground">+ {option.label}{option.isDepositOnly ? ' (별도 예약금)' : ''}</span>
+                        <span className="text-muted-foreground">+ {option.label}{option.isDepositOnly ? ` (${t.separateDeposit})` : ''}</span>
                         {option.isDepositOnly ? (
                           <span className="text-muted-foreground">{option.amountFormatted}</span>
                         ) : (
@@ -262,11 +265,11 @@ export default function MypageDashboard() {
                   </>
                 )}
                 <div className="flex justify-between font-medium pt-2 border-t border-border">
-                  <span>총 금액</span>
+                  <span>{t.totalAmount}</span>
                   <span>{balance.listPriceFormatted}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">예약금</span>
+                  <span className="text-muted-foreground">{t.deposit}</span>
                   <span className="text-rose-400">-{balance.depositAmountFormatted}</span>
                 </div>
                 {balance.discounts.map((discount, idx) => (
@@ -277,11 +280,11 @@ export default function MypageDashboard() {
                 ))}
                 <div className="border-t border-border pt-3 mt-3">
                   <div className="flex justify-between font-semibold text-base">
-                    <span>최종 잔금</span>
+                    <span>{t.finalBalance}</span>
                     <span className="text-green-400">{balance.finalBalanceFormatted}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    잔금은 예식 당일 현장에서 입금해 주세요.
+                    {t.balanceNote}
                   </p>
                 </div>
               </div>
@@ -296,7 +299,7 @@ export default function MypageDashboard() {
                 <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                 </svg>
-                <span className="text-sm font-medium">예약글 조회</span>
+                <span className="text-sm font-medium">{t.viewReservations}</span>
               </Link>
               <Link
                 href="/mypage/review"
@@ -305,7 +308,7 @@ export default function MypageDashboard() {
                 <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                 </svg>
-                <span className="text-sm font-medium">후기 작성</span>
+                <span className="text-sm font-medium">{t.writeReview}</span>
               </Link>
               <Link
                 href="/mypage/downloads"
@@ -314,7 +317,7 @@ export default function MypageDashboard() {
                 <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
-                <span className="text-sm font-medium">다운로드</span>
+                <span className="text-sm font-medium">{t.download}</span>
               </Link>
             </div>
           </>
@@ -325,14 +328,9 @@ export default function MypageDashboard() {
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-white/70 text-sm mb-1">예식일</p>
+                    <p className="text-white/70 text-sm mb-1">{t.weddingDate}</p>
                     <p className="text-2xl font-bold">
-                      {weddingDate.toLocaleDateString('ko-KR', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        weekday: 'short',
-                      })}
+                      {formatDateKorean(weddingDate)}
                     </p>
                   </div>
                   <div className="text-right">
@@ -347,7 +345,7 @@ export default function MypageDashboard() {
                         <span className="font-medium">{ev.type}</span>
                         {ev.shootDate && (
                           <span>
-                            {new Date(ev.shootDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
+                            {formatDateKorean(ev.shootDate)}
                             {ev.shootTime ? ` ${ev.shootTime}` : ''}
                           </span>
                         )}
@@ -358,15 +356,15 @@ export default function MypageDashboard() {
                 )}
                 <div className="flex flex-wrap gap-3 sm:gap-4 text-sm">
                   <div className="bg-white/20 backdrop-blur rounded-lg px-3 sm:px-4 py-2">
-                    <span className="text-white/70">장소</span>
-                    <p className="font-medium">{booking.weddingVenue || '미정'}</p>
+                    <span className="text-white/70">{t.venue}</span>
+                    <p className="font-medium">{booking.weddingVenue || t.venueUndecided}</p>
                   </div>
                   <div className="bg-white/20 backdrop-blur rounded-lg px-3 sm:px-4 py-2">
-                    <span className="text-white/70">상품</span>
+                    <span className="text-white/70">{t.productLabel}</span>
                     <p className="font-medium">{booking.product.name}</p>
                   </div>
                   <div className="bg-white/20 backdrop-blur rounded-lg px-3 sm:px-4 py-2">
-                    <span className="text-white/70">상태</span>
+                    <span className="text-white/70">{t.statusLabel}</span>
                     <p className="font-medium">{booking.statusLabel}</p>
                   </div>
                 </div>
@@ -386,8 +384,8 @@ export default function MypageDashboard() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold">짝꿍 코드</h3>
-                    <p className="text-xs text-muted-foreground">친구와 함께 할인받기</p>
+                    <h3 className="font-semibold">{t.partnerCode}</h3>
+                    <p className="text-xs text-muted-foreground">{t.partnerCodeSub}</p>
                   </div>
                 </div>
                 {booking.partnerCode ? (
@@ -399,14 +397,14 @@ export default function MypageDashboard() {
                       onClick={copyPartnerCode}
                       className="shrink-0 px-4 py-3 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
                     >
-                      {copied ? '복사됨!' : '복사'}
+                      {copied ? t.copied : t.copy}
                     </button>
                   </div>
                 ) : (
                   <div className="bg-muted rounded-lg px-4 py-3 text-sm text-muted-foreground">
                     {booking.discountCouple
-                      ? '예약 확정 후 발급됩니다'
-                      : '짝궁코드 참여 시 발급됩니다'}
+                      ? t.partnerCodePending
+                      : t.partnerCodeNotJoined}
                   </div>
                 )}
               </div>
@@ -420,8 +418,8 @@ export default function MypageDashboard() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold">잔금</h3>
-                    <p className="text-xs text-muted-foreground">결제 예정 금액</p>
+                    <h3 className="font-semibold">{t.balance}</h3>
+                    <p className="text-xs text-muted-foreground">{t.balanceSub}</p>
                   </div>
                 </div>
                 <div className="text-3xl font-bold text-green-400 mb-2">
@@ -429,20 +427,20 @@ export default function MypageDashboard() {
                 </div>
                 {balance.discounts.length > 0 && (
                   <p className="text-sm text-muted-foreground mb-3">
-                    총 {balance.totalDiscountFormatted} 할인 적용
+                    {t.totalDiscountApplied.replace('{amount}', balance.totalDiscountFormatted)}
                   </p>
                 )}
                 <button
                   onClick={() => setShowAccountInfo(!showAccountInfo)}
                   className="text-xs px-3 py-1.5 rounded-lg border border-border bg-muted hover:bg-muted/80 transition-colors text-muted-foreground"
                 >
-                  {showAccountInfo ? '계좌 닫기' : '계좌 확인'}
+                  {showAccountInfo ? t.hideAccount : t.showAccount}
                 </button>
                 {showAccountInfo && (
                   <div className="mt-2 p-3 rounded-lg bg-muted text-sm space-y-1">
-                    <p><span className="text-muted-foreground">은행:</span> 국민은행</p>
-                    <p><span className="text-muted-foreground">계좌:</span> <span className="font-mono">037437-04-012104</span></p>
-                    <p><span className="text-muted-foreground">예금주:</span> 손세한</p>
+                    <p><span className="text-muted-foreground">{t.bank}:</span> {t.bankName}</p>
+                    <p><span className="text-muted-foreground">{t.accountNumber}:</span> <span className="font-mono">037437-04-012104</span></p>
+                    <p><span className="text-muted-foreground">{t.accountHolder}:</span> 손세한</p>
                     <button
                       onClick={async () => {
                         try {
@@ -453,7 +451,7 @@ export default function MypageDashboard() {
                       }}
                       className="mt-2 w-full py-2 rounded-lg border border-border bg-background text-xs font-medium hover:bg-muted/80 transition-colors"
                     >
-                      {accountCopied ? '복사됨!' : '계좌번호 복사'}
+                      {accountCopied ? t.copied : t.copyAccountNumber}
                     </button>
                   </div>
                 )}
@@ -462,7 +460,7 @@ export default function MypageDashboard() {
 
             {/* Balance Detail */}
             <div className="rounded-2xl border border-border bg-background p-4 sm:p-6 mb-4">
-              <h3 className="font-semibold mb-4">금액 상세</h3>
+              <h3 className="font-semibold mb-4">{t.amountDetail}</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{balance.product.name}</span>
@@ -472,7 +470,7 @@ export default function MypageDashboard() {
                   <>
                     {balance.additionalOptions.map((option, idx) => (
                       <div key={idx} className="flex justify-between pl-4">
-                        <span className="text-muted-foreground">+ {option.label}{option.isDepositOnly ? ' (별도 예약금)' : ''}</span>
+                        <span className="text-muted-foreground">+ {option.label}{option.isDepositOnly ? ` (${t.separateDeposit})` : ''}</span>
                         {option.isDepositOnly ? (
                           <span className="text-muted-foreground">{option.amountFormatted}</span>
                         ) : (
@@ -483,11 +481,11 @@ export default function MypageDashboard() {
                   </>
                 )}
                 <div className="flex justify-between font-medium pt-2 border-t border-border">
-                  <span>총 금액</span>
+                  <span>{t.totalAmount}</span>
                   <span>{balance.listPriceFormatted}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">예약금</span>
+                  <span className="text-muted-foreground">{t.deposit}</span>
                   <span className="text-rose-400">-{balance.depositAmountFormatted}</span>
                 </div>
                 {balance.discounts.map((discount, idx) => (
@@ -498,7 +496,7 @@ export default function MypageDashboard() {
                 ))}
                 <div className="border-t border-border pt-3 mt-3">
                   <div className="flex justify-between font-semibold">
-                    <span>최종 잔금</span>
+                    <span>{t.finalBalance}</span>
                     <span className="text-green-400">{balance.finalBalanceFormatted}</span>
                   </div>
                 </div>
@@ -513,7 +511,7 @@ export default function MypageDashboard() {
               <svg className="w-8 h-8 text-accent shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
               </svg>
-              <span className="text-base font-semibold">야외스냅 / 프리웨딩 신청</span>
+              <span className="text-base font-semibold">{t.eventSnapApply}</span>
             </Link>
 
             {/* Quick Menu (예식 전: 4개) */}
@@ -525,7 +523,7 @@ export default function MypageDashboard() {
                 <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                 </svg>
-                <span className="text-sm font-medium">예약글 조회</span>
+                <span className="text-sm font-medium">{t.viewReservations}</span>
               </Link>
               <Link
                 href="/mypage/partner-code"
@@ -534,7 +532,7 @@ export default function MypageDashboard() {
                 <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
                 </svg>
-                <span className="text-sm font-medium">짝꿍 공유</span>
+                <span className="text-sm font-medium">{t.partnerShare}</span>
               </Link>
               <Link
                 href="/mypage/review"
@@ -543,7 +541,7 @@ export default function MypageDashboard() {
                 <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                 </svg>
-                <span className="text-sm font-medium">후기 작성</span>
+                <span className="text-sm font-medium">{t.writeReview}</span>
               </Link>
               <Link
                 href="/mypage/downloads"
@@ -552,7 +550,7 @@ export default function MypageDashboard() {
                 <svg className="w-8 h-8 text-accent mb-3" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
-                <span className="text-sm font-medium">다운로드</span>
+                <span className="text-sm font-medium">{t.download}</span>
               </Link>
             </div>
           </>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useMypageTranslation } from '@/components/mypage/MypageTranslationProvider';
 
 interface BookingData {
   videoUrl: string | null;
@@ -13,6 +14,7 @@ interface BookingData {
 
 export default function DownloadsPage() {
   const router = useRouter();
+  const t = useMypageTranslation();
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -53,13 +55,13 @@ export default function DownloadsPage() {
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
         </svg>
-        돌아가기
+        {t.goBack || '돌아가기'}
       </Link>
 
       <div className="bg-background rounded-xl border border-border p-6">
-        <h1 className="text-2xl font-bold mb-2">다운로드</h1>
+        <h1 className="text-2xl font-bold mb-2">{t.downloadsTitle}</h1>
         <p className="text-muted-foreground mb-6">
-          영상 및 계약서를 다운로드하세요
+          {t.downloadsSub}
         </p>
 
         {hasAnyDownload ? (
@@ -74,9 +76,9 @@ export default function DownloadsPage() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold">웨딩 영상</h3>
+                  <h3 className="font-semibold">{t.weddingVideo || '웨딩 영상'}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {hasVideo ? '영상이 준비되었습니다' : '아직 업로드되지 않았습니다'}
+                    {hasVideo ? (t.videoReady || '영상이 준비되었습니다') : (t.videoNotReady || '아직 업로드되지 않았습니다')}
                   </p>
                 </div>
                 {hasVideo && (
@@ -86,7 +88,7 @@ export default function DownloadsPage() {
                     rel="noopener noreferrer"
                     className="px-4 py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors"
                   >
-                    다운로드
+                    {t.download}
                   </a>
                 )}
               </div>
@@ -103,7 +105,7 @@ export default function DownloadsPage() {
                 <div className="flex-1">
                   <h3 className="font-semibold">PDF</h3>
                   <p className="text-sm text-muted-foreground">
-                    {hasContract ? 'PDF가 준비되었습니다' : '아직 업로드되지 않았습니다'}
+                    {hasContract ? (t.pdfReady || 'PDF가 준비되었습니다') : (t.pdfNotReady || '아직 업로드되지 않았습니다')}
                   </p>
                 </div>
                 {hasContract && (
@@ -113,7 +115,7 @@ export default function DownloadsPage() {
                     rel="noopener noreferrer"
                     className="px-4 py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors"
                   >
-                    다운로드
+                    {t.download}
                   </a>
                 )}
               </div>
@@ -126,20 +128,20 @@ export default function DownloadsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="font-semibold mb-2">아직 다운로드 가능한 파일이 없습니다</h3>
+            <h3 className="font-semibold mb-2">{t.noDownloads || '아직 다운로드 가능한 파일이 없습니다'}</h3>
             <p className="text-muted-foreground text-sm">
-              촬영 완료 후 영상과 계약서가 업로드됩니다.
+              {t.downloadsAfterShoot || '촬영 완료 후 영상과 계약서가 업로드됩니다.'}
             </p>
           </div>
         )}
 
         {/* 안내사항 */}
         <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h3 className="font-semibold mb-2">안내사항</h3>
+          <h3 className="font-semibold mb-2">{t.notice || '안내사항'}</h3>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>- 영상은 촬영 후 2-4주 내 업로드됩니다</li>
-            <li>- 다운로드 링크는 영상 업로드일로부터 5년간 유효합니다</li>
-            <li>- 문의사항은 카카오톡 채널로 연락주세요</li>
+            <li>- {t.downloadNote1 || '영상은 촬영 후 2-4주 내 업로드됩니다'}</li>
+            <li>- {t.downloadNote2 || '다운로드 링크는 영상 업로드일로부터 5년간 유효합니다'}</li>
+            <li>- {t.downloadNote3 || '문의사항은 카카오톡 채널로 연락주세요'}</li>
           </ul>
         </div>
       </div>

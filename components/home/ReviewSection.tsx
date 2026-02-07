@@ -5,6 +5,17 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { ImageOff, ArrowRight } from "lucide-react";
 
+interface ReviewSectionProps {
+  translations: {
+    reviewSection: string;
+    reviewDescription: string;
+    viewAllReviews: string;
+    noReviews: string;
+    noReviewsSub: string;
+  };
+  locale: string;
+}
+
 interface Review {
   id: number;
   title: string;
@@ -47,7 +58,7 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-export default function ReviewSection() {
+export default function ReviewSection({ translations, locale }: ReviewSectionProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,7 +89,7 @@ export default function ReviewSection() {
       <section className="py-20 md:py-28 px-4 bg-[#0a0a0a]">
         <div className="mx-auto max-w-7xl">
           <h2 className="mb-4 text-center text-sm font-semibold tracking-[0.2em] text-accent uppercase">
-            고객후기
+            {translations.reviewSection}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -106,7 +117,7 @@ export default function ReviewSection() {
           transition={{ duration: 0.6 }}
           className="mb-4 text-center text-sm font-semibold tracking-[0.2em] text-accent uppercase"
         >
-          고객후기
+          {translations.reviewSection}
         </motion.h2>
 
         {/* Description */}
@@ -115,11 +126,9 @@ export default function ReviewSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-center text-white/70 mb-10 text-base md:text-lg mobile-br-hidden"
+          className="text-center text-white/70 mb-10 text-base md:text-lg mobile-br-hidden whitespace-pre-line"
         >
-          많은 신랑신부님들과 함께 하며
-          <br />
-          직접 적어주신 솔직한 후기들입니다.
+          {translations.reviewDescription}
         </motion.p>
 
         {/* Review Grid - 4x2 썸네일 그리드 */}
@@ -193,10 +202,10 @@ export default function ReviewSection() {
             className="text-center py-16 mb-10"
           >
             <p className="text-white/50 text-base">
-              아직 등록된 후기가 없습니다.
+              {translations.noReviews}
             </p>
             <p className="text-white/40 text-sm mt-2">
-              촬영 후 후기를 작성해주시면 할인 혜택을 드립니다.
+              {translations.noReviewsSub}
             </p>
           </motion.div>
         )}
@@ -210,13 +219,13 @@ export default function ReviewSection() {
           className="flex justify-center"
         >
           <motion.a
-            href="/reviews"
+            href={`/${locale}/reviews`}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
             className="group inline-flex items-center gap-2 px-8 py-3 rounded-full bg-accent text-white text-sm font-medium transition-all duration-300 hover:bg-accent-hover hover:shadow-xl hover:shadow-accent/20"
           >
-            <span>전체 후기 보기</span>
+            <span>{translations.viewAllReviews}</span>
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </motion.a>
         </motion.div>

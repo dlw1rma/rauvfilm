@@ -4,7 +4,14 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ReactCompareSlider, ReactCompareSliderImage } from "react-compare-slider";
 
-export default function ColorSection() {
+interface ColorSectionProps {
+  translations: {
+    colorDesc: string;
+    colorInstruction: string;
+  };
+}
+
+export default function ColorSection({ translations }: ColorSectionProps) {
   // PC 버전 영상 ID
   const pcVideoId = "BEEXhZW2GMo";
   // 모바일 버전 영상 ID
@@ -77,9 +84,12 @@ export default function ColorSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-left text-white/70 leading-relaxed mb-10 text-base md:text-lg"
         >
-          특수한 촬영 방식과 자연스러운 색감과 피부보정, 드레스 디테일 보정으로
-          <br className="hidden md:block" />
-          가장 예쁜 모습만을 남겨드리고 있습니다.
+          {translations.colorDesc.split('\n').map((line, i) => (
+            <span key={i}>
+              {i > 0 && <br className="hidden md:block" />}
+              {line}
+            </span>
+          ))}
         </motion.p>
 
         {/* Before/After Comparison Slider */}
@@ -185,7 +195,7 @@ export default function ColorSection() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-center text-[#888888] text-sm mb-12"
         >
-          가운데 막대를 움직여 비교해보세요
+          {translations.colorInstruction}
         </motion.p>
 
         {/* Video Section */}

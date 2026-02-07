@@ -4,28 +4,20 @@ import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { UserCheck, Film, Monitor, Camera } from "lucide-react";
 
-const directorFeatures = [
-  {
-    icon: UserCheck,
-    title: "검증된 실력",
-    description: "대표가 인정한 실력을 갖춘 감독님들만 함께합니다."
-  },
-  {
-    icon: Film,
-    title: "대표 직접 보정",
-    description: "영상 프로덕션 출신의 대표감독이 직접 제작합니다."
-  },
-  {
-    icon: Monitor,
-    title: "표준 DI 작업공간",
-    description: "영화, 드라마와 동일한 표준 D.I 작업환경"
-  },
-  {
-    icon: Camera,
-    title: "전문 장비",
-    description: "카메라, 마이크, 색보정 장비 등 전문 장비를 사용합니다."
-  },
-];
+interface DirectorSectionProps {
+  translations: {
+    directorSubtitle: string;
+    directorFeature1Title: string;
+    directorFeature1Desc: string;
+    directorFeature2Title: string;
+    directorFeature2Desc: string;
+    directorFeature3Title: string;
+    directorFeature3Desc: string;
+    directorFeature4Title: string;
+    directorFeature4Desc: string;
+    directorNote: string;
+  };
+}
 
 // 스태거 애니메이션
 const containerVariants = {
@@ -118,7 +110,14 @@ function Card3D({
   );
 }
 
-export default function DirectorSection() {
+export default function DirectorSection({ translations }: DirectorSectionProps) {
+  const directorFeatures = [
+    { icon: UserCheck, title: translations.directorFeature1Title, description: translations.directorFeature1Desc },
+    { icon: Film, title: translations.directorFeature2Title, description: translations.directorFeature2Desc },
+    { icon: Monitor, title: translations.directorFeature3Title, description: translations.directorFeature3Desc },
+    { icon: Camera, title: translations.directorFeature4Title, description: translations.directorFeature4Desc },
+  ];
+
   return (
     <section className="py-20 md:py-28 px-4 bg-[#111111] overflow-hidden" style={{ perspective: 1000 }}>
       <div className="mx-auto max-w-4xl">
@@ -148,7 +147,7 @@ export default function DirectorSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-center text-white/70 leading-relaxed text-base md:text-lg mb-12"
         >
-          프로페셔널한 감독진이 함께합니다
+          {translations.directorSubtitle}
         </motion.p>
 
         {/* 2x2 Card Grid */}
@@ -196,7 +195,7 @@ export default function DirectorSection() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="text-center text-[#666666] text-sm"
         >
-          ※ 검증된 감독진으로 예약 불가 일정이 있을 수 있습니다.
+          {translations.directorNote}
         </motion.p>
       </div>
     </section>

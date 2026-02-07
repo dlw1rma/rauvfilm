@@ -4,7 +4,15 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
-export default function HeroVideoSlider() {
+interface HeroVideoSliderProps {
+  translations: {
+    heroLine1: string;
+    heroLine2: string;
+    heroSubtitle: string;
+  };
+}
+
+export default function HeroVideoSlider({ translations }: HeroVideoSliderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const desktopVideoId = "sfKkrvLg_7g";
   const mobileVideoId = "nfnkQmSDiU8";
@@ -185,21 +193,21 @@ export default function HeroVideoSlider() {
             style={{ opacity: line1Opacity, y: line1Y, filter: line1Filter }}
             className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-medium text-white mb-2 md:mb-3 tracking-wide"
           >
-            소중한 날의 기억들을
+            {translations.heroLine1}
           </motion.h1>
 
           <motion.h1
             style={{ opacity: line2Opacity, y: line2Y, filter: line2Filter }}
             className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-medium text-white mb-8 md:mb-10 tracking-wide"
           >
-            영원히 간직하세요
+            {translations.heroLine2}
           </motion.h1>
 
           <motion.p
             style={{ opacity: line3Opacity, y: line3Y }}
             className="text-sm md:text-base lg:text-lg text-white/60 tracking-wide font-light"
           >
-            기록이 아닌 기억을 남기는 영상을 선사합니다
+            {translations.heroSubtitle}
           </motion.p>
         </div>
 

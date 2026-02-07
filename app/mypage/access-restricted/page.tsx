@@ -1,8 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useMypageTranslation } from '@/components/mypage/MypageTranslationProvider';
 
 export default function AccessRestrictedPage() {
+  const t = useMypageTranslation();
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md text-center">
@@ -21,24 +24,24 @@ export default function AccessRestrictedPage() {
             />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold mb-3">마이페이지 접근 제한</h1>
+        <h1 className="text-2xl font-bold mb-3">{t.accessRestrictedTitle}</h1>
         <p className="text-muted-foreground mb-6">
-          예약이 확정된 후에 마이페이지를 이용하실 수 있습니다.
+          {t.accessRestrictedDesc}
           <br />
-          예약 확정 안내를 기다려 주세요.
+          {t.accessRestrictedContact}
         </p>
         <div className="space-y-3">
           <Link
             href="/"
             className="block w-full py-3 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors"
           >
-            홈으로 돌아가기
+            {t.goToHome}
           </Link>
           <Link
             href="/reservation"
             className="block w-full py-3 rounded-lg border border-border font-medium hover:bg-muted/50 transition-colors"
           >
-            예약 문의하기
+            {t.accessRestrictedInquiry || '예약 문의하기'}
           </Link>
         </div>
       </div>

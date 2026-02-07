@@ -4,24 +4,16 @@ import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Camera, Video, Aperture } from "lucide-react";
 
-const cameras = [
-  {
-    name: "SONY FX3",
-    desc: "Cinema Line",
-    detail: "영화 제작용 시네마 카메라",
-    icon: Camera,
-  },
-  {
-    name: "SONY A7S3",
-    desc: "Low Light Master",
-    icon: Video,
-  },
-  {
-    name: "SONY A7M4",
-    desc: "High Resolution",
-    icon: Aperture,
-  },
-];
+interface CameraSectionProps {
+  translations: {
+    cameraDetail: string;
+    cameraDesc1: string;
+    cameraDesc2: string;
+    cameraDesc3: string;
+    cameraDesc4: string;
+    cameraNote: string;
+  };
+}
 
 // 스태거 애니메이션
 const containerVariants = {
@@ -95,7 +87,26 @@ function Card3D({ children, className }: { children: React.ReactNode; className?
   );
 }
 
-export default function CameraSection() {
+export default function CameraSection({ translations }: CameraSectionProps) {
+  const cameras = [
+    {
+      name: "SONY FX3",
+      desc: "Cinema Line",
+      detail: translations.cameraDetail,
+      icon: Camera,
+    },
+    {
+      name: "SONY A7S3",
+      desc: "Low Light Master",
+      icon: Video,
+    },
+    {
+      name: "SONY A7M4",
+      desc: "High Resolution",
+      icon: Aperture,
+    },
+  ];
+
   return (
     <section className="py-20 md:py-28 px-4 bg-[#0a0a0a]" style={{ perspective: 1000 }}>
       <div className="mx-auto max-w-4xl">
@@ -119,13 +130,13 @@ export default function CameraSection() {
           className="text-center mb-14"
         >
           <p className="text-white/70 leading-relaxed text-base md:text-lg max-w-2xl mx-auto">
-            저희는 저렴한 카메라로 카메라 갯수를 늘려 비싸게 받지 않습니다.
+            {translations.cameraDesc1}
             <br className="hidden md:block" />
-            모두 소니 브랜드의 카메라로 동일되어 있으며,
+            {translations.cameraDesc2}
             <br className="hidden md:block" />
-            <span className="text-white font-medium">FX3, A7S3, A7M4</span>와 같은 영상에 특화되어 있는 카메라를 사용하며,
+            <span className="text-white font-medium">FX3, A7S3, A7M4</span>{translations.cameraDesc3}
             <br className="hidden md:block" />
-            고용량 코덱을 사용합니다.
+            {translations.cameraDesc4}
           </p>
         </motion.div>
 
@@ -180,7 +191,7 @@ export default function CameraSection() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="text-center text-[#666666] text-sm mt-10"
         >
-          SONY 정품 장비만을 사용합니다
+          {translations.cameraNote}
         </motion.p>
       </div>
     </section>

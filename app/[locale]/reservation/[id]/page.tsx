@@ -1,0 +1,457 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import LocaleLink from "@/components/ui/LocaleLink";
+import { useLocale } from "@/lib/useLocale";
+import { formatDateTime, formatDate } from "@/lib/formatDate";
+import { useReservationTranslation } from '@/components/reservation/ReservationTranslationProvider';
+
+interface EventSnapItem {
+  id: number;
+  type: string;
+  status: string;
+  shootDate: string | null;
+  shootTime: string | null;
+  shootLocation: string | null;
+}
+
+interface Reservation {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  phone: string | null;
+  email: string | null;
+  weddingDate: string | null;
+  location: string | null;
+  isPrivate: boolean;
+  isLocked?: boolean;
+  overseasResident?: boolean;
+  createdAt: string;
+  eventSnapApplications?: EventSnapItem[];
+}
+
+// 작성자 이름 마스킹 함수 (첫 글자만 보이고 나머지는 *)
+const maskAuthorName = (name: string): string => {
+  if (!name || name.length === 0) return "";
+  if (name.length === 1) return name + "*";
+  if (name.length === 2) return name[0] + "*";
+  return name[0] + "*".repeat(name.length - 1);
+};
+
+export default function ReservationDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const locale = useLocale();
+  const { t } = useReservationTranslation();
+  const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState("");
+  const [action, setAction] = useState<"edit" | "delete" | "view" | null>(null);
+  const [actionError, setActionError] = useState("");
+  const [isUnlocked, setIsUnlocked] = useState(false);
+
+  useEffect(() => {
+    async function fetchReservation() {
+      try {
+        const res = await fetch(`/api/reservations/${params.id}`);
+        if (!res.ok) {
+          throw new Error(t.loadError);
+        }
+        const data = await res.json();
+        setReservation(data);
+
+        // 비밀글이면 잠금 상태로 시작
+        if (data.isPrivate && data.isLocked) {
+          setIsUnlocked(false);
+        } else {
+          setIsUnlocked(true);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t.errorGeneric);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchReservation();
+  }, [params.id]);
+
+  const handleAction = (actionType: "edit" | "delete" | "view") => {
+    setAction(actionType);
+    setShowPasswordModal(true);
+    setActionError("");
+    setPassword("");
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionError("");
+
+    try {
+      // 비밀번호 확인
+      const verifyRes = await fetch(`/api/reservations/${params.id}/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+
+      if (!verifyRes.ok) {
+        const data = await verifyRes.json();
+        throw new Error(data.error || t.passwordIncorrect);
+      }
+
+      if (action === "view") {
+        // 비밀글 열람 - 전체 내용 다시 가져오기
+        const res = await fetch(`/api/reservations/${params.id}?password=${encodeURIComponent(password)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setReservation(data);
+          setIsUnlocked(true);
+        }
+        setShowPasswordModal(false);
+        setPassword("");
+      } else if (action === "delete") {
+        const deleteRes = await fetch(`/api/reservations/${params.id}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        });
+
+        if (!deleteRes.ok) {
+          throw new Error(t.deleteFailed);
+        }
+
+        router.push(`/${locale}/reservation`);
+        router.refresh();
+      } else if (action === "edit") {
+        // 수정 페이지로 이동 (비밀번호를 token으로 전달)
+        router.push(`/${locale}/reservation/${params.id}/edit?token=${encodeURIComponent(password)}`);
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : t.errorGeneric);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+      </div>
+    );
+  }
+
+  if (error || !reservation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">{t.error}</h1>
+          <p className="text-muted-foreground mb-6">{error || t.notFound}</p>
+          <LocaleLink
+            href="/reservation"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-accent px-6 text-sm font-medium text-white"
+          >
+            {t.backToList}
+          </LocaleLink>
+        </div>
+      </div>
+    );
+  }
+
+  // 비밀글이고 잠금 상태인 경우
+  if (reservation.isPrivate && !isUnlocked) {
+    return (
+      <div className="min-h-screen py-20 px-4">
+        <div className="mx-auto max-w-3xl">
+          {/* Header */}
+          <div className="mb-6">
+            <LocaleLink
+              href="/reservation"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+                />
+              </svg>
+              {t.backToList}
+            </LocaleLink>
+          </div>
+
+          {/* Locked Post */}
+          <div className="rounded-xl border border-border bg-muted p-12 text-center">
+            <svg
+              className="mx-auto h-16 w-16 text-muted-foreground mb-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="1.5"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+              />
+            </svg>
+            <h1 className="text-2xl font-bold mb-2">{t.privatePostTitle}</h1>
+            <p className="text-muted-foreground mb-6">
+              {t.privatePostDesc}
+              <br />
+              {t.enterPasswordDesc}
+              <br />
+              <span className="text-sm font-medium text-accent">
+                {reservation.overseasResident ? t.passwordHintEmail : t.passwordHintPhone}
+              </span>
+            </p>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {t.author} {maskAuthorName(reservation.author)}
+              </p>
+            </div>
+            <button
+              onClick={() => handleAction("view")}
+              className="mt-6 inline-flex h-10 items-center justify-center rounded-lg bg-accent px-6 text-sm font-medium text-white hover:bg-accent-hover transition-colors"
+            >
+              {t.enterPassword}
+            </button>
+          </div>
+
+          {/* Password Modal */}
+          {showPasswordModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="w-full max-w-sm rounded-xl bg-muted p-6">
+              <h3 className="mb-4 text-lg font-bold">{t.passwordConfirm}</h3>
+              <p className="mb-3 text-sm text-muted-foreground">
+                {reservation.overseasResident ? t.passwordHintEmail : t.passwordHintPhone}
+              </p>
+              <form onSubmit={handlePasswordSubmit}>
+                <input
+                  type={reservation.overseasResident ? "email" : "text"}
+                  value={password}
+                  onChange={(e) => {
+                    const value = reservation.overseasResident
+                      ? e.target.value
+                      : e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                    setPassword(value);
+                  }}
+                  placeholder={reservation.overseasResident ? t.emailPlaceholder : t.phonePlaceholder}
+                  className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  autoFocus
+                  maxLength={reservation.overseasResident ? undefined : 11}
+                />
+                  {actionError && (
+                    <p className="mb-4 text-sm text-accent">{actionError}</p>
+                  )}
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPasswordModal(false);
+                        setPassword("");
+                        setAction(null);
+                        setActionError("");
+                      }}
+                      className="flex-1 rounded-lg border border-border py-2 transition-colors hover:bg-background"
+                    >
+                      {t.cancel}
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 rounded-lg bg-accent py-2 text-white transition-colors hover:bg-accent-hover"
+                    >
+                      {t.confirm}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen py-20 px-4">
+      <div className="mx-auto max-w-3xl">
+        {/* Header */}
+        <div className="mb-6">
+          <LocaleLink
+            href="/reservation"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+              />
+            </svg>
+            {t.backToList}
+          </LocaleLink>
+        </div>
+
+        {/* Post */}
+        <article className="rounded-xl border border-border bg-muted overflow-hidden">
+          {/* Post Header */}
+          <div className="border-b border-border p-6">
+            <div className="flex items-center gap-2 mb-3">
+              {reservation.isPrivate && (
+                <span className="inline-flex items-center gap-1 rounded bg-muted-foreground/10 px-2 py-1 text-xs text-muted-foreground">
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="1.5"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                    />
+                  </svg>
+                  {t.privatePost}
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl font-bold mb-4">{reservation.title}</h1>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <span>{t.author} {maskAuthorName(reservation.author)}</span>
+              <span>|</span>
+              <span>{t.createdAt} {formatDateTime(reservation.createdAt)}</span>
+              {(reservation.eventSnapApplications ?? []).length > 0 && (
+                <>
+                  <span>|</span>
+                  <div className="flex flex-wrap gap-1">
+                    {reservation.eventSnapApplications!.map((ev) => (
+                      <span
+                        key={ev.id}
+                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${ev.status === "CONFIRMED" ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}
+                      >
+                        {ev.type} {ev.status === "CONFIRMED" ? t.statusConfirmed : t.statusRegistered}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Post Info */}
+          <div className="border-b border-border p-6 bg-background/50">
+            <div className="grid gap-3 sm:grid-cols-2 text-sm">
+              <div className="flex gap-2">
+                <span className="text-muted-foreground">{t.contactLabel}</span>
+                <span>{reservation.phone || "-"}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-muted-foreground">{t.emailLabel}</span>
+                <span>{reservation.email || "-"}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-muted-foreground">{t.weddingDateInfoLabel}</span>
+                <span>{reservation.weddingDate ? formatDate(reservation.weddingDate) : "-"}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-muted-foreground">{t.venueInfoLabel}</span>
+                <span>{reservation.location || "-"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Post Content */}
+          <div className="p-6">
+            <div className="whitespace-pre-wrap text-muted-foreground">
+              {reservation.content}
+            </div>
+          </div>
+
+              {/* Actions */}
+              <div className="border-t border-border p-4 flex justify-end gap-2">
+                <button
+                  onClick={() => handleAction("edit")}
+                  className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-background transition-colors"
+                >
+                  {t.edit}
+                </button>
+                <button
+                  onClick={() => handleAction("delete")}
+                  className="px-4 py-2 text-sm text-accent border border-accent/30 rounded-lg hover:bg-accent/10 transition-colors"
+                >
+                  {t.delete}
+                </button>
+              </div>
+        </article>
+
+        {/* Password Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-sm rounded-xl bg-muted p-6">
+              <h3 className="mb-4 text-lg font-bold">{t.passwordConfirm}</h3>
+              <p className="mb-3 text-sm text-muted-foreground">
+                {reservation.overseasResident ? t.passwordHintEmail : t.passwordHintPhone}
+              </p>
+              <form onSubmit={handlePasswordSubmit}>
+                <input
+                  type={reservation.overseasResident ? "email" : "text"}
+                  value={password}
+                  onChange={(e) => {
+                    const value = reservation.overseasResident
+                      ? e.target.value
+                      : e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                    setPassword(value);
+                  }}
+                  placeholder={reservation.overseasResident ? t.emailPlaceholder : t.phonePlaceholder}
+                  className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  autoFocus
+                  maxLength={reservation.overseasResident ? undefined : 11}
+                />
+                {actionError && (
+                  <p className="mb-4 text-sm text-accent">{actionError}</p>
+                )}
+                <div className="flex gap-3 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPassword("");
+                      setAction(null);
+                      setActionError("");
+                    }}
+                    className="flex-1 rounded-lg border border-border py-2 transition-colors hover:bg-background"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 rounded-lg bg-accent py-2 text-white transition-colors hover:bg-accent-hover"
+                  >
+                    {t.confirm}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

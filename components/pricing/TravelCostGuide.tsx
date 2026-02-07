@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
+import LocaleLink from "@/components/ui/LocaleLink";
 
 const travelCostData = {
   seoul: [
@@ -30,7 +30,27 @@ const travelCostData = {
 type Tab = "seoul" | "cheongju";
 type PriceGroup = { price: string; value: number; locations: string[] };
 
-export default function TravelCostGuide() {
+interface TravelCostGuideProps {
+  translations: {
+    title: string;
+    description: string;
+    tabSeoul: string;
+    tabCheongju: string;
+    searchPlaceholder: string;
+    baseLabelSeoul: string;
+    baseLabelCheongju: string;
+    noResults: string;
+    noResultsSub: string;
+    contactButton: string;
+    regionsCount: string;
+    jejuNote: string;
+    travelDisclaimer: string;
+    seoul: string;
+    cheongju: string;
+  };
+}
+
+export default function TravelCostGuide({ translations: t }: TravelCostGuideProps) {
   const [tab, setTab] = useState<Tab>("seoul");
   const [query, setQuery] = useState("");
 
@@ -61,8 +81,8 @@ export default function TravelCostGuide() {
       .filter(Boolean) as PriceGroup[];
   }, [query, data]);
 
-  const handleTabSwitch = (t: Tab) => {
-    setTab(t);
+  const handleTabSwitch = (newTab: Tab) => {
+    setTab(newTab);
     setQuery("");
   };
 
@@ -75,10 +95,10 @@ export default function TravelCostGuide() {
             Travel Fee
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            지역별 출장비 안내
+            {t.title}
           </h2>
           <p className="text-white/50 text-sm sm:text-base">
-            거점 지역을 선택한 뒤, 촬영 지역을 검색해 보세요.
+            {t.description}
           </p>
         </div>
 
@@ -93,7 +113,7 @@ export default function TravelCostGuide() {
                   : "text-white/50 hover:text-white/80 hover:bg-white/5"
               }`}
             >
-              서울 기준
+              {t.tabSeoul}
             </button>
             <button
               onClick={() => handleTabSwitch("cheongju")}
@@ -103,7 +123,7 @@ export default function TravelCostGuide() {
                   : "text-white/50 hover:text-white/80 hover:bg-white/5"
               }`}
             >
-              청주 기준
+              {t.tabCheongju}
             </button>
           </div>
         </div>
@@ -129,7 +149,7 @@ export default function TravelCostGuide() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="지역명을 입력해 주세요 (예: 부산, 강릉)"
+            placeholder={t.searchPlaceholder}
             className="w-full pl-12 pr-10 py-3.5 rounded-xl border border-white/10 bg-white/5 text-sm sm:text-base text-white placeholder-white/30 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200"
           />
           {query && (
@@ -159,7 +179,7 @@ export default function TravelCostGuide() {
           <div className="mb-8 p-5 rounded-2xl bg-accent/10 border border-accent/20 text-center">
             <p className="text-sm text-white/50 mb-1">
               <span className="font-medium">
-                {tab === "seoul" ? "서울" : "청주"} 기준
+                {tab === "seoul" ? t.baseLabelSeoul : t.baseLabelCheongju}
               </span>
               {" → "}
               <span className="font-semibold text-white">
@@ -191,12 +211,12 @@ export default function TravelCostGuide() {
               </svg>
             </div>
             <p className="text-white font-medium mb-1">
-              검색된 지역이 없습니다.
+              {t.noResults}
             </p>
             <p className="text-white/40 text-sm mb-5">
-              기재되지 않은 곳은 별도 협의가 필요합니다.
+              {t.noResultsSub}
             </p>
-            <Link
+            <LocaleLink
               href="/contact"
               className="inline-flex items-center gap-2 bg-accent hover:bg-accent/80 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors duration-200"
             >
@@ -213,8 +233,8 @@ export default function TravelCostGuide() {
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              문의하기
-            </Link>
+              {t.contactButton}
+            </LocaleLink>
           </div>
         )}
 
@@ -231,7 +251,7 @@ export default function TravelCostGuide() {
                     {group.price}
                   </span>
                   <span className="text-xs text-white/30">
-                    {group.locations.length}개 지역
+                    {t.regionsCount.replace('{count}', String(group.locations.length))}
                   </span>
                 </div>
                 <div className="px-5 py-4">
@@ -276,11 +296,8 @@ export default function TravelCostGuide() {
               />
             </svg>
             <div className="space-y-1">
-              <p>제주도는 항공편 별도 문의가 필요합니다.</p>
-              <p>
-                위 출장비는 수도권/충청권 외 지역에 해당하며, 촬영 거리 및
-                상황에 따라 변동될 수 있습니다.
-              </p>
+              <p>{t.jejuNote}</p>
+              <p>{t.travelDisclaimer}</p>
             </div>
           </div>
         </div>

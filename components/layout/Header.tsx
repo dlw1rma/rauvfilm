@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import HeaderClient from "./HeaderClient";
+import { getDictionary } from "@/lib/dictionary";
+import type { Locale } from "@/lib/i18n";
 
 async function getEventSnapLocations() {
   try {
@@ -18,8 +20,10 @@ async function getEventSnapLocations() {
   }
 }
 
-export default async function Header() {
+export default async function Header({ locale }: { locale?: Locale }) {
   const eventSnapLocations = await getEventSnapLocations();
-  
-  return <HeaderClient eventSnapLocations={eventSnapLocations} />;
+  const currentLocale = locale || 'ko';
+  const t = await getDictionary(currentLocale);
+
+  return <HeaderClient eventSnapLocations={eventSnapLocations} locale={currentLocale} translations={{ ...t.nav, siteName: t.common.siteName }} />;
 }

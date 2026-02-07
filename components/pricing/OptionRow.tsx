@@ -4,9 +4,10 @@ interface OptionRowProps {
     description: string;
     price: string;
   };
+  currencySuffix: string;
 }
 
-export default function OptionRow({ option }: OptionRowProps) {
+export default function OptionRow({ option, currencySuffix }: OptionRowProps) {
   return (
     <div className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
       <div className="flex-1 min-w-0">
@@ -16,7 +17,7 @@ export default function OptionRow({ option }: OptionRowProps) {
         </p>
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="font-bold text-accent">{option.price}원</p>
+        <p className="font-bold text-accent">{option.price}{currencySuffix}</p>
       </div>
     </div>
   );

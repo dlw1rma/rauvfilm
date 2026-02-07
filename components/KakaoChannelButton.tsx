@@ -3,7 +3,11 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 
-export default function KakaoChannelButton() {
+interface KakaoChannelButtonProps {
+  label: string;
+}
+
+export default function KakaoChannelButton({ label }: KakaoChannelButtonProps) {
   const handleClick = () => {
     window.open("https://pf.kakao.com/_xlXAin/chat", "_blank");
   };
@@ -23,12 +27,12 @@ export default function KakaoChannelButton() {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       className="fixed bottom-6 right-6 z-50 shadow-lg hover:shadow-xl transition-shadow"
-      aria-label="카카오톡 상담"
+      aria-label={label}
     >
       {/* 오른쪽 플로팅 버튼: public/kaka.svg 사용 */}
       <Image
         src="/kaka.svg"
-        alt="카카오톡 상담"
+        alt={label}
         width={84}
         height={48}
         className="rounded-full"

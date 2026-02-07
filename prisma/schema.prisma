@@ -262,7 +262,8 @@ model Booking {
   // 할인 적용
   discountEvent   DiscountEvent? @relation(fields: [discountEventId], references: [id])
   discountEventId Int?
-  eventDiscount   Int           @default(0)       // 이벤트 할인 금액
+  eventDiscount   Int           @default(0)       // 이벤트/특별 할인 금액 (수동)
+  newYearDiscount Int           @default(0)       // 신년할인 금액
 
   // 짝꿍 할인
   referralDiscount Int          @default(0)       // 추천 할인 (1만원)
@@ -295,6 +296,9 @@ model Booking {
   // 타임스탬프
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
+
+  // 소프트 삭제 (쓰레기통)
+  deletedAt        DateTime?    // null이면 정상, 값이 있으면 삭제됨 (3일 후 영구삭제)
 
   // 개인정보 파기 여부
   isAnonymized     Boolean      @default(false)
@@ -402,17 +406,20 @@ model SystemSetting {
 
 // 이벤트 스냅 장소
 model EventSnapLocation {
-  id          Int      @id @default(autoincrement())
-  name        String   // "동작대교", "창경궁", "노을공원", "올림픽공원"
-  nameEn      String?  // "Dongjak Bridge"
-  slug        String   @unique // "dongjak-bridge"
-  description String?  @db.Text
-  order       Int      @default(0)
-  isVisible   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  name          String   // "동작대교", "창경궁", "노을공원", "올림픽공원"
+  nameEn        String?  // "Dongjak Bridge"
+  nameJa        String?  // "銅雀大橋"
+  slug          String   @unique // "dongjak-bridge"
+  description   String?  @db.Text
+  descriptionEn String?  @db.Text
+  descriptionJa String?  @db.Text
+  order         Int      @default(0)
+  isVisible     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  images      EventSnapImage[]
+  images        EventSnapImage[]
 }
 
 // 이벤트 스냅 이미지

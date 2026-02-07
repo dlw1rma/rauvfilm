@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { User } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 interface NavItem {
   name: string;
@@ -15,15 +16,31 @@ interface NavItem {
 
 interface HeaderClientProps {
   eventSnapLocations: { name: string; slug: string }[];
+  locale: string;
+  translations: {
+    about: string;
+    product: string;
+    portfolio: string;
+    eventSnap: string;
+    reservation: string;
+    reservationSub: string;
+    faq: string;
+    coalition: string;
+    mypage: string;
+    openMenu: string;
+    siteName: string;
+  };
 }
 
-export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) {
+export default function HeaderClient({ eventSnapLocations, locale, translations: t }: HeaderClientProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileOpenDropdown, setMobileOpenDropdown] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoMobileUrl, setLogoMobileUrl] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  const prefix = `/${locale}`;
 
   useEffect(() => {
     setMounted(true);
@@ -40,24 +57,24 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
   }, []);
 
   const navigation: NavItem[] = [
-    { name: "ABOUT", href: "/about" },
-    { name: "PRODUCT", href: "/pricing" },
-    { name: "PORTFOLIO", href: "/portfolio" },
+    { name: t.about, href: `${prefix}/about` },
+    { name: t.product, href: `${prefix}/pricing` },
+    { name: t.portfolio, href: `${prefix}/portfolio` },
     {
-      name: "EVENT SNAP",
-      href: "/event-snap",
+      name: t.eventSnap,
+      href: `${prefix}/event-snap`,
       children: eventSnapLocations.map((location) => ({
         name: location.name,
-        href: `/event-snap/${location.slug}`,
+        href: `${prefix}/event-snap/${location.slug}`,
       })),
     },
     {
-      name: "RESERVATION",
-      href: "/reservation",
+      name: t.reservation,
+      href: `${prefix}/reservation`,
       children: [
-        { name: "예약하기", href: "/reservation" },
-        { name: "FAQ", href: "/faq" },
-        { name: "제휴", href: "/coalition" },
+        { name: t.reservationSub, href: `${prefix}/reservation` },
+        { name: t.faq, href: `${prefix}/faq` },
+        { name: t.coalition, href: `${prefix}/coalition` },
       ],
     },
   ];
@@ -68,10 +85,10 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
+          <Link href={prefix} className="flex items-center">
             <Image
               src={logoUrl || "/logo.png"}
-              alt="라우브필름"
+              alt={t.siteName}
               width={120}
               height={32}
               className="hidden md:block"
@@ -80,7 +97,7 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
             />
             <Image
               src={logoMobileUrl || "/logo-mobile.png"}
-              alt="라우브필름"
+              alt={t.siteName}
               width={100}
               height={30}
               className="md:hidden"
@@ -124,11 +141,14 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
               </div>
             ))}
 
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+
             {/* Mypage Icon */}
             <Link
               href="/mypage"
               className="ml-2 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label="마이페이지"
+              aria-label={t.mypage}
             >
               <User className="w-5 h-5" />
             </Link>
@@ -136,10 +156,11 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
 
           {/* Mobile menu buttons */}
           <div className="md:hidden flex items-center gap-1">
+            <LanguageSwitcher />
             <Link
               href="/mypage"
               className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label="마이페이지"
+              aria-label={t.mypage}
             >
               <User className="w-5 h-5" />
             </Link>
@@ -149,7 +170,7 @@ export default function HeaderClient({ eventSnapLocations }: HeaderClientProps) 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-expanded={isMobileMenuOpen}
             >
-            <span className="sr-only">메뉴 열기</span>
+            <span className="sr-only">{t.openMenu}</span>
             {isMobileMenuOpen ? (
               <svg
                 className="h-6 w-6"

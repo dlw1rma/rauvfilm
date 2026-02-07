@@ -14,6 +14,13 @@ interface GalleryImage {
 interface GalleryWithLightboxProps {
   images: GalleryImage[];
   locationName: string;
+  translations: {
+    gallery: string;
+    galleryAria: string;
+    close: string;
+    prev: string;
+    next: string;
+  };
 }
 
 /**
@@ -65,7 +72,7 @@ function getLightboxUrl(secureUrl: string): string {
   return secureUrl;
 }
 
-export default function GalleryWithLightbox({ images, locationName }: GalleryWithLightboxProps) {
+export default function GalleryWithLightbox({ images, locationName, translations }: GalleryWithLightboxProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoading, setImageLoading] = useState(true);
@@ -102,7 +109,7 @@ export default function GalleryWithLightbox({ images, locationName }: GalleryWit
   return (
     <>
       <div className="mb-12">
-        <h2 className="font-bold mb-6">갤러리</h2>
+        <h2 className="font-bold mb-6">{translations.gallery}</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {images.map((image, index) => (
             <button
@@ -121,7 +128,7 @@ export default function GalleryWithLightbox({ images, locationName }: GalleryWit
             >
               <Image
                 src={getOptimizedThumbnailUrl(image.secureUrl)}
-                alt={image.alt || `${locationName} 갤러리`}
+                alt={image.alt || `${locationName} ${translations.gallery}`}
                 fill
                 className="object-contain transition-transform duration-300 group-hover:scale-105"
                 sizes="(max-width: 768px) 50vw, 33vw"
@@ -139,13 +146,13 @@ export default function GalleryWithLightbox({ images, locationName }: GalleryWit
           onClick={() => setLightboxOpen(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="갤러리 이미지 보기"
+          aria-label={translations.galleryAria}
         >
           <button
             type="button"
             onClick={() => setLightboxOpen(false)}
             className="absolute top-4 right-4 z-10 rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
-            aria-label="닫기"
+            aria-label={translations.close}
           >
             <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -163,7 +170,7 @@ export default function GalleryWithLightbox({ images, locationName }: GalleryWit
                 onClick={goPrev}
                 disabled={imageLoading}
                 className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full p-3 text-white/80 hover:bg-white/10 hover:text-white transition-colors -translate-x-2 md:translate-x-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="이전"
+                aria-label={translations.prev}
               >
                 <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -180,7 +187,7 @@ export default function GalleryWithLightbox({ images, locationName }: GalleryWit
               )}
               <Image
                 src={getLightboxUrl(currentImage.secureUrl)}
-                alt={currentImage.alt || `${locationName} 갤러리`}
+                alt={currentImage.alt || `${locationName} ${translations.gallery}`}
                 fill
                 className={`object-contain transition-opacity duration-200 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
                 sizes="(max-width: 768px) 100vw, 400px"
@@ -197,7 +204,7 @@ export default function GalleryWithLightbox({ images, locationName }: GalleryWit
                 onClick={goNext}
                 disabled={imageLoading}
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-full p-3 text-white/80 hover:bg-white/10 hover:text-white transition-colors translate-x-2 md:translate-x-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="다음"
+                aria-label={translations.next}
               >
                 <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />

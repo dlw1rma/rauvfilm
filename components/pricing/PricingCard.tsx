@@ -20,6 +20,12 @@ interface PricingCardProps {
     isNew?: boolean;
   };
   index?: number;
+  translations: {
+    discount: string;
+    won: string;
+    recommendedFor: string;
+    videoLabel: string;
+  };
 }
 
 function extractVideoId(url: string): string {
@@ -34,7 +40,7 @@ function extractVideoId(url: string): string {
   return url;
 }
 
-export default function PricingCard({ plan, index = 0 }: PricingCardProps) {
+export default function PricingCard({ plan, index = 0, translations }: PricingCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 50 }}
@@ -78,16 +84,16 @@ export default function PricingCard({ plan, index = 0 }: PricingCardProps) {
             {plan.originalPrice && (
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-base text-white/40 line-through">
-                  {plan.originalPrice}원
+                  {plan.originalPrice}{translations.won}
                 </span>
-                <span className="text-xs font-medium text-accent">할인</span>
+                <span className="text-xs font-medium text-accent">{translations.discount}</span>
               </div>
             )}
             <div className="flex items-baseline gap-1">
               <span className="text-4xl md:text-5xl font-bold text-white tracking-tight">
                 {plan.price}
               </span>
-              <span className="text-lg text-white/60">원</span>
+              <span className="text-lg text-white/60">{translations.won}</span>
             </div>
             <p className="mt-3 text-sm text-white/50">{plan.description}</p>
           </div>
@@ -97,7 +103,7 @@ export default function PricingCard({ plan, index = 0 }: PricingCardProps) {
             <div className="mb-6 lg:mb-0 rounded-xl overflow-hidden border border-white/10">
               <YouTubeFacade
                 videoId={extractVideoId(plan.videoUrl)}
-                title={`${plan.name} 영상`}
+                title={`${plan.name} ${translations.videoLabel}`}
               />
             </div>
           )}
@@ -109,7 +115,7 @@ export default function PricingCard({ plan, index = 0 }: PricingCardProps) {
           {plan.recommendations && plan.recommendations.length > 0 && (
             <div className="mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
               <h4 className="text-xs font-bold mb-3 uppercase tracking-wider text-white/40">
-                이런 분께 추천
+                {translations.recommendedFor}
               </h4>
               <ul className="space-y-2">
                 {plan.recommendations.map((rec, idx) => (

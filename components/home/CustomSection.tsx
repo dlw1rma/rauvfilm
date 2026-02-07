@@ -3,12 +3,19 @@
 import { motion } from "framer-motion";
 import { Film, MessageCircle, Check } from "lucide-react";
 
-const customFeatures = [
-  "촬영기법의 변화",
-  "생생한 기록 영상",
-  "원하시는 BGM 적용",
-  "특별 요청 반영",
-];
+interface CustomSectionProps {
+  translations: {
+    customSubtitle: string;
+    customCardTitle: string;
+    customDesc: string;
+    customFeature1: string;
+    customFeature2: string;
+    customFeature3: string;
+    customFeature4: string;
+    customNote: string;
+    customCta: string;
+  };
+}
 
 // 스케일 업 애니메이션
 const scaleUp = {
@@ -44,7 +51,14 @@ const itemVariants = {
   },
 };
 
-export default function CustomSection() {
+export default function CustomSection({ translations }: CustomSectionProps) {
+  const customFeatures = [
+    translations.customFeature1,
+    translations.customFeature2,
+    translations.customFeature3,
+    translations.customFeature4,
+  ];
+
   return (
     <section className="py-20 md:py-28 px-4 bg-[#0a0a0a] overflow-hidden">
       <div className="mx-auto max-w-4xl">
@@ -67,7 +81,7 @@ export default function CustomSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-center text-white/70 leading-relaxed text-base md:text-lg mb-12"
         >
-          나만의 특별한 영상을 원하신다면
+          {translations.customSubtitle}
         </motion.p>
 
         {/* Central Card */}
@@ -85,15 +99,18 @@ export default function CustomSection() {
                 <Film className="w-6 h-6 text-accent" strokeWidth={1.5} />
               </div>
               <h3 className="text-xl md:text-2xl font-bold text-white">
-                커스텀 촬영 서비스
+                {translations.customCardTitle}
               </h3>
             </div>
 
             {/* Description */}
             <p className="text-white/70 leading-relaxed text-base md:text-lg mb-8">
-              신랑신부님의 가져가실 소중한 영상을 위해
-              <br className="hidden md:block" />
-              원하시는 형식의 영상을 최대한 반영하여 작업합니다.
+              {translations.customDesc.split('\n').map((line, i) => (
+                <span key={i}>
+                  {i > 0 && <br className="hidden md:block" />}
+                  {line}
+                </span>
+              ))}
             </p>
 
             {/* Divider */}
@@ -125,7 +142,7 @@ export default function CustomSection() {
 
             {/* Note */}
             <p className="text-[#666666] text-sm mb-8">
-              ※ 요청에 따라 추가비용이 발생할 수 있습니다.
+              {translations.customNote}
             </p>
 
             {/* CTA Button */}
@@ -145,7 +162,7 @@ export default function CustomSection() {
                 >
                   <MessageCircle className="w-5 h-5" />
                 </motion.div>
-                <span>카카오톡 상담하기</span>
+                <span>{translations.customCta}</span>
               </motion.a>
             </div>
           </div>

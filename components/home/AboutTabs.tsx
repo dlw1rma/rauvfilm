@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import LocaleLink from "@/components/ui/LocaleLink";
 
 export default function AboutTabs() {
   const [activeTab, setActiveTab] = useState<"director" | "custom">("director");
@@ -71,7 +71,7 @@ export default function AboutTabs() {
                   <br />
                   프리미엄 퀄리티를 보장합니다.
                 </p>
-                <Link
+                <LocaleLink
                   href="/tip"
                   className="inline-flex items-center gap-2 text-sm font-medium border-b border-current pb-1 hover:text-accent transition-colors"
                 >
@@ -79,7 +79,7 @@ export default function AboutTabs() {
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
                   </svg>
-                </Link>
+                </LocaleLink>
               </div>
 
               {/* Right - Feature Cards */}

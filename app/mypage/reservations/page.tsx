@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Pagination from '@/components/ui/Pagination';
+import { formatDateTime, formatDateKorean } from '@/lib/formatDate';
+import { useMypageTranslation } from '@/components/mypage/MypageTranslationProvider';
 
 interface EventSnapApp {
   id: number;
@@ -28,6 +30,7 @@ interface Reservation {
 
 export default function MyReservationsPage() {
   const router = useRouter();
+  const t = useMypageTranslation();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,15 +78,15 @@ export default function MyReservationsPage() {
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
         </svg>
-        돌아가기
+        {t.goBack || '돌아가기'}
       </Link>
 
       <div className="bg-background rounded-xl border border-border p-6">
-        <h1 className="text-2xl font-bold mb-6">내 예약글</h1>
+        <h1 className="text-2xl font-bold mb-6">{t.myReservations || '내 예약글'}</h1>
 
         {reservations.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">작성한 예약글이 없습니다.</p>
+            <p className="text-muted-foreground">{t.noReservations}</p>
           </div>
         ) : (
           <>
@@ -99,14 +102,14 @@ export default function MyReservationsPage() {
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       {reservation.weddingDate && (
                         <span>
-                          예식일: {new Date(reservation.weddingDate).toLocaleDateString('ko-KR')}
+                          {t.weddingDate}: {formatDateKorean(reservation.weddingDate)}
                         </span>
                       )}
                       {reservation.venueName && (
-                        <span>장소: {reservation.venueName}</span>
+                        <span>{t.venue}: {reservation.venueName}</span>
                       )}
                       {reservation.productType && (
-                        <span>상품: {reservation.productType}</span>
+                        <span>{t.productLabel}: {reservation.productType}</span>
                       )}
                     </div>
                   </div>
@@ -121,7 +124,7 @@ export default function MyReservationsPage() {
                             key={ev.id}
                             className={`px-2 py-0.5 rounded text-xs font-medium ${ev.status === "CONFIRMED" ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}
                           >
-                            {ev.type} {ev.status === "CONFIRMED" ? "확정" : "등록됨"}
+                            {ev.type} {ev.status === "CONFIRMED" ? (t.confirmed || "확정") : (t.registered || "등록됨")}
                           </span>
                         ))}
                       </div>
@@ -130,20 +133,20 @@ export default function MyReservationsPage() {
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
                   <span className="text-xs text-muted-foreground">
-                    작성일: {new Date(reservation.createdAt).toLocaleDateString('ko-KR')}
+                    {t.createdDate || '작성일'}: {formatDateTime(reservation.createdAt)}
                   </span>
                   <div className="flex gap-2">
                     <Link
                       href={`/mypage/reservations/${reservation.id}`}
                       className="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
                     >
-                      상세보기
+                      {t.viewDetail || '상세보기'}
                     </Link>
                     <Link
                       href={`/mypage/reservations/${reservation.id}/edit`}
                       className="px-3 py-1.5 text-sm rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
                     >
-                      수정하기
+                      {t.edit || '수정하기'}
                     </Link>
                   </div>
                 </div>

@@ -20,8 +20,11 @@ interface Location {
   id: number;
   name: string;
   nameEn: string | null;
+  nameJa: string | null;
   slug: string;
   description: string | null;
+  descriptionEn: string | null;
+  descriptionJa: string | null;
   order: number;
   isVisible: boolean;
   images: EventSnapImage[];
@@ -36,8 +39,11 @@ export default function EventSnapAdminPage() {
   const [newLocationForm, setNewLocationForm] = useState({
     name: '',
     nameEn: '',
+    nameJa: '',
     slug: '',
     description: '',
+    descriptionEn: '',
+    descriptionJa: '',
   });
   const [showCloudinary, setShowCloudinary] = useState(false);
   const [cloudinaryImages, setCloudinaryImages] = useState<{ publicId: string; secureUrl: string }[]>([]);
@@ -216,7 +222,7 @@ export default function EventSnapAdminPage() {
       });
 
       if (res.ok) {
-        setNewLocationForm({ name: '', nameEn: '', slug: '', description: '' });
+        setNewLocationForm({ name: '', nameEn: '', nameJa: '', slug: '', description: '', descriptionEn: '', descriptionJa: '' });
         setShowNewLocation(false);
         fetchLocations();
       }
@@ -284,6 +290,16 @@ export default function EventSnapAdminPage() {
               />
             </div>
             <div>
+              <label className="block text-sm text-white/60 mb-2">장소명 (일본어)</label>
+              <input
+                type="text"
+                value={newLocationForm.nameJa}
+                onChange={(e) => setNewLocationForm({ ...newLocationForm, nameJa: e.target.value })}
+                placeholder="銅雀大橋"
+                className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-accent focus:outline-none"
+              />
+            </div>
+            <div>
               <label className="block text-sm text-white/60 mb-2">슬러그 (URL용)</label>
               <input
                 type="text"
@@ -295,12 +311,32 @@ export default function EventSnapAdminPage() {
               />
             </div>
             <div>
-              <label className="block text-sm text-white/60 mb-2">설명</label>
+              <label className="block text-sm text-white/60 mb-2">설명 (한글)</label>
               <input
                 type="text"
                 value={newLocationForm.description}
                 onChange={(e) => setNewLocationForm({ ...newLocationForm, description: e.target.value })}
                 placeholder="서울 야경이 아름다운 촬영지"
+                className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-accent focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-white/60 mb-2">설명 (영문)</label>
+              <input
+                type="text"
+                value={newLocationForm.descriptionEn}
+                onChange={(e) => setNewLocationForm({ ...newLocationForm, descriptionEn: e.target.value })}
+                placeholder="A filming location with beautiful night views of Seoul"
+                className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-accent focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-white/60 mb-2">설명 (일본어)</label>
+              <input
+                type="text"
+                value={newLocationForm.descriptionJa}
+                onChange={(e) => setNewLocationForm({ ...newLocationForm, descriptionJa: e.target.value })}
+                placeholder="ソウルの夜景が美しい撮影地"
                 className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-accent focus:outline-none"
               />
             </div>

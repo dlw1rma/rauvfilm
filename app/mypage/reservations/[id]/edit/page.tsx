@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import DateInput from "@/components/ui/DateInput";
+import TimeInput from "@/components/ui/TimeInput";
+import { useMypageTranslation } from "@/components/mypage/MypageTranslationProvider";
 
 type ProductType = "가성비형" | "기본형" | "시네마틱형" | "야외스냅" | "프리웨딩" | "";
 type EventType = "야외스냅" | "프리웨딩" | "";
@@ -69,6 +72,7 @@ interface ReservationData {
 export default function MyReservationEditPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useMypageTranslation();
 
   const [currentSection, setCurrentSection] = useState(1);
   const [formData, setFormData] = useState({
@@ -181,7 +185,7 @@ export default function MyReservationEditPage() {
             router.push('/mypage/login');
             return;
           }
-          throw new Error("예약 정보를 불러올 수 없습니다.");
+          throw new Error(t.loadFailed || "예약 정보를 불러올 수 없습니다.");
         }
         const data: ReservationData = await res.json();
         setEventSnapApplications(data.eventSnapApplications ?? []);
@@ -245,7 +249,7 @@ export default function MyReservationEditPage() {
         setOriginalPartnerCode(data.partnerCode);
         setOriginalDiscountCouple(data.discountCouple || false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+        setError(err instanceof Error ? err.message : (t.errorOccurred || "오류가 발생했습니다."));
       } finally {
         setLoading(false);
       }
@@ -339,13 +343,13 @@ export default function MyReservationEditPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "수정에 실패했습니다.");
+        throw new Error(data.error || (t.editFailed || "수정에 실패했습니다."));
       }
 
       router.push(`/mypage/reservations`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+      setError(err instanceof Error ? err.message : (t.errorOccurred || "오류가 발생했습니다."));
     } finally {
       setIsSubmitting(false);
     }
@@ -375,7 +379,7 @@ export default function MyReservationEditPage() {
       // 섹션 3: 짝궁할인 체크 시 짝궁코드 검증
       if (formData.discountCouple) {
         if (!formData.partnerCode) {
-          setError("짝궁코드를 검색하여 선택해주세요.");
+          setError(t.editPartnerCodeRequired || "짝궁코드를 검색하여 선택해주세요.");
           return false;
         }
         // 이미 입력된 경우는 통과
@@ -393,18 +397,18 @@ export default function MyReservationEditPage() {
             const data = await res.json();
             const exists = data.results?.some((r: { code: string }) => r.code === formData.partnerCode);
             if (!exists) {
-              setError("짝궁코드가 존재하지 않습니다.");
+              setError(t.editPartnerCodeNotFound || "짝궁코드가 존재하지 않습니다.");
               return false;
             }
             // DB에 존재하는 경우 선택 처리
             setSelectedPartnerCode(formData.partnerCode);
             return true;
           } else {
-            setError("짝궁코드를 검색하여 선택해주세요.");
+            setError(t.editPartnerCodeRequired || "짝궁코드를 검색하여 선택해주세요.");
             return false;
           }
         } catch (err) {
-          setError("짝궁코드 검증 중 오류가 발생했습니다.");
+          setError(t.editPartnerCodeVerifyError || "짝궁코드 검증 중 오류가 발생했습니다.");
           return false;
         }
       }
@@ -447,11 +451,11 @@ export default function MyReservationEditPage() {
                 d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
               />
             </svg>
-            예약글 목록으로
+            {t.editBackToList || '예약글 목록으로'}
           </Link>
-          <h1 className="text-3xl font-bold">예약 문의 수정</h1>
+          <h1 className="text-3xl font-bold">{t.editReservationTitle || '예약 문의 수정'}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            예약 정보를 수정할 수 있습니다.
+            {t.editReservationSub || '예약 정보를 수정할 수 있습니다.'}
           </p>
           {(eventSnapApplications ?? []).length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -460,7 +464,7 @@ export default function MyReservationEditPage() {
                   key={ev.id}
                   className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${ev.status === "CONFIRMED" ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}
                 >
-                  {ev.type} {ev.status === "CONFIRMED" ? "확정" : "등록됨"}
+                  {ev.type} {ev.status === "CONFIRMED" ? (t.confirmed || "확정") : (t.registered || "등록됨")}
                 </span>
               ))}
             </div>
@@ -506,13 +510,13 @@ export default function MyReservationEditPage() {
           {currentSection === 1 && (
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">1. 예약자 정보</h2>
+                <h2 className="text-xl font-semibold">{t.editSection1 || '1. 예약자 정보'}</h2>
               </div>
 
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <label htmlFor="brideName" className="mb-2 block text-sm font-medium">
-                    신부님 성함 <span className="text-accent">*</span>
+                    {t.brideName || '신부님 성함'} <span className="text-accent">*</span>
                   </label>
                   <input
                     type="text"
@@ -526,7 +530,7 @@ export default function MyReservationEditPage() {
                 </div>
                 <div>
                   <label htmlFor="bridePhone" className="mb-2 block text-sm font-medium">
-                    신부님 전화번호 <span className="text-accent">*</span>
+                    {t.bridePhone || '신부님 전화번호'} <span className="text-accent">*</span>
                   </label>
                   <input
                     type="tel"
@@ -542,7 +546,7 @@ export default function MyReservationEditPage() {
                 </div>
                 <div>
                   <label htmlFor="groomName" className="mb-2 block text-sm font-medium">
-                    신랑님 성함 <span className="text-accent">*</span>
+                    {t.groomName || '신랑님 성함'} <span className="text-accent">*</span>
                   </label>
                   <input
                     type="text"
@@ -556,7 +560,7 @@ export default function MyReservationEditPage() {
                 </div>
                 <div>
                   <label htmlFor="groomPhone" className="mb-2 block text-sm font-medium">
-                    신랑님 전화번호 <span className="text-accent">*</span>
+                    {t.groomPhone || '신랑님 전화번호'} <span className="text-accent">*</span>
                   </label>
                   <input
                     type="tel"
@@ -574,7 +578,7 @@ export default function MyReservationEditPage() {
 
               <div>
                 <label htmlFor="receiptPhone" className="mb-2 block text-sm font-medium">
-                  현금 영수증 받으실 전화번호
+                  {t.receiptPhone || '현금 영수증 받으실 전화번호'}
                 </label>
                 <input
                   type="tel"
@@ -591,7 +595,7 @@ export default function MyReservationEditPage() {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <label htmlFor="depositName" className="mb-2 block text-sm font-medium">
-                    예약금 입금자명
+                    {t.depositNameLabel || '예약금 입금자명'}
                   </label>
                   <input
                     type="text"
@@ -604,7 +608,7 @@ export default function MyReservationEditPage() {
                 </div>
                 <div>
                   <label htmlFor="productEmail" className="mb-2 block text-sm font-medium">
-                    상품 받으실 E-mail
+                    {t.productEmailLabel || '상품 받으실 E-mail'}
                   </label>
                   <input
                     type="email"
@@ -620,7 +624,7 @@ export default function MyReservationEditPage() {
 
               <div>
                 <label htmlFor="foundPath" className="mb-2 block text-sm font-medium">
-                  라우브필름 알게된 경로
+                  {t.foundPathLabel || '라우브필름 알게된 경로'}
                 </label>
                 <input
                   type="text"
@@ -629,7 +633,7 @@ export default function MyReservationEditPage() {
                   value={formData.foundPath}
                   onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  placeholder="예: 네이버 카페, 네이버 블로그, SNS 등"
+                  placeholder={t.foundPathPlaceholder || "예: 네이버 카페, 네이버 블로그, SNS 등"}
                 />
               </div>
             </div>
@@ -639,12 +643,12 @@ export default function MyReservationEditPage() {
           {currentSection === 2 && (
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">2. 예식 정보</h2>
+                <h2 className="text-xl font-semibold">{t.editSection2 || '2. 예식 정보'}</h2>
               </div>
 
               <div>
                 <label htmlFor="productType" className="mb-2 block text-sm font-medium">
-                  상품 종류
+                  {t.productTypeLabel || '상품 종류'}
                 </label>
                 <select
                   id="productType"
@@ -653,38 +657,36 @@ export default function MyReservationEditPage() {
                   onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 >
-                  <option value="">선택해주세요</option>
-                  <option value="가성비형">가성비형</option>
-                  <option value="기본형">기본형</option>
-                  <option value="시네마틱형">시네마틱형</option>
+                  <option value="">{t.editSelectPlease || '선택해주세요'}</option>
+                  <option value="가성비형">{t.editBudget || '가성비형'}</option>
+                  <option value="기본형">{t.editBasic || '기본형'}</option>
+                  <option value="시네마틱형">{t.editCinematic || '시네마틱형'}</option>
                 </select>
               </div>
 
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <label htmlFor="weddingDate" className="mb-2 block text-sm font-medium">
-                    예식 날짜
+                    {t.weddingDateLabel || '예식 날짜'}
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     id="weddingDate"
                     name="weddingDate"
                     value={formData.weddingDate}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                    className="rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                   />
                 </div>
                 <div>
                   <label htmlFor="weddingTime" className="mb-2 block text-sm font-medium">
-                    예식 시간
+                    {t.weddingTimeLabel || '예식 시간'}
                   </label>
-                  <input
-                    type="time"
+                  <TimeInput
                     id="weddingTime"
                     name="weddingTime"
                     value={formData.weddingTime}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                    className="rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                   />
                 </div>
               </div>
@@ -692,7 +694,7 @@ export default function MyReservationEditPage() {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <label htmlFor="venueName" className="mb-2 block text-sm font-medium">
-                    장소명
+                    {t.venueNameLabel || '장소명'}
                   </label>
                   <input
                     type="text"
@@ -705,7 +707,7 @@ export default function MyReservationEditPage() {
                 </div>
                 <div>
                   <label htmlFor="venueFloor" className="mb-2 block text-sm font-medium">
-                    층/홀이름
+                    {t.venueFloorLabel || '층/홀이름'}
                   </label>
                   <input
                     type="text"
@@ -720,7 +722,7 @@ export default function MyReservationEditPage() {
 
               <div>
                 <label htmlFor="guestCount" className="mb-2 block text-sm font-medium">
-                  초대인원
+                  {t.guestCountLabel || '초대인원'}
                 </label>
                 <input
                   type="number"
@@ -744,7 +746,7 @@ export default function MyReservationEditPage() {
                     className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                   />
                   <label htmlFor="makeupShoot" className="text-sm">
-                    메이크업샵 촬영 (20만원)
+                    {t.editMakeupShoot || '메이크업샵 촬영 (20만원)'}
                   </label>
                 </div>
                 <div className="flex items-center gap-3">
@@ -757,7 +759,7 @@ export default function MyReservationEditPage() {
                     className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                   />
                   <label htmlFor="paebaekShoot" className="text-sm">
-                    폐백 촬영 (5만원)
+                    {t.editPaebaekShoot || '폐백 촬영 (5만원)'}
                   </label>
                 </div>
                 <div className="flex items-center gap-3">
@@ -770,7 +772,7 @@ export default function MyReservationEditPage() {
                     className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                   />
                   <label htmlFor="receptionShoot" className="text-sm">
-                    피로연(2부 예식) 촬영 (5만원)
+                    {t.editReceptionShoot || '피로연(2부 예식) 촬영 (5만원)'}
                   </label>
                 </div>
                 <div className="flex items-center gap-3">
@@ -783,7 +785,7 @@ export default function MyReservationEditPage() {
                     className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                   />
                   <label htmlFor="usbOption" className="text-sm">
-                    USB 추가 (개당 2만원)
+                    {t.editUsbOption || 'USB 추가 (개당 2만원)'}
                   </label>
                 </div>
               </div>
@@ -791,7 +793,7 @@ export default function MyReservationEditPage() {
               {formData.usbOption && (
                 <div>
                   <label htmlFor="deliveryAddress" className="mb-2 block text-sm font-medium">
-                    USB 배송 주소
+                    {t.editDeliveryAddress || 'USB 배송 주소'}
                   </label>
                   <textarea
                     id="deliveryAddress"
@@ -800,7 +802,7 @@ export default function MyReservationEditPage() {
                     value={formData.deliveryAddress}
                     onChange={handleChange}
                     className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                    placeholder="상세 주소까지 입력해주세요"
+                    placeholder={t.editDeliveryAddressPlaceholder || "상세 주소까지 입력해주세요"}
                   />
                 </div>
               )}
@@ -808,7 +810,7 @@ export default function MyReservationEditPage() {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <label htmlFor="mainSnapCompany" className="mb-2 block text-sm font-medium">
-                    메인스냅 촬영 업체명
+                    {t.mainSnapCompanyLabel || '메인스냅 촬영 업체명'}
                   </label>
                   <input
                     type="text"
@@ -821,7 +823,7 @@ export default function MyReservationEditPage() {
                 </div>
                 <div>
                   <label htmlFor="makeupShop" className="mb-2 block text-sm font-medium">
-                    메이크업샵 상호명
+                    {t.makeupShopLabel || '메이크업샵 상호명'}
                   </label>
                   <input
                     type="text"
@@ -836,7 +838,7 @@ export default function MyReservationEditPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium">
-                  본식 영상 주 재생매체
+                  {t.playbackDeviceLabel || '본식 영상 주 재생매체'}
                 </label>
                 <div className="space-y-3">
                   {["핸드폰", "LED TV", "OLED TV", "빔프로젝터"].map((device) => (
@@ -874,11 +876,11 @@ export default function MyReservationEditPage() {
           {currentSection === 3 && (
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">3. 할인 및 이벤트</h2>
+                <h2 className="text-xl font-semibold">{t.editSection3 || '3. 할인 및 이벤트'}</h2>
               </div>
 
               <div className="rounded-lg border border-border bg-muted p-4">
-                <h3 className="mb-3 text-sm font-medium">할인 이벤트</h3>
+                <h3 className="mb-3 text-sm font-medium">{t.editDiscountEvents || '할인 이벤트'}</h3>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <input
@@ -891,7 +893,7 @@ export default function MyReservationEditPage() {
                       className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <label htmlFor="discountNewYear" className={`text-sm ${formData.productType === "가성비형" ? "text-muted-foreground" : ""}`}>
-                      2026년 신년할인 (5만원)
+                      {t.editDiscountNewYear || '2026년 신년할인 (5만원)'}
                     </label>
                   </div>
                   <div className="flex items-center gap-3">
@@ -904,7 +906,7 @@ export default function MyReservationEditPage() {
                       className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                     />
                     <label htmlFor="discountReview" className="text-sm">
-                      블로그와 카페 촬영후기 (총 2만원 페이백)
+                      {t.editDiscountReview || '블로그와 카페 촬영후기 (총 2만원 페이백)'}
                     </label>
                   </div>
                   <div className="flex items-center gap-3">
@@ -917,7 +919,7 @@ export default function MyReservationEditPage() {
                       className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                     />
                     <label htmlFor="discountCouple" className="text-sm">
-                      짝궁할인 (소개 받는 분 1만원, 소개 하는 분 무제한)
+                      {t.editDiscountCouple || '짝궁할인 (소개 받는 분 1만원, 소개 하는 분 무제한)'}
                     </label>
                   </div>
                   <div className="flex items-center gap-3">
@@ -930,9 +932,9 @@ export default function MyReservationEditPage() {
                       className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                     />
                     <label htmlFor="discountReviewBlog" className="text-sm">
-                      {formData.productType === "가성비형" 
-                        ? "블로그와 카페 예약후기 (할인없이 원본전체 전달)"
-                        : "블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)"}
+                      {formData.productType === "가성비형"
+                        ? (t.editDiscountReviewBlogBudget || "블로그와 카페 예약후기 (할인없이 원본전체 전달)")
+                        : (t.editDiscountReviewBlog || "블로그와 카페 예약후기 (총 2만원 +SNS영상 + 원본영상)")}
                     </label>
                   </div>
                 </div>
@@ -942,7 +944,7 @@ export default function MyReservationEditPage() {
               {formData.discountCouple && (
                 <div>
                   <label htmlFor="partnerCode" className="mb-2 block text-sm font-medium">
-                    짝궁 코드 {!originalPartnerCode && <span className="text-accent">*</span>}
+                    {t.partnerCode || '짝궁 코드'} {!originalPartnerCode && <span className="text-accent">*</span>}
                   </label>
                   {originalPartnerCode ? (
                     // 이미 입력된 경우 - 읽기 전용
@@ -955,10 +957,10 @@ export default function MyReservationEditPage() {
                         disabled
                         readOnly
                         className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-muted-foreground cursor-not-allowed"
-                        placeholder="짝궁 코드는 수정할 수 없습니다"
+                        placeholder={t.editPartnerCodeReadonly || "짝궁 코드는 수정할 수 없습니다"}
                       />
                       <p className="mt-1 text-xs text-muted-foreground">
-                        짝궁 코드는 수정할 수 없습니다.
+                        {t.editPartnerCodeReadonly || '짝궁 코드는 수정할 수 없습니다.'}
                       </p>
                     </>
                   ) : (
@@ -993,7 +995,7 @@ export default function MyReservationEditPage() {
                           }, 200);
                         }}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                        placeholder="짝궁 코드를 검색하여 선택해주세요"
+                        placeholder={t.editPartnerCodeSearchPlaceholder || "짝궁 코드를 검색하여 선택해주세요"}
                         required
                       />
                       {isSearchingPartnerCode && (
@@ -1013,13 +1015,13 @@ export default function MyReservationEditPage() {
                               }`}
                             >
                               <div className="font-medium">{result.code}</div>
-                              <div className="text-xs text-muted-foreground">추천인: {result.author}</div>
+                              <div className="text-xs text-muted-foreground">{t.editReferrer || '추천인'}: {result.author}</div>
                             </button>
                           ))}
                         </div>
                       )}
                       {formData.discountCouple && !formData.partnerCode && (
-                        <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400">⚠ 짝궁코드를 검색하여 선택해주세요.</p>
+                        <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400">{t.editPartnerCodeWarning || '짝궁코드를 검색하여 선택해주세요.'}</p>
                       )}
                     </div>
                   )}
@@ -1029,7 +1031,7 @@ export default function MyReservationEditPage() {
               {/* 이벤트 촬영 */}
               <div>
                 <label htmlFor="eventType" className="mb-2 block text-sm font-medium">
-                  이벤트 촬영
+                  {t.editEventShoot || '이벤트 촬영'}
                 </label>
                 <select
                   id="eventType"
@@ -1038,9 +1040,9 @@ export default function MyReservationEditPage() {
                   onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 >
-                  <option value="">미진행 (선택사항)</option>
-                  <option value="야외스냅">야외스냅</option>
-                  <option value="프리웨딩">프리웨딩</option>
+                  <option value="">{t.editEventNone || '미진행 (선택사항)'}</option>
+                  <option value="야외스냅">{t.eventSnapOutdoor || '야외스냅'}</option>
+                  <option value="프리웨딩">{t.eventSnapPrewedding || '프리웨딩'}</option>
                 </select>
               </div>
 
@@ -1048,7 +1050,7 @@ export default function MyReservationEditPage() {
                 <>
                   <div>
                     <label htmlFor="shootLocation" className="mb-2 block text-sm font-medium">
-                      희망 촬영 장소
+                      {t.eventSnapShootLocation || '희망 촬영 장소'}
                     </label>
                     <input
                       type="text"
@@ -1057,40 +1059,38 @@ export default function MyReservationEditPage() {
                       value={formData.shootLocation}
                       onChange={handleChange}
                       className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                      placeholder="예: 노을공원, 창경궁 등"
+                      placeholder={t.editShootLocationPlaceholder || "예: 노을공원, 창경궁 등"}
                     />
                   </div>
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
                       <label htmlFor="shootDate" className="mb-2 block text-sm font-medium">
-                        촬영 날짜
+                        {t.editShootDate || '촬영 날짜'}
                       </label>
-                      <input
-                        type="date"
+                      <DateInput
                         id="shootDate"
                         name="shootDate"
                         value={formData.shootDate}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                       />
                     </div>
                     <div>
                       <label htmlFor="shootTime" className="mb-2 block text-sm font-medium">
-                        촬영 시간
+                        {t.editShootTime || '촬영 시간'}
                       </label>
-                      <input
-                        type="time"
+                      <TimeInput
                         id="shootTime"
                         name="shootTime"
                         value={formData.shootTime}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                       />
                     </div>
                   </div>
                   <div>
                     <label htmlFor="shootConcept" className="mb-2 block text-sm font-medium">
-                      원하시는 컨셉
+                      {t.eventSnapConcept || '원하시는 컨셉'}
                     </label>
                     <textarea
                       id="shootConcept"
@@ -1110,12 +1110,12 @@ export default function MyReservationEditPage() {
           {currentSection === 4 && (
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
-                <h2 className="text-xl font-semibold">4. 특이사항</h2>
+                <h2 className="text-xl font-semibold">{t.editSection4 || '4. 특이사항'}</h2>
               </div>
 
               <div>
                 <label htmlFor="specialNotes" className="mb-2 block text-sm font-medium">
-                  특이사항 및 요구사항
+                  {t.editSpecialNotes || '특이사항 및 요구사항'}
                 </label>
                 <textarea
                   id="specialNotes"
@@ -1124,7 +1124,7 @@ export default function MyReservationEditPage() {
                   value={formData.specialNotes}
                   onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                  placeholder="특이사항이나 요구사항이 있으시면 작성해주세요"
+                  placeholder={t.editSpecialNotesPlaceholder || "특이사항이나 요구사항이 있으시면 작성해주세요"}
                 />
               </div>
 
@@ -1140,7 +1140,7 @@ export default function MyReservationEditPage() {
                     className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent"
                   />
                   <label htmlFor="customShootingRequest" className="text-sm font-medium">
-                    🎬 커스텀 촬영 요청 (대표 또는 수석실장 촬영만 해당)
+                    {t.editCustomShootingRequest || '커스텀 촬영 요청 (대표 또는 수석실장 촬영만 해당)'}
                   </label>
                 </div>
 
@@ -1149,18 +1149,18 @@ export default function MyReservationEditPage() {
                     {/* 안내 문구 */}
                     <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        ✅ 계약을 완료한 후 카카오톡 채널을 통해 커스텀 신청 부탁드립니다.
+                        {t.editCustomNote1 || '계약을 완료한 후 카카오톡 채널을 통해 커스텀 신청 부탁드립니다.'}
                         <br />
-                        ✅ 여건에 따라 불가한 옵션이 있을 수 있습니다.
+                        {t.editCustomNote2 || '여건에 따라 불가한 옵션이 있을 수 있습니다.'}
                         <br />
-                        🚨 카카오톡 채널로 말씀없이 작성하시면 적용되지 않습니다!!
+                        {t.editCustomNote3 || '카카오톡 채널로 말씀없이 작성하시면 적용되지 않습니다!!'}
                       </p>
                     </div>
 
                     {/* 영상 스타일 */}
                     <div>
                       <label className="mb-3 block text-sm font-medium">
-                        🎬 영상 스타일 <span className="text-accent">*</span>
+                        {t.editVideoStyle || '영상 스타일'} <span className="text-accent">*</span>
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {["시네마틱", "다큐멘터리"].map((style) => (
@@ -1190,7 +1190,7 @@ export default function MyReservationEditPage() {
                     {/* 편집 스타일 */}
                     <div>
                       <label className="mb-3 block text-sm font-medium">
-                        ✂️ 편집 스타일 <span className="text-accent">*</span>
+                        {t.editEditStyle || '편집 스타일'} <span className="text-accent">*</span>
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
@@ -1224,7 +1224,7 @@ export default function MyReservationEditPage() {
                     {/* 음악 장르 */}
                     <div>
                       <label className="mb-3 block text-sm font-medium">
-                        🎵 음악 장르 <span className="text-accent">*</span>
+                        {t.editMusicGenre || '음악 장르'} <span className="text-accent">*</span>
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {["클래식", "팝", "발라드", "재즈", "인디", "K-pop", "영화 OST", "직접 선곡"].map((music) => (
@@ -1254,7 +1254,7 @@ export default function MyReservationEditPage() {
                     {/* 영상 진행형식 */}
                     <div>
                       <label className="mb-3 block text-sm font-medium">
-                        ⏱️ 영상 진행형식 <span className="text-accent">*</span>
+                        {t.editVideoFormat || '영상 진행형식'} <span className="text-accent">*</span>
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
@@ -1287,7 +1287,7 @@ export default function MyReservationEditPage() {
 
                     {/* 추가효과 */}
                     <div>
-                      <label className="mb-3 block text-sm font-medium">✨ 추가효과</label>
+                      <label className="mb-3 block text-sm font-medium">{t.editExtraEffects || '추가효과'}</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
                           { value: "타임랩스", label: "적절한 슬로우 모션" },
@@ -1326,7 +1326,7 @@ export default function MyReservationEditPage() {
 
                     {/* 추가 옵션 */}
                     <div>
-                      <label className="mb-3 block text-sm font-medium">📱 추가 옵션 (추가비용 발생)</label>
+                      <label className="mb-3 block text-sm font-medium">{t.editExtraOptions || '추가 옵션 (추가비용 발생)'}</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
                           { value: "드론 촬영", label: "드론 촬영 (촬영 여건에 따라 불가할 수 있습니다.)" },
@@ -1365,7 +1365,7 @@ export default function MyReservationEditPage() {
                     {/* 특별 요청사항 */}
                     <div>
                       <label htmlFor="customSpecialRequest" className="mb-2 block text-sm font-medium">
-                        특별 요청사항
+                        {t.editCustomSpecialRequest || '특별 요청사항'}
                       </label>
                       <textarea
                         id="customSpecialRequest"
@@ -1374,7 +1374,7 @@ export default function MyReservationEditPage() {
                         value={formData.customSpecialRequest}
                         onChange={handleChange}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-                        placeholder="특별히 담고 싶은 순간이나 요청사항을 자유롭게 작성해주세요."
+                        placeholder={t.editCustomSpecialRequestPlaceholder || "특별히 담고 싶은 순간이나 요청사항을 자유롭게 작성해주세요."}
                       />
                     </div>
                   </div>
@@ -1391,7 +1391,7 @@ export default function MyReservationEditPage() {
                 onClick={() => setCurrentSection(currentSection - 1)}
                 className="flex-1 rounded-lg border border-border py-3 text-center font-medium transition-colors hover:bg-muted"
               >
-                이전
+                {t.editPrevious || '이전'}
               </button>
             )}
             {currentSection < totalSections ? (
@@ -1400,7 +1400,7 @@ export default function MyReservationEditPage() {
                 onClick={handleNext}
                 className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover"
               >
-                다음
+                {t.editNext || '다음'}
               </button>
             ) : (
               <button
@@ -1412,7 +1412,7 @@ export default function MyReservationEditPage() {
                 disabled={isSubmitting}
                 className="flex-1 rounded-lg bg-accent py-3 font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "수정 중..." : "수정하기"}
+                {isSubmitting ? (t.editSubmitting || "수정 중...") : (t.edit || "수정하기")}
               </button>
             )}
           </div>

@@ -5,47 +5,24 @@ import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { DollarSign, Calendar, FileText, HelpCircle, Lightbulb, Play } from "lucide-react";
 
-const serviceItemsTop = [
-  {
-    title: "상품 구성",
-    titleEn: "Product",
-    href: "/pricing",
-    icon: DollarSign,
-  },
-  {
-    title: "예약 절차",
-    titleEn: "Reservation",
-    href: "/reservation-process",
-    icon: Calendar,
-  },
-  {
-    title: "계약 약관",
-    titleEn: "Terms",
-    href: "/terms",
-    icon: FileText,
-  },
-  {
-    title: "FAQ",
-    titleEn: "FAQ",
-    href: "/faq",
-    icon: HelpCircle,
-  },
-];
-
-const serviceItemsBottom = [
-  {
-    title: "라우브필름에 대해서 알아보세요",
-    subtitle: "결혼식 영상에 대한 라우브필름의 철학",
-    href: "/about",
-    icon: Lightbulb,
-  },
-  {
-    title: "[TIP] 라우브필름 최대로 활용하기",
-    subtitle: "영상 시청 방법, 커스텀 요청 방법 등등",
-    href: "/tip",
-    icon: Play,
-  },
-];
+interface ServiceSectionProps {
+  translations: {
+    serviceSection: string;
+    serviceProduct: string;
+    serviceProductEn: string;
+    serviceReservation: string;
+    serviceReservationEn: string;
+    serviceTerms: string;
+    serviceTermsEn: string;
+    serviceFaq: string;
+    serviceFaqEn: string;
+    serviceAbout: string;
+    serviceAboutSub: string;
+    serviceTip: string;
+    serviceTipSub: string;
+  };
+  locale: string;
+}
 
 // 스태거 애니메이션 variants
 const containerVariants = {
@@ -142,7 +119,49 @@ function Card3D({
   );
 }
 
-export default function ServiceSection() {
+export default function ServiceSection({ translations, locale }: ServiceSectionProps) {
+  const serviceItemsTop = [
+    {
+      title: translations.serviceProduct,
+      titleEn: translations.serviceProductEn,
+      href: `/${locale}/pricing`,
+      icon: DollarSign,
+    },
+    {
+      title: translations.serviceReservation,
+      titleEn: translations.serviceReservationEn,
+      href: `/${locale}/reservation-process`,
+      icon: Calendar,
+    },
+    {
+      title: translations.serviceTerms,
+      titleEn: translations.serviceTermsEn,
+      href: `/${locale}/terms`,
+      icon: FileText,
+    },
+    {
+      title: translations.serviceFaq,
+      titleEn: translations.serviceFaqEn,
+      href: `/${locale}/faq`,
+      icon: HelpCircle,
+    },
+  ];
+
+  const serviceItemsBottom = [
+    {
+      title: translations.serviceAbout,
+      subtitle: translations.serviceAboutSub,
+      href: `/${locale}/about`,
+      icon: Lightbulb,
+    },
+    {
+      title: translations.serviceTip,
+      subtitle: translations.serviceTipSub,
+      href: `/${locale}/tip`,
+      icon: Play,
+    },
+  ];
+
   return (
     <section className="py-20 md:py-28 px-4 bg-[#0a0a0a]" style={{ perspective: 1000 }}>
       <div className="mx-auto max-w-6xl">
@@ -160,7 +179,7 @@ export default function ServiceSection() {
             transition={{ duration: 0.6 }}
             className="text-left text-sm font-semibold tracking-[0.2em] text-accent uppercase"
           >
-            Service
+            {translations.serviceSection}
           </motion.h2>
           <motion.div
             variants={titleLineExpand}
@@ -182,16 +201,12 @@ export default function ServiceSection() {
           {serviceItemsTop.map((item) => {
             const Icon = item.icon;
             return (
-              <Card3D key={item.title} href={item.href} className="h-full">
+              <Card3D key={item.href} href={item.href} className="h-full">
                 <div className="group flex flex-col items-center justify-center rounded-xl bg-[#1a1a1a] p-6 md:p-8 border border-[#2a2a2a] transition-all duration-300 hover:border-accent hover:shadow-xl hover:shadow-accent/20 min-h-[180px] md:min-h-[200px] h-full">
-                  {/* Icon with Bounce Animation on Hover */}
-                  <motion.div
-                    whileHover={{ y: -5, scale: 1.1 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    className="w-14 h-14 md:w-16 md:h-16 mb-5 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors"
-                  >
+                  {/* Icon with Scale Animation on Hover */}
+                  <div className="w-14 h-14 md:w-16 md:h-16 mb-5 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 group-hover:scale-110 transition-all duration-300 origin-center">
                     <Icon className="w-6 h-6 md:w-7 md:h-7 text-accent" strokeWidth={1.5} />
-                  </motion.div>
+                  </div>
 
                   {/* Title */}
                   <h3 className="text-base md:text-lg font-bold text-white mb-1.5 group-hover:text-accent transition-colors text-center">
@@ -219,16 +234,12 @@ export default function ServiceSection() {
           {serviceItemsBottom.map((item) => {
             const Icon = item.icon;
             return (
-              <Card3D key={item.title} href={item.href} className="h-full">
+              <Card3D key={item.href} href={item.href} className="h-full">
                 <div className="group flex items-start gap-5 rounded-xl bg-[#1a1a1a] p-6 md:p-8 border border-[#2a2a2a] transition-all duration-300 hover:border-accent hover:shadow-xl hover:shadow-accent/20 min-h-[140px] md:min-h-[160px] h-full">
-                  {/* Icon with Rotation on Hover */}
-                  <motion.div
-                    whileHover={{ rotate: 15, scale: 1.1 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    className="w-12 h-12 md:w-14 md:h-14 flex-shrink-0 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors"
-                  >
+                  {/* Icon with Scale Animation on Hover */}
+                  <div className="w-12 h-12 md:w-14 md:h-14 flex-shrink-0 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 group-hover:scale-110 transition-all duration-300 origin-center">
                     <Icon className="w-5 h-5 md:w-6 md:h-6 text-accent" strokeWidth={1.5} />
-                  </motion.div>
+                  </div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">

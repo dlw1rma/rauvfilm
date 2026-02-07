@@ -1,5 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
+import { getDictionary } from "@/lib/dictionary";
+import type { Locale } from "@/lib/i18n";
 
 const socialLinks = [
   {
@@ -38,29 +39,33 @@ const footerInfo = {
   businessNo: "728-10-02901",
 };
 
-const footerNavigation = {
-  legal: [
-    { name: "이용약관", href: "/terms" },
-    { name: "규정안내", href: "/guidelines" },
-    { name: "개인정보처리방침", href: "/privacy" },
-  ],
-};
+export default async function Footer({ locale }: { locale?: Locale }) {
+  const currentLocale = locale || 'ko';
+  const t = await getDictionary(currentLocale);
+  const prefix = `/${currentLocale}`;
 
-export default function Footer() {
+  const footerNavigation = {
+    legal: [
+      { name: t.footer.terms, href: `${prefix}/terms` },
+      { name: t.footer.guidelines, href: `${prefix}/guidelines` },
+      { name: t.footer.privacy, href: `${prefix}/privacy` },
+    ],
+  };
+
   return (
     <footer className="bg-background border-t border-border" style={{ minHeight: "400px" }}>
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center">
           {/* Partnership Section */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 w-full">
-            <span className="text-sm text-muted-foreground">본식스냅 제휴업체</span>
+            <span className="text-sm text-muted-foreground">{t.footer.partnership}</span>
             <a
               href="http://leumewedding.com/"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-2 border border-border rounded text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-all"
             >
-              르메그라피
+              {t.footer.partnerName}
             </a>
           </div>
 
@@ -106,7 +111,7 @@ export default function Footer() {
           {/* Copyright */}
           <div className="pt-4">
             <p className="text-center text-xs text-muted-foreground">
-              Copyright &copy; {new Date().getFullYear()} 라우브필름 All rights reserved.
+              Copyright &copy; {new Date().getFullYear()} {t.footer.copyright}
             </p>
           </div>
         </div>

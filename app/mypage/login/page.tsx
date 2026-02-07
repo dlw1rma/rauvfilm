@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useMypageTranslation } from '@/components/mypage/MypageTranslationProvider';
 
 export default function CustomerLoginPage() {
   const router = useRouter();
+  const t = useMypageTranslation();
   const [name, setName] = useState('');
   const [phoneOrEmail, setPhoneOrEmail] = useState('');
   const [showValue, setShowValue] = useState(false);
@@ -48,13 +50,13 @@ export default function CustomerLoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || '로그인에 실패했습니다.');
+        setError(data.error || t.loginError);
         return;
       }
 
       router.push('/mypage');
     } catch {
-      setError('네트워크 오류가 발생했습니다.');
+      setError(t.loginNetworkError || '네트워크 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -64,23 +66,23 @@ export default function CustomerLoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold mb-2">세부사항 및 잔금 확인</h1>
+          <h1 className="text-2xl font-bold mb-2">{t.loginTitle}</h1>
           <p className="text-muted-foreground">
-            예약 시 등록한 성함과 전화번호<br/>(또는 해외 거주 시 이메일)로 로그인하세요
+            {t.loginSub}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2">
-              계약자 성함
+              {t.loginName}
             </label>
             <input
               type="text"
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="이지은"
+              placeholder={t.loginNamePlaceholder}
               className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
               required
             />
@@ -88,7 +90,7 @@ export default function CustomerLoginPage() {
 
           <div>
             <label htmlFor="phoneOrEmail" className="block text-sm font-medium mb-2">
-              전화번호 또는 이메일 (해외 거주 시 이메일)
+              {t.loginPhone}
             </label>
             <div className="relative">
               <input
@@ -96,7 +98,7 @@ export default function CustomerLoginPage() {
                 id="phoneOrEmail"
                 value={phoneOrEmail}
                 onChange={handlePhoneOrEmailChange}
-                placeholder="010-1234-5678 또는 example@email.com"
+                placeholder={t.loginPhonePlaceholder}
                 className="w-full px-4 py-3 pr-12 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
                 required
               />
@@ -130,19 +132,19 @@ export default function CustomerLoginPage() {
             disabled={loading}
             className="w-full py-3 px-4 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '로그인 중...' : '로그인'}
+            {loading ? (t.loginLoading || '로그인 중...') : t.loginButton}
           </button>
         </form>
 
         <div className="mt-8 text-center text-sm text-muted-foreground">
-          <p>아직 예약하지 않으셨나요?</p>
+          <p>{t.loginNoReservation || '아직 예약하지 않으셨나요?'}</p>
           <a
             href="https://pf.kakao.com/_xlXAin/chat"
             target="_blank"
             rel="noopener noreferrer"
             className="text-accent hover:underline"
           >
-            카카오톡으로 예약하기
+            {t.loginKakaoReserve || '카카오톡으로 예약하기'}
           </a>
         </div>
       </div>

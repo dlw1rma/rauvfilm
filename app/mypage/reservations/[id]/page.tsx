@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatDateTime } from "@/lib/formatDate";
+import { useMypageTranslation } from "@/components/mypage/MypageTranslationProvider";
 
 interface ReservationDetail {
   id: number;
@@ -103,6 +105,7 @@ function DetailRow({
 export default function MypageReservationDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useMypageTranslation();
   const [data, setData] = useState<ReservationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -117,22 +120,22 @@ export default function MypageReservationDetailPage() {
             return;
           }
           if (res.status === 403) {
-            setError("권한이 없습니다.");
+            setError(t.noPermission || "권한이 없습니다.");
             return;
           }
-          setError("예약 정보를 불러올 수 없습니다.");
+          setError(t.loadFailed || "예약 정보를 불러올 수 없습니다.");
           return;
         }
         const json = await res.json();
         setData(json);
       } catch {
-        setError("오류가 발생했습니다.");
+        setError(t.errorOccurred || "오류가 발생했습니다.");
       } finally {
         setLoading(false);
       }
     }
     fetchDetail();
-  }, [params.id, router]);
+  }, [params.id, router, t]);
 
   if (loading) {
     return (
@@ -146,10 +149,10 @@ export default function MypageReservationDetailPage() {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <Link href="/mypage/reservations" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm">
-          ← 예약글 목록
+          {t.backToReservationList || '← 예약글 목록'}
         </Link>
         <div className="rounded-xl border border-border bg-muted/30 p-8 text-center">
-          <p className="text-muted-foreground">{error || "예약을 찾을 수 없습니다."}</p>
+          <p className="text-muted-foreground">{error || (t.reservationNotFound || "예약을 찾을 수 없습니다.")}</p>
         </div>
       </div>
     );
@@ -159,13 +162,13 @@ export default function MypageReservationDetailPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Link href="/mypage/reservations" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm">
-          ← 예약글 목록
+          {t.backToReservationList || '← 예약글 목록'}
         </Link>
         <Link
           href={`/mypage/reservations/${params.id}/edit`}
           className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90"
         >
-          수정하기
+          {t.edit || '수정하기'}
         </Link>
       </div>
 
@@ -173,10 +176,10 @@ export default function MypageReservationDetailPage() {
         <div className="border-b border-border px-6 py-4 bg-muted/30">
           <h1 className="text-xl font-bold">{data.title}</h1>
           <div className="flex flex-wrap items-center gap-4 mt-1">
-            <p className="text-sm text-muted-foreground">예약글 상세 (마이페이지)</p>
+            <p className="text-sm text-muted-foreground">{t.reservationDetailMypage || '예약글 상세 (마이페이지)'}</p>
             {data.createdAt && (
               <p className="text-sm text-muted-foreground">
-                작성일: {new Date(data.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                {t.createdDate || '작성일'}: {formatDateTime(data.createdAt)}
               </p>
             )}
           </div>
@@ -185,80 +188,80 @@ export default function MypageReservationDetailPage() {
         <div className="p-6 space-y-8">
           {/* 기본 정보 */}
           <section className="rounded-lg border border-border/50 p-4 bg-muted/20">
-            <h2 className="text-sm font-semibold text-muted-foreground mb-3">기본 정보</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3">{t.basicInfo || '기본 정보'}</h2>
             <div className="space-y-0">
-              <DetailRow label="계약자(작성자)" value={data.author} />
-              <DetailRow label="문의 내용" value={data.content} fullWidth />
+              <DetailRow label={t.contractorAuthor || "계약자(작성자)"} value={data.author} />
+              <DetailRow label={t.inquiryContent || "문의 내용"} value={data.content} fullWidth />
             </div>
           </section>
 
           {/* 필수 작성항목(공통) */}
           <section className="rounded-lg border border-border/50 p-4 bg-muted/20">
-            <h2 className="text-sm font-semibold text-muted-foreground mb-3">필수 작성항목(공통)</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3">{t.requiredFields || '필수 작성항목(공통)'}</h2>
             <div className="space-y-0">
-              <DetailRow label="신부님 성함" value={data.brideName} />
-              <DetailRow label="신부님 전화번호" value={data.bridePhone} />
-              <DetailRow label="신랑님 성함" value={data.groomName} />
-              <DetailRow label="신랑님 전화번호" value={data.groomPhone} />
-              <DetailRow label="현금 영수증 받으실 전화번호" value={data.receiptPhone} />
-              <DetailRow label="예약금 입금자명" value={data.depositName} />
-              <DetailRow label="상품 받으실 이메일" value={data.productEmail} />
-              <DetailRow label="라우브필름 알게된 경로" value={data.foundPath} />
-              {data.discountCouple && <DetailRow label="짝꿍 코드" value={data.partnerCode} />}
+              <DetailRow label={t.brideName || "신부님 성함"} value={data.brideName} />
+              <DetailRow label={t.bridePhone || "신부님 전화번호"} value={data.bridePhone} />
+              <DetailRow label={t.groomName || "신랑님 성함"} value={data.groomName} />
+              <DetailRow label={t.groomPhone || "신랑님 전화번호"} value={data.groomPhone} />
+              <DetailRow label={t.receiptPhone || "현금 영수증 받으실 전화번호"} value={data.receiptPhone} />
+              <DetailRow label={t.depositNameLabel || "예약금 입금자명"} value={data.depositName} />
+              <DetailRow label={t.productEmailLabel || "상품 받으실 이메일"} value={data.productEmail} />
+              <DetailRow label={t.foundPathLabel || "라우브필름 알게된 경로"} value={data.foundPath} />
+              {data.discountCouple && <DetailRow label={t.partnerCode} value={data.partnerCode} />}
             </div>
           </section>
 
           {/* 본식 영상 예약 */}
           {(data.productType === "가성비형" || data.productType === "기본형" || data.productType === "시네마틱형") && (
             <section className="rounded-lg border border-border/50 p-4 bg-muted/20">
-              <h2 className="text-sm font-semibold text-muted-foreground mb-3">본식 영상 예약</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3">{t.weddingVideoReservation || '본식 영상 예약'}</h2>
               <div className="space-y-0">
-                <DetailRow label="상품 종류" value={data.productType} />
-                <DetailRow label="예식 날짜" value={data.weddingDate} />
-                <DetailRow label="예식 시간" value={data.weddingTime} />
-                <DetailRow label="장소명" value={data.venueName} />
-                <DetailRow label="층/홀" value={data.venueFloor} />
-                <DetailRow label="초대 인원" value={data.guestCount} />
-                <DetailRow label="메이크업샵 촬영" value={data.makeupShoot} />
-                <DetailRow label="폐백 촬영" value={data.paebaekShoot} />
-                <DetailRow label="피로연(2부) 촬영" value={data.receptionShoot} />
-                <DetailRow label="메인스냅 촬영 업체" value={data.mainSnapCompany} />
-                <DetailRow label="메이크업샵 상호" value={data.makeupShop} />
-                <DetailRow label="드레스샵 상호" value={data.dressShop} />
-                <DetailRow label="USB 추가" value={data.usbOption} />
-                <DetailRow label="선원판 진행" value={data.seonwonpan} />
-                <DetailRow label="짐벌(커스텀) 촬영" value={data.gimbalShoot} />
-                <DetailRow label="주 재생매체" value={data.playbackDevice} />
-                {data.usbOption && <DetailRow label="상품 받으실 주소" value={data.deliveryAddress} />}
+                <DetailRow label={t.productTypeLabel || "상품 종류"} value={data.productType} />
+                <DetailRow label={t.weddingDateLabel || "예식 날짜"} value={data.weddingDate} />
+                <DetailRow label={t.weddingTimeLabel || "예식 시간"} value={data.weddingTime} />
+                <DetailRow label={t.venueNameLabel || "장소명"} value={data.venueName} />
+                <DetailRow label={t.venueFloorLabel || "층/홀"} value={data.venueFloor} />
+                <DetailRow label={t.guestCountLabel || "초대 인원"} value={data.guestCount} />
+                <DetailRow label={t.makeupShootLabel || "메이크업샵 촬영"} value={data.makeupShoot} />
+                <DetailRow label={t.paebaekShootLabel || "폐백 촬영"} value={data.paebaekShoot} />
+                <DetailRow label={t.receptionShootLabel || "피로연(2부) 촬영"} value={data.receptionShoot} />
+                <DetailRow label={t.mainSnapCompanyLabel || "메인스냅 촬영 업체"} value={data.mainSnapCompany} />
+                <DetailRow label={t.makeupShopLabel || "메이크업샵 상호"} value={data.makeupShop} />
+                <DetailRow label={t.dressShopLabel || "드레스샵 상호"} value={data.dressShop} />
+                <DetailRow label={t.usbOptionLabel || "USB 추가"} value={data.usbOption} />
+                <DetailRow label={t.seonwonpanLabel || "선원판 진행"} value={data.seonwonpan} />
+                <DetailRow label={t.gimbalShootLabel || "짐벌(커스텀) 촬영"} value={data.gimbalShoot} />
+                <DetailRow label={t.playbackDeviceLabel || "주 재생매체"} value={data.playbackDevice} />
+                {data.usbOption && <DetailRow label={t.deliveryAddressLabel || "상품 받으실 주소"} value={data.deliveryAddress} />}
               </div>
             </section>
           )}
 
           {/* 할인사항 */}
           <section className="rounded-lg border border-border/50 p-4 bg-muted/20">
-            <h2 className="text-sm font-semibold text-muted-foreground mb-3">할인사항</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3">{t.discountSection || '할인사항'}</h2>
             <div className="space-y-0">
-              <DetailRow label="2026 신년할인" value={data.discountNewYear} />
-              <DetailRow label="촬영후기 페이백" value={data.discountReview} />
-              <DetailRow label="짝꿍할인" value={data.discountCouple} />
-              <DetailRow label="예약후기 할인" value={data.discountReviewBlog} />
+              <DetailRow label={t.discountNewYearLabel || "2026 신년할인"} value={data.discountNewYear} />
+              <DetailRow label={t.discountReviewLabel || "촬영후기 페이백"} value={data.discountReview} />
+              <DetailRow label={t.discountCoupleLabel || "짝꿍할인"} value={data.discountCouple} />
+              <DetailRow label={t.discountReviewBlogLabel || "예약후기 할인"} value={data.discountReviewBlog} />
             </div>
           </section>
 
           {/* 특이사항 */}
           {(data.specialNotes || data.customShootingRequest || data.customSpecialRequest) && (
             <section className="rounded-lg border border-border/50 p-4 bg-muted/20">
-              <h2 className="text-sm font-semibold text-muted-foreground mb-3">특이사항 및 요청</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3">{t.specialNotesSection || '특이사항 및 요청'}</h2>
               <div className="space-y-0">
-                <DetailRow label="특이사항" value={data.specialNotes} fullWidth />
-                <DetailRow label="커스텀 촬영 요청" value={data.customShootingRequest} />
-                <DetailRow label="커스텀 스타일" value={data.customStyle} />
-                <DetailRow label="편집 스타일" value={data.customEditStyle} />
-                <DetailRow label="음악 장르" value={data.customMusic} />
-                <DetailRow label="영상 길이" value={data.customLength} />
-                <DetailRow label="추가 효과" value={data.customEffect} />
-                <DetailRow label="추가 옵션" value={data.customContent} />
-                <DetailRow label="특별 요청사항" value={data.customSpecialRequest} fullWidth />
+                <DetailRow label={t.specialNotesLabel || "특이사항"} value={data.specialNotes} fullWidth />
+                <DetailRow label={t.customShootingLabel || "커스텀 촬영 요청"} value={data.customShootingRequest} />
+                <DetailRow label={t.customStyleLabel || "커스텀 스타일"} value={data.customStyle} />
+                <DetailRow label={t.customEditStyleLabel || "편집 스타일"} value={data.customEditStyle} />
+                <DetailRow label={t.customMusicLabel || "음악 장르"} value={data.customMusic} />
+                <DetailRow label={t.customLengthLabel || "영상 길이"} value={data.customLength} />
+                <DetailRow label={t.customEffectLabel || "추가 효과"} value={data.customEffect} />
+                <DetailRow label={t.customContentLabel || "추가 옵션"} value={data.customContent} />
+                <DetailRow label={t.customSpecialRequestLabel || "특별 요청사항"} value={data.customSpecialRequest} fullWidth />
               </div>
             </section>
           )}
@@ -266,12 +269,12 @@ export default function MypageReservationDetailPage() {
           {/* 야외스냅/프리웨딩 신청 */}
           {(data.eventSnapApplications?.length ?? 0) > 0 && (
             <section className="rounded-lg border border-border/50 p-4 bg-muted/20">
-              <h2 className="text-sm font-semibold text-muted-foreground mb-3">야외스냅/프리웨딩 신청</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3">{t.eventSnapApply}</h2>
               <ul className="space-y-2">
                 {data.eventSnapApplications!.map((ev) => (
                   <li key={ev.id} className="rounded-lg border border-border p-3 text-sm">
                     <span className="font-medium">{ev.type}</span>
-                    {ev.status === "CONFIRMED" && <span className="ml-2 text-green-600 text-xs">확정</span>}
+                    {ev.status === "CONFIRMED" && <span className="ml-2 text-green-600 text-xs">{t.confirmed || '확정'}</span>}
                     {ev.shootDate && <span className="ml-2">{ev.shootDate}</span>}
                     {ev.shootTime && <span className="ml-2">{ev.shootTime}</span>}
                     {ev.shootLocation && <span className="ml-2 text-muted-foreground">{ev.shootLocation}</span>}
