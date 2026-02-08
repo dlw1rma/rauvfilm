@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { formatDate } from '@/lib/formatDate';
 import Pagination from '@/components/ui/Pagination';
 
 interface Booking {
@@ -15,10 +16,12 @@ interface Booking {
   partnerCode: string | null;
   reservationId: number | null;
   product: { name: string };
+  listPriceFormatted: string;
   finalBalanceFormatted: string;
   depositPaidAt: string | null;
   reviewCount: number;
   createdAt: string;
+  deletedAt: string | null;
 }
 
 const statusLabels: Record<string, string> = {
@@ -39,10 +42,12 @@ const statusColors: Record<string, string> = {
 
 export default function AdminBookingsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [excelOpen, setExcelOpen] = useState(false);
   const [excelFile, setExcelFile] = useState<File | null>(null);
@@ -53,24 +58,151 @@ export default function AdminBookingsPage() {
     skippedRows?: { row: number; reason: string }[];
     detectedColumns?: Record<string, string>;
   } | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1', 10));
+  const [totalPages, setTotalPages] = useState(1);
+  const PAGE_SIZE = 20;
 
-  const fetchBookings = async () => {
+  // 쓰레기통 모드
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [deletedCount, setDeletedCount] = useState(0);
+
+  // 일괄 선택
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === bookings.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(bookings.map((b) => b.id)));
+    }
+  };
+
+  const handleBulkAction = async () => {
+    if (selectedIds.size === 0 || !bulkStatus) return;
+    const label = bulkStatusOptions.find((o) => o.value === bulkStatus)?.label || bulkStatus;
+    if (!confirm(`선택된 ${selectedIds.size}건을 "${label}"(으)로 변경하시겠습니까?`)) return;
+
+    setBulkLoading(true);
+    try {
+      const res = await fetch('/api/admin/bookings/bulk-action', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingIds: Array.from(selectedIds), status: bulkStatus }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`성공 ${data.successCount}건, 실패 ${data.failCount}건`);
+        setSelectedIds(new Set());
+        setBulkStatus('');
+        fetchBookings(currentPage);
+      } else {
+        alert(data.error || '오류가 발생했습니다.');
+      }
+    } catch {
+      alert('요청에 실패했습니다.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const bulkStatusOptions = [
+    { value: 'PENDING', label: '검토중' },
+    { value: 'CONFIRMED', label: '예약확정' },
+    { value: 'DEPOSIT_COMPLETED', label: '입금완료' },
+    { value: 'DELIVERED', label: '전달완료' },
+    { value: 'CANCELLED', label: '취소' },
+  ];
+
+  // 쓰레기통: 되살리기
+  const handleRestore = async (ids: number[]) => {
+    if (!confirm(`${ids.length}건을 되살리시겠습니까?`)) return;
+    setBulkLoading(true);
+    try {
+      let success = 0;
+      for (const id of ids) {
+        const res = await fetch(`/api/admin/bookings/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ restore: true }),
+        });
+        if (res.ok) success++;
+      }
+      alert(`${success}건 되살리기 완료`);
+      setSelectedIds(new Set());
+      fetchBookings(currentPage);
+    } catch {
+      alert('요청에 실패했습니다.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  // 쓰레기통: 영구 삭제
+  const handlePermanentDelete = async (ids: number[]) => {
+    if (!confirm(`${ids.length}건을 영구 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+    setBulkLoading(true);
+    try {
+      let success = 0;
+      for (const id of ids) {
+        const res = await fetch(`/api/admin/bookings/${id}?permanent=1`, { method: 'DELETE' });
+        if (res.ok) success++;
+      }
+      alert(`${success}건 영구 삭제 완료`);
+      setSelectedIds(new Set());
+      fetchBookings(currentPage);
+    } catch {
+      alert('요청에 실패했습니다.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  // URL 동기화: 페이지/필터 상태를 URL에 저장 (뒤로가기 시 복원)
+  const syncUrl = useCallback((page: number, status: string, searchText: string) => {
+    const params = new URLSearchParams();
+    if (page > 1) params.set('page', page.toString());
+    if (status !== 'all') params.set('status', status);
+    if (searchText) params.set('search', searchText);
+    // 기존 특수 파라미터 유지
+    const ud = searchParams.get('upcoming_days');
+    const tw = searchParams.get('this_week');
+    if (ud) params.set('upcoming_days', ud);
+    if (tw === '1') params.set('this_week', tw);
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  const fetchBookings = async (page: number = currentPage) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (search) params.set('search', search);
+      params.set('page', page.toString());
+      params.set('limit', PAGE_SIZE.toString());
       const ud = searchParams.get('upcoming_days');
       const tw = searchParams.get('this_week');
       if (ud) params.set('upcoming_days', ud);
       if (tw === '1') params.set('this_week', '1');
+      if (showDeleted) params.set('deleted', '1');
 
       const res = await fetch(`/api/admin/bookings?${params}`);
       const data = await res.json();
       setBookings(data.bookings || []);
+      setTotalPages(data.pagination?.totalPages || 1);
       setStatusCounts(data.statusCounts || {});
+      setDeletedCount(data.deletedCount || 0);
     } catch (error) {
       console.error('예약 목록 조회 오류:', error);
     } finally {
@@ -80,10 +212,19 @@ export default function AdminBookingsPage() {
 
   const upcomingDaysParam = searchParams.get('upcoming_days');
   const thisWeekParam = searchParams.get('this_week');
+  const isInitialMount = useState(true);
   useEffect(() => {
-    setCurrentPage(1);
-    fetchBookings();
-  }, [statusFilter, upcomingDaysParam, thisWeekParam]);
+    if (isInitialMount[0]) {
+      // 첫 마운트: URL에서 읽은 상태로 바로 fetch
+      isInitialMount[0] = false;
+      fetchBookings(currentPage);
+    } else {
+      // 필터 변경 시 1페이지로 리셋
+      setCurrentPage(1);
+      syncUrl(1, statusFilter, search);
+      fetchBookings(1);
+    }
+  }, [statusFilter, upcomingDaysParam, thisWeekParam, showDeleted]);
 
   const handleExcelImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,11 +258,16 @@ export default function AdminBookingsPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setCurrentPage(1);
-    fetchBookings();
+    syncUrl(1, statusFilter, search);
+    fetchBookings(1);
   };
 
-  const totalPages = Math.ceil(bookings.length / PAGE_SIZE);
-  const paginatedBookings = bookings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedIds(new Set());
+    syncUrl(page, statusFilter, search);
+    fetchBookings(page);
+  };
 
   const formatPhone = (phone: string) => {
     if (phone.length === 11) {
@@ -143,9 +289,17 @@ export default function AdminBookingsPage() {
             </svg>
             대시보드
           </Link>
-          <h1 className="text-2xl font-bold">예약관리</h1>
+          <h1 className="text-2xl font-bold">{showDeleted ? '삭제된 예약' : '예약관리'}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => { setShowDeleted(!showDeleted); setSelectedIds(new Set()); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-lg border font-medium ${showDeleted ? 'border-red-500 text-red-500 bg-red-500/10' : 'border-border bg-muted hover:bg-muted/80'}`}
+          >
+            {showDeleted ? '목록으로' : `삭제됨 (${deletedCount})`}
+          </button>
+          {!showDeleted && (
           <button
             type="button"
             onClick={() => { setExcelOpen(!excelOpen); setExcelResult(null); setExcelFile(null); }}
@@ -153,12 +307,15 @@ export default function AdminBookingsPage() {
           >
             이전 사이트 엑셀 이관
           </button>
+          )}
+          {!showDeleted && (
           <Link
             href="/admin/bookings/new"
             className="px-4 py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent/90"
           >
             새 예약
           </Link>
+          )}
         </div>
       </div>
 
@@ -236,7 +393,12 @@ export default function AdminBookingsPage() {
         </div>
       )}
 
-      {/* 필터 및 검색 */}
+      {/* 필터 및 검색 (쓰레기통 모드에서는 숨김) */}
+      {showDeleted ? (
+        <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl text-sm text-red-600">
+          삭제된 예약은 3일 후 자동으로 영구 삭제됩니다. 되살리기를 원하시면 체크박스로 선택 후 &quot;되살리기&quot; 버튼을 클릭하세요.
+        </div>
+      ) : (
       <div className="flex flex-col md:flex-row gap-4">
         {/* 상태 필터 */}
         <div className="flex flex-wrap gap-2">
@@ -282,6 +444,7 @@ export default function AdminBookingsPage() {
           </button>
         </form>
       </div>
+      )}
 
       {/* 예약 목록 */}
       {loading ? (
@@ -293,24 +456,93 @@ export default function AdminBookingsPage() {
           예약이 없습니다.
         </div>
       ) : (
+        <>
+        {/* 일괄 액션 바 */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-3 px-4 py-3 bg-accent/5 border border-accent/20 rounded-xl mb-3 flex-wrap">
+            <span className="text-sm font-medium">{selectedIds.size}건 선택됨</span>
+            {showDeleted ? (
+              <>
+                <button
+                  onClick={() => handleRestore(Array.from(selectedIds))}
+                  disabled={bulkLoading}
+                  className="px-4 py-1.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 disabled:opacity-50"
+                >
+                  {bulkLoading ? '처리중...' : '되살리기'}
+                </button>
+                <button
+                  onClick={() => handlePermanentDelete(Array.from(selectedIds))}
+                  disabled={bulkLoading}
+                  className="px-4 py-1.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-50"
+                >
+                  {bulkLoading ? '처리중...' : '영구 삭제'}
+                </button>
+              </>
+            ) : (
+              <>
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm"
+                >
+                  <option value="">상태 선택</option>
+                  {bulkStatusOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleBulkAction}
+                  disabled={!bulkStatus || bulkLoading}
+                  className="px-4 py-1.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 disabled:opacity-50"
+                >
+                  {bulkLoading ? '처리중...' : '적용'}
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => { setSelectedIds(new Set()); setBulkStatus(''); }}
+              className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm hover:bg-muted"
+            >
+              선택 해제
+            </button>
+          </div>
+        )}
+
         <div className="bg-background rounded-xl border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50">
                 <tr>
+                  <th className="px-3 py-3 text-center w-10">
+                    <input
+                      type="checkbox"
+                      checked={bookings.length > 0 && selectedIds.size === bookings.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-border"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left text-sm font-medium">고객명</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">연락처</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">예식일</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">예식장</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">상품</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">정가</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">잔금</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">상태</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">액션</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {paginatedBookings.map((booking) => (
-                  <tr key={booking.id} className="hover:bg-muted/30">
+                {bookings.map((booking) => (
+                  <tr key={booking.id} className={`hover:bg-muted/30 ${selectedIds.has(booking.id) ? 'bg-accent/5' : ''}`}>
+                    <td className="px-3 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(booking.id)}
+                        onChange={() => toggleSelect(booking.id)}
+                        className="rounded border-border"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div>
                         <p className="font-medium">{booking.customerName}</p>
@@ -321,10 +553,11 @@ export default function AdminBookingsPage() {
                     </td>
                     <td className="px-4 py-3 text-sm">{formatPhone(booking.customerPhone)}</td>
                     <td className="px-4 py-3 text-sm">
-                      {new Date(booking.weddingDate).toLocaleDateString('ko-KR')}
+                      {formatDate(booking.weddingDate)}
                     </td>
                     <td className="px-4 py-3 text-sm">{booking.weddingVenue}</td>
                     <td className="px-4 py-3 text-sm">{booking.product.name}</td>
+                    <td className="px-4 py-3 text-sm">{booking.listPriceFormatted}</td>
                     <td className="px-4 py-3 text-sm font-medium">{booking.finalBalanceFormatted}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${statusColors[booking.status]}`}>
@@ -354,8 +587,9 @@ export default function AdminBookingsPage() {
               </tbody>
             </table>
           </div>
-          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
         </div>
+        </>
       )}
     </div>
   );

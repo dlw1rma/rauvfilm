@@ -4,12 +4,13 @@ import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
 import { safeParseInt, sanitizeString, normalizePhone, validateLength } from "@/lib/validation";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { isExcludedFromNewYearDiscount } from "@/lib/constants";
 
 // GET: 예약 목록 조회
 export async function GET(request: NextRequest) {
   try {
     // Rate limiting 적용
-    const rateLimitResponse = rateLimit(request, 30, 60 * 1000); // 1분에 30회
+    const rateLimitResponse = rateLimit(request, 1000, 60 * 1000); // 1분에 1000회 (읽기전용)
     if (rateLimitResponse) {
       return rateLimitResponse;
     }
@@ -50,6 +51,10 @@ export async function GET(request: NextRequest) {
         limit,
         total,
         totalPages: Math.ceil(total / limit),
+      },
+    }, {
+      headers: {
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
       },
     });
   } catch (error) {
@@ -337,8 +342,21 @@ export async function POST(request: NextRequest) {
     // 르메그라피 제휴 할인 (15만원)
     const lemeGraphyDiscountAmount = lemeGraphyDiscount || 0;
 
-    // 할인 총액 계산 (신년/후기/짝꿍/르메그라피 등)
-    const discountAmount = referralDiscount + reviewDiscount + lemeGraphyDiscountAmount;
+    // 신년할인 계산 (5만원) - 제외 상품 확인
+    const isNewYearExcluded = isExcludedFromNewYearDiscount(productType);
+    const isLemePartnership = lemeGraphyDiscountAmount > 0;
+    const resolvedDiscountNewYear = (() => {
+      if (isNewYearExcluded) return false;
+      if (isLemePartnership) return false;
+      return discountNewYear !== undefined ? discountNewYear : true;
+    })();
+    const newYearDiscountAmount = resolvedDiscountNewYear ? 50000 : 0;
+
+    // 할인 총액 계산 (각 할인을 분리)
+    // eventDiscount: 이벤트/특별/르메그라피 할인만 (referral, review, newYear 제외)
+    const eventDiscountAmount = lemeGraphyDiscountAmount;
+    // 전체 할인 합계 (잔금 계산용)
+    const discountAmount = eventDiscountAmount + newYearDiscountAmount + referralDiscount + reviewDiscount;
 
     // 최종 잔금 계산: 정가 + 출장비 - 예약금 - 할인들
     const finalBalance = Math.max(0, totalAmount + travelFee - depositAmount - discountAmount);
@@ -474,8 +492,8 @@ export async function POST(request: NextRequest) {
       }
 
       // 5. 예약관리(Booking) 생성
-      // 잔금 재계산: listPrice + travelFee - depositAmount - discountAmount
-      const calculatedFinalBalance = Math.max(0, listPrice + travelFee - depositAmount - discountAmount);
+      // 잔금 재계산: listPrice + travelFee - depositAmount - 각 할인
+      const calculatedFinalBalance = Math.max(0, listPrice + travelFee - depositAmount - eventDiscountAmount - newYearDiscountAmount - referralDiscount - reviewDiscount);
 
       const booking = await tx.booking.create({
         data: {
@@ -489,7 +507,8 @@ export async function POST(request: NextRequest) {
           listPrice: listPrice,
           travelFee: travelFee,
           depositAmount: depositAmount,
-          eventDiscount: discountAmount,
+          eventDiscount: eventDiscountAmount,
+          newYearDiscount: newYearDiscountAmount,
           referralDiscount: referralDiscount,
           reviewDiscount: reviewDiscount,
           finalBalance: calculatedFinalBalance,

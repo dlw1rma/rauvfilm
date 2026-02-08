@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { formatDate } from '@/lib/formatDate';
+import DateInput from '@/components/ui/DateInput';
 
 interface DiscountEvent {
   id: number;
@@ -154,22 +156,22 @@ export default function AdminEventsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">시작일</label>
-                <input
-                  type="date"
+                <DateInput
+                  name="startDate"
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-border bg-background"
+                  className="px-4 py-2 rounded-lg border border-border bg-background cursor-pointer"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">종료일</label>
-                <input
-                  type="date"
+                <DateInput
+                  name="endDate"
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-border bg-background"
+                  className="px-4 py-2 rounded-lg border border-border bg-background cursor-pointer"
                 />
               </div>
             </div>
@@ -230,8 +232,7 @@ export default function AdminEventsPage() {
                   </div>
                   <p className="text-2xl font-bold text-accent mb-2">-{event.amountFormatted}</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(event.startDate).toLocaleDateString('ko-KR')} ~{' '}
-                    {new Date(event.endDate).toLocaleDateString('ko-KR')}
+                    {formatDate(event.startDate)} ~ {formatDate(event.endDate)}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     적용 예약: {event.bookingCount}건

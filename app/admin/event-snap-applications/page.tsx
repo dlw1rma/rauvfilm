@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { formatDate } from "@/lib/formatDate";
 import Pagination from "@/components/ui/Pagination";
 
 interface Application {
@@ -229,7 +230,7 @@ export default function AdminEventSnapApplicationsPage() {
                     {app.shootTime ? ` ${app.shootTime}` : ""}
                   </td>
                   <td className="p-3">{statusLabel[app.status] ?? app.status}</td>
-                  <td className="p-3">{new Date(app.createdAt).toLocaleDateString("ko-KR")}</td>
+                  <td className="p-3">{formatDate(app.createdAt)}</td>
                   <td className="p-3">
                     {app.status !== "CONFIRMED" && (
                       <button

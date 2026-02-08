@@ -30,6 +30,32 @@ export async function GET(request: NextRequest) {
     const thisWeek = searchParams.get('this_week') === '1';
 
     const where: Record<string, unknown> = {};
+    const showDeleted = searchParams.get('deleted') === '1';
+
+    // 3일 지난 소프트 삭제 예약 자동 영구 삭제
+    const purgeDate = new Date();
+    purgeDate.setDate(purgeDate.getDate() - 3);
+    try {
+      const expired = await prisma.booking.findMany({
+        where: { deletedAt: { not: null, lt: purgeDate } },
+        select: { id: true, reservationId: true },
+      });
+      for (const b of expired) {
+        if (b.reservationId) {
+          try { await prisma.reservation.delete({ where: { id: b.reservationId } }); } catch {}
+        }
+        await prisma.booking.delete({ where: { id: b.id } });
+      }
+      if (expired.length > 0) console.log(`자동 영구 삭제: ${expired.length}건`);
+    } catch (purgeError) {
+      console.error('자동 퍼지 오류:', purgeError);
+    }
+
+    if (showDeleted) {
+      where.deletedAt = { not: null };
+    } else {
+      where.deletedAt = null;
+    }
 
     if (upcomingDays) {
       const days = safeParseInt(upcomingDays, 7, 1, 90);
@@ -81,9 +107,10 @@ export async function GET(request: NextRequest) {
       prisma.booking.count({ where }),
     ]);
 
-    // 상태별 통계
+    // 상태별 통계 (삭제되지 않은 것만)
     const stats = await prisma.booking.groupBy({
       by: ['status'],
+      where: { deletedAt: null },
       _count: true,
     });
 
@@ -94,6 +121,9 @@ export async function GET(request: NextRequest) {
       },
       {} as Record<string, number>
     );
+
+    // 삭제된 예약 건수
+    const deletedCount = await prisma.booking.count({ where: { deletedAt: { not: null } } });
 
     return NextResponse.json({
       bookings: bookings.map((b) => ({
@@ -124,6 +154,7 @@ export async function GET(request: NextRequest) {
         contractUrl: b.contractUrl,
         reviewCount: 0,
         createdAt: b.createdAt,
+        deletedAt: b.deletedAt,
       })),
       pagination: {
         page,
@@ -132,6 +163,7 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / limit),
       },
       statusCounts,
+      deletedCount,
     });
   } catch (error) {
     console.error('예약 목록 조회 오류:', error);
@@ -164,6 +196,8 @@ export async function POST(request: NextRequest) {
       discountEventId,
       specialDiscount,
       specialDiscountReason,
+      coupleDiscountAmount,
+      newYearDiscountAmount,
       travelFee,
       referredBy,
       adminNote,
@@ -226,9 +260,28 @@ export async function POST(request: NextRequest) {
     const listPrice = customListPrice && customListPrice > 0 ? customListPrice : product.price;
     const travelFeeAmount = travelFee || 0;
     const specialDiscountAmount = specialDiscount || 0;
+    const coupleDiscountValue = coupleDiscountAmount || 0;
+    const newYearDiscountValue = newYearDiscountAmount || 0;
 
-    // 잔금 계산: 금액 + 출장비 - 예약금(10만원) - 이벤트할인 - 특별할인
-    const finalBalance = Math.max(0, listPrice + travelFeeAmount - 100000 - eventDiscount - specialDiscountAmount);
+    // eventDiscount = 이벤트할인 + 특별할인(수동)만 (신년할인 제외)
+    const totalEventDiscount = eventDiscount + specialDiscountAmount;
+    // referralDiscount = 짝궁할인
+    const totalReferralDiscount = coupleDiscountValue;
+    // newYearDiscount = 신년할인 (별도 필드)
+    const totalNewYearDiscount = newYearDiscountValue;
+
+    // 잔금 계산: 금액 + 출장비 - 예약금(10만원) - 이벤트/특별할인 - 신년할인 - 짝궁할인
+    const finalBalance = Math.max(0, listPrice + travelFeeAmount - 100000 - totalEventDiscount - totalNewYearDiscount - totalReferralDiscount);
+
+    // 관리자 메모에 할인 내역 기록
+    const discountNotes: string[] = [];
+    if (specialDiscountReason) discountNotes.push(`[특별할인: ${specialDiscountAmount.toLocaleString()}원 - ${specialDiscountReason}]`);
+    if (newYearDiscountValue > 0) discountNotes.push(`[신년할인: ${newYearDiscountValue.toLocaleString()}원]`);
+    if (coupleDiscountValue > 0) discountNotes.push(`[짝궁할인: ${coupleDiscountValue.toLocaleString()}원]`);
+    const notePrefix = discountNotes.length > 0 ? discountNotes.join(' ') : '';
+    const finalAdminNote = notePrefix
+      ? `${notePrefix}\n${adminNote || ''}`.trim()
+      : (adminNote || null);
 
     // 예약 생성
     const booking = await prisma.booking.create({
@@ -243,11 +296,11 @@ export async function POST(request: NextRequest) {
         listPrice,
         travelFee: travelFeeAmount,
         discountEventId: discountEventId || null,
-        eventDiscount: eventDiscount + specialDiscountAmount, // 특별 할인도 이벤트 할인에 합산
+        eventDiscount: totalEventDiscount,
+        newYearDiscount: totalNewYearDiscount,
+        referralDiscount: totalReferralDiscount,
         referredBy: referredBy || null,
-        adminNote: specialDiscountReason
-          ? `[특별할인: ${specialDiscountAmount.toLocaleString()}원 - ${specialDiscountReason}]\n${adminNote || ''}`.trim()
-          : (adminNote || null),
+        adminNote: finalAdminNote,
         finalBalance,
       },
       include: {
@@ -289,7 +342,7 @@ export async function POST(request: NextRequest) {
           travelFee: travelFeeAmount,
           totalAmount: listPrice,
           depositAmount: 100000,
-          discountAmount: eventDiscount + specialDiscountAmount,
+          discountAmount: totalEventDiscount + totalReferralDiscount,
           finalBalance,
           bookingId: booking.id,
           // 추가 필드

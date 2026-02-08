@@ -68,6 +68,7 @@ export async function GET(
       depositAmount: booking.depositAmount,
       travelFee: booking.travelFee,
       eventDiscount: booking.eventDiscount,
+      newYearDiscount: booking.newYearDiscount,
       hasReferral: booking.referralDiscount > 0,
       approvedReviewCount,
     });
@@ -83,6 +84,10 @@ export async function GET(
             productType: true,
             usbOption: true,
             deliveryAddress: true,
+            brideName: true,
+            bridePhone: true,
+            groomName: true,
+            groomPhone: true,
             makeupShoot: true,
             paebaekShoot: true,
             receptionShoot: true,
@@ -115,6 +120,10 @@ export async function GET(
           reservationInfo = {
             ...reservation,
             deliveryAddress: decrypt(reservation.deliveryAddress),
+            brideName: decrypt(reservation.brideName),
+            bridePhone: decrypt(reservation.bridePhone),
+            groomName: decrypt(reservation.groomName),
+            groomPhone: decrypt(reservation.groomPhone),
           };
         }
       } catch (resError) {
@@ -129,6 +138,8 @@ export async function GET(
         depositAmountFormatted: formatKRW(booking.depositAmount),
         travelFeeFormatted: formatKRW(booking.travelFee),
         eventDiscountFormatted: formatKRW(booking.eventDiscount),
+        newYearDiscount: booking.newYearDiscount,
+        newYearDiscountFormatted: formatKRW(booking.newYearDiscount),
         referralDiscountFormatted: formatKRW(booking.referralDiscount),
         reviewDiscountFormatted: formatKRW(booking.reviewDiscount),
         finalBalanceFormatted: formatKRW(calculation.finalBalance),
@@ -186,7 +197,9 @@ export async function PUT(
       'status',
       'depositPaidAt',
       'balancePaidAt',
+      'listPrice',
       'eventDiscount',
+      'newYearDiscount',
       'referralDiscount',
       'reviewDiscount',
       'travelFee',
@@ -194,6 +207,11 @@ export async function PUT(
     ];
 
     const updateData: Record<string, unknown> = {};
+
+    // 되살리기: deletedAt을 null로 설정
+    if (body.restore === true) {
+      updateData.deletedAt = null;
+    }
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
@@ -209,19 +227,23 @@ export async function PUT(
 
     // 잔금 재계산이 필요한 경우
     if (
+      body.listPrice !== undefined ||
       body.eventDiscount !== undefined ||
+      body.newYearDiscount !== undefined ||
       body.referralDiscount !== undefined ||
       body.reviewDiscount !== undefined ||
       body.travelFee !== undefined
     ) {
+      const listPrice = body.listPrice ?? booking.listPrice;
       const eventDiscount = body.eventDiscount ?? booking.eventDiscount;
+      const newYearDiscount = body.newYearDiscount ?? booking.newYearDiscount;
       const referralDiscount = body.referralDiscount ?? booking.referralDiscount;
       const reviewDiscount = body.reviewDiscount ?? booking.reviewDiscount;
       const travelFee = body.travelFee ?? booking.travelFee;
 
       updateData.finalBalance = Math.max(
         0,
-        booking.listPrice + travelFee - booking.depositAmount - eventDiscount - referralDiscount - reviewDiscount
+        listPrice + travelFee - booking.depositAmount - eventDiscount - newYearDiscount - referralDiscount - reviewDiscount
       );
     }
 
@@ -288,7 +310,8 @@ export async function PUT(
 }
 
 /**
- * 예약 삭제
+ * 예약 삭제 (소프트 삭제 → 3일 후 영구 삭제)
+ * query: ?permanent=1 → 영구 삭제
  */
 export async function DELETE(
   request: NextRequest,
@@ -308,30 +331,41 @@ export async function DELETE(
       );
     }
 
+    const { searchParams } = new URL(request.url);
+    const permanent = searchParams.get('permanent') === '1';
+
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
-      select: { reservationId: true },
+      select: { reservationId: true, deletedAt: true },
     });
     if (!booking) {
       return NextResponse.json({ error: '예약을 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    // 연결된 예약글(Reservation)도 삭제
-    if (booking.reservationId) {
-      try {
-        await prisma.reservation.delete({
-          where: { id: booking.reservationId },
-        });
-      } catch (syncError) {
-        console.error('예약글 동기화 삭제 오류 (계속 진행):', syncError);
+    if (permanent) {
+      // 영구 삭제
+      if (booking.reservationId) {
+        try {
+          await prisma.reservation.delete({
+            where: { id: booking.reservationId },
+          });
+        } catch (syncError) {
+          console.error('예약글 동기화 삭제 오류 (계속 진행):', syncError);
+        }
       }
+      await prisma.booking.delete({
+        where: { id: bookingId },
+      });
+      return NextResponse.json({ success: true, permanent: true });
     }
 
-    await prisma.booking.delete({
+    // 소프트 삭제
+    await prisma.booking.update({
       where: { id: bookingId },
+      data: { deletedAt: new Date() },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, permanent: false });
   } catch (error) {
     console.error('예약 삭제 오류:', error);
     return NextResponse.json(

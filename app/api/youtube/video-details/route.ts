@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// 인메모리 캐시 (videoId → 결과, 10분 TTL)
+const cache = new Map<string, { data: object; expiresAt: number }>();
+const CACHE_TTL = 10 * 60 * 1000; // 10분
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const videoId = searchParams.get("videoId");
@@ -9,6 +13,15 @@ export async function GET(request: NextRequest) {
       { error: "videoId is required" },
       { status: 400 }
     );
+  }
+
+  // 캐시 히트 확인
+  const now = Date.now();
+  const cached = cache.get(videoId);
+  if (cached && cached.expiresAt > now) {
+    return NextResponse.json(cached.data, {
+      headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200" },
+    });
   }
 
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -76,10 +89,13 @@ export async function GET(request: NextRequest) {
 
     const aspectRatio = width / height;
 
-    return NextResponse.json({
-      width,
-      height,
-      aspectRatio,
+    const result = { width, height, aspectRatio };
+
+    // 캐시에 저장
+    cache.set(videoId, { data: result, expiresAt: now + CACHE_TTL });
+
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200" },
     });
   } catch (error) {
     console.error("Error fetching YouTube video details:", error);

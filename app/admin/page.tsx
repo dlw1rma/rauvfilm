@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { formatDate } from "@/lib/formatDate";
 
 interface Stats {
   reservations: { total: number; pending: number };
@@ -644,7 +645,7 @@ export default function AdminPage() {
                   upcomingBookings.slice(0, 5).map((b) => (
                     <li key={b.id}>
                       <Link href={`/admin/bookings/${b.id}`} className="text-sm text-accent hover:underline block truncate">
-                        {new Date(b.weddingDate).toLocaleDateString("ko-KR")} {b.weddingVenue} · {b.customerName}
+                        {formatDate(b.weddingDate)} {b.weddingVenue} · {b.customerName}
                       </Link>
                     </li>
                   ))
@@ -665,7 +666,7 @@ export default function AdminPage() {
                   thisWeekBookings.slice(0, 5).map((b) => (
                     <li key={b.id}>
                       <Link href={`/admin/bookings/${b.id}`} className="text-sm text-accent hover:underline block truncate">
-                        {new Date(b.weddingDate).toLocaleDateString("ko-KR")} {b.weddingVenue} · {b.customerName}
+                        {formatDate(b.weddingDate)} {b.weddingVenue} · {b.customerName}
                       </Link>
                     </li>
                   ))

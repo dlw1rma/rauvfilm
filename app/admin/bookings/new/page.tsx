@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isExcludedFromNewYearDiscount } from '@/lib/constants';
+import DateInput from '@/components/ui/DateInput';
+import TimeInput from '@/components/ui/TimeInput';
 
 interface Product {
   id: number;
@@ -58,7 +61,7 @@ export default function NewBookingPage() {
     seonwonpan: false, // 선원판
 
     // 할인사항
-    discountNewYear: true, // 신년할인
+    discountNewYear: true, // 신년할인 (기본 적용, 제외 상품 선택 시 자동 해제)
     discountCouple: false, // 짝궁할인
     discountReview: false, // 촬영후기 할인
     discountReviewBlog: false, // 예약후기
@@ -114,9 +117,8 @@ export default function NewBookingPage() {
     } else if (name === 'productType') {
       // 상품 종류가 변경되면 해당 상품 ID도 찾아서 설정
       const matchedProduct = products.find((p) => p.name === value);
-      // 가성비형 또는 1인1캠은 신년할인 적용 불가
-      const isExcluded = value === '가성비형'
-        || (matchedProduct?.name && (matchedProduct.name.includes('가성비') || matchedProduct.name.includes('1인1캠')));
+      // 가성비형/1인1캠/르메그라피 제휴가는 신년할인 적용 불가
+      const isExcluded = isExcludedFromNewYearDiscount(value) || isExcludedFromNewYearDiscount(matchedProduct?.name);
       setFormData((prev) => ({
         ...prev,
         productType: value as ProductType,
@@ -152,10 +154,9 @@ export default function NewBookingPage() {
     const eventDiscountAmount = selectedEvent?.amount || 0;
     const eventDiscountName = selectedEvent?.name || '';
 
-    // 26년 신년할인 (5만원) - 가성비형/1인1캠 제외
-    const isExcludedFromNewYearDiscount = formData.productType === '가성비형'
-      || (selectedProduct?.name && (selectedProduct.name.includes('가성비') || selectedProduct.name.includes('1인1캠')));
-    const newYearDiscountAmount = (formData.discountNewYear && !isExcludedFromNewYearDiscount) ? 50000 : 0;
+    // 26년 신년할인 (5만원) - 가성비형/1인1캠/르메그라피 제휴가 제외
+    const isExcluded = isExcludedFromNewYearDiscount(formData.productType) || isExcludedFromNewYearDiscount(selectedProduct?.name);
+    const newYearDiscountAmount = (formData.discountNewYear && !isExcluded) ? 50000 : 0;
 
     // 짝궁할인 (체크되어 있으면 1만원)
     const coupleDiscountAmount = formData.discountCouple ? 10000 : 0;
@@ -232,12 +233,13 @@ export default function NewBookingPage() {
       if (formData.receptionShoot) optionsTotal += 50000;
       if (formData.usbOption) optionsTotal += 20000;
 
-      // 할인 금액 계산
-      const coupleDiscount = formData.discountCouple ? 10000 : 0;
-      const newYearDiscount = (formData.discountNewYear && formData.productType !== '가성비형') ? 50000 : 0;
-
       // 상품 기본가 + 추가옵션 = listPrice로 전송
       const selectedProduct = products.find((p) => p.id === parseInt(formData.productId));
+
+      // 할인 금액 계산
+      const coupleDiscount = formData.discountCouple ? 10000 : 0;
+      const isExcludedProduct = isExcludedFromNewYearDiscount(formData.productType) || isExcludedFromNewYearDiscount(selectedProduct?.name);
+      const newYearDiscount = (formData.discountNewYear && !isExcludedProduct) ? 50000 : 0;
       const basePrice = selectedProduct?.price || 0;
       const totalListPrice = basePrice + optionsTotal;
 
@@ -260,7 +262,9 @@ export default function NewBookingPage() {
           productId: parseInt(formData.productId),
           customListPrice: totalListPrice, // 상품가 + 추가옵션
           discountEventId: formData.discountEventId ? parseInt(formData.discountEventId) : null,
-          specialDiscount: (formData.specialDiscount ? parseInt(formData.specialDiscount) : 0) + coupleDiscount + newYearDiscount,
+          specialDiscount: formData.specialDiscount ? parseInt(formData.specialDiscount) : 0,
+          coupleDiscountAmount: coupleDiscount,
+          newYearDiscountAmount: newYearDiscount,
           specialDiscountReason: discountReasons.length > 0 ? discountReasons.join(', ') : '',
           travelFee: formData.travelFee ? parseInt(formData.travelFee) : 0,
           referredBy: formData.referredBy,
@@ -398,40 +402,24 @@ export default function NewBookingPage() {
                 <label className="block text-sm font-medium mb-2">
                   예식 날짜 <span className="text-accent">*</span>
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   name="weddingDate"
                   value={formData.weddingDate}
                   onChange={handleChange}
                   required
-                  onKeyDown={(e) => e.preventDefault()}
-                  onClick={(e) => {
-                    if ((e.currentTarget as HTMLInputElement).showPicker) {
-                      (e.currentTarget as HTMLInputElement).showPicker();
-                    }
-                  }}
-                  className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-                  style={{ colorScheme: 'light' }}
+                  className="px-4 py-3 rounded-lg border border-border bg-background focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
                   예식 시간 <span className="text-accent">*</span>
                 </label>
-                <input
-                  type="time"
+                <TimeInput
                   name="weddingTime"
                   value={formData.weddingTime}
                   onChange={handleChange}
                   required
-                  onKeyDown={(e) => e.preventDefault()}
-                  onClick={(e) => {
-                    if ((e.currentTarget as HTMLInputElement).showPicker) {
-                      (e.currentTarget as HTMLInputElement).showPicker();
-                    }
-                  }}
-                  className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-                  style={{ colorScheme: 'light' }}
+                  className="px-4 py-3 rounded-lg border border-border bg-background focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                 />
               </div>
             </div>
@@ -594,12 +582,12 @@ export default function NewBookingPage() {
                 name="discountNewYear"
                 checked={formData.discountNewYear}
                 onChange={handleChange}
-                disabled={formData.productType === '가성비형'}
+                disabled={isExcludedFromNewYearDiscount(formData.productType) || isExcludedFromNewYearDiscount(products.find(p => p.id === parseInt(formData.productId))?.name)}
                 className="h-5 w-5 rounded border-border bg-background text-accent focus:ring-accent disabled:opacity-50"
               />
-              <span className={`text-sm ${formData.productType === '가성비형' ? 'text-muted-foreground' : ''}`}>
+              <span className={`text-sm ${isExcludedFromNewYearDiscount(formData.productType) ? 'text-muted-foreground' : ''}`}>
                 2026년 신년할인 (5만원)
-                {formData.productType === '가성비형' && <span className="ml-2 text-xs">(가성비형은 적용 불가)</span>}
+                {isExcludedFromNewYearDiscount(formData.productType) && <span className="ml-2 text-xs">(1인1캠/르메그라피 제휴가 적용 불가)</span>}
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Pagination from '@/components/ui/Pagination';
+import { formatDate } from '@/lib/formatDate';
 
 interface ReviewSubmission {
   id: number;
@@ -165,11 +166,11 @@ export default function AdminReviewSubmissionsPage() {
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {review.platformName} | {new Date(review.createdAt).toLocaleDateString('ko-KR')}
+                    {review.platformName} | {formatDate(review.createdAt)}
                   </p>
                   {review.reservation.weddingDate && (
                     <p className="text-xs text-muted-foreground">
-                      예식일: {new Date(review.reservation.weddingDate).toLocaleDateString('ko-KR')}
+                      예식일: {formatDate(review.reservation.weddingDate)}
                     </p>
                   )}
                 </div>

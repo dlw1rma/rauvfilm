@@ -46,7 +46,9 @@ export function rateLimit(
     request.headers.get("x-real-ip") ||
     "unknown";
 
-  const key = `rate-limit:${ip}`;
+  // 경로별로 독립적인 카운터 사용 (API간 간섭 방지)
+  const pathname = new URL(request.url).pathname;
+  const key = `rate-limit:${pathname}:${ip}`;
   const now = Date.now();
 
   // 기존 기록 확인

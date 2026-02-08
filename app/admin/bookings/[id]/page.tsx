@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { formatDateTime, formatDate } from '@/lib/formatDate';
 
 interface BookingDetail {
   id: number;
@@ -25,6 +26,8 @@ interface BookingDetail {
   travelFeeFormatted: string;
   eventDiscount: number;
   eventDiscountFormatted: string;
+  newYearDiscount: number;
+  newYearDiscountFormatted: string;
   referralDiscount: number;
   referralDiscountFormatted: string;
   reviewDiscount: number;
@@ -52,6 +55,10 @@ interface BookingDetail {
     productType: string | null;
     usbOption: boolean | null;
     deliveryAddress: string | null;
+    brideName: string | null;
+    bridePhone: string | null;
+    groomName: string | null;
+    groomPhone: string | null;
     makeupShoot: boolean | null;
     paebaekShoot: boolean | null;
     receptionShoot: boolean | null;
@@ -109,6 +116,8 @@ export default function AdminBookingDetailPage() {
   const [updatingDiscount, setUpdatingDiscount] = useState(false);
   const [referredByEdit, setReferredByEdit] = useState('');
   const [updatingReferral, setUpdatingReferral] = useState(false);
+  const [listPriceInput, setListPriceInput] = useState('');
+  const [updatingListPrice, setUpdatingListPrice] = useState(false);
 
   const fetchBooking = async () => {
     try {
@@ -121,8 +130,9 @@ export default function AdminBookingDetailPage() {
       setContractUrl(data.booking.contractUrl || '');
       setAdminNote(data.booking.adminNote || '');
       setPartnerCode(data.booking.partnerCode || '');
-      setSpecialDiscount(data.booking.eventDiscount > 0 ? data.booking.eventDiscount.toString() : '');
+      setSpecialDiscount('');
       setTravelFeeInput(data.booking.travelFee > 0 ? data.booking.travelFee.toString() : '');
+      setListPriceInput(data.booking.listPrice > 0 ? data.booking.listPrice.toString() : '');
       setReferredByEdit(data.booking.referredBy || '');
     } catch (error) {
       console.error(error);
@@ -270,6 +280,26 @@ export default function AdminBookingDetailPage() {
     }
   };
 
+  const handleUpdateListPrice = async () => {
+    setUpdatingListPrice(true);
+    try {
+      const priceValue = parseInt(listPriceInput) || 0;
+      const res = await fetch(`/api/admin/bookings/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listPrice: priceValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMessage({ type: 'success', text: '상품가가 업데이트되었습니다.' });
+      fetchBooking();
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : '오류가 발생했습니다.' });
+    } finally {
+      setUpdatingListPrice(false);
+    }
+  };
+
   const handleUpdateReferral = async () => {
     setUpdatingReferral(true);
     try {
@@ -308,7 +338,7 @@ export default function AdminBookingDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+    if (!confirm('삭제하시겠습니까? 3일 이내 되살릴 수 있습니다.')) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/bookings/${params.id}`, {
@@ -375,20 +405,41 @@ export default function AdminBookingDetailPage() {
         {/* 고객 정보 */}
         <div className="bg-background rounded-xl border border-border p-6">
           <h2 className="text-lg font-semibold mb-4">고객 정보</h2>
-          <dl className="space-y-3">
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">성함</dt>
-              <dd className="font-medium">{booking.customerName}</dd>
+          <div className="space-y-4">
+            {/* 신부 정보 */}
+            {(booking.reservationInfo?.brideName || booking.reservationInfo?.bridePhone) && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-pink-500/5 border border-pink-500/10">
+                <span className="text-xs font-bold text-pink-500 bg-pink-500/10 px-2 py-1 rounded shrink-0">신부</span>
+                <span className="font-medium">{booking.reservationInfo.brideName || '-'}</span>
+                {booking.reservationInfo.bridePhone && (
+                  <span className="text-muted-foreground ml-auto">{booking.reservationInfo.bridePhone}</span>
+                )}
+              </div>
+            )}
+            {/* 신랑 정보 */}
+            {(booking.reservationInfo?.groomName || booking.reservationInfo?.groomPhone) && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded shrink-0">신랑</span>
+                <span className="font-medium">{booking.reservationInfo.groomName || '-'}</span>
+                {booking.reservationInfo.groomPhone && (
+                  <span className="text-muted-foreground ml-auto">{booking.reservationInfo.groomPhone}</span>
+                )}
+              </div>
+            )}
+            {/* 계약자 */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+              <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded shrink-0">계약자</span>
+              <span className="font-medium">{booking.customerName}</span>
+              <span className="text-muted-foreground ml-auto">{booking.customerPhone}</span>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">전화번호</dt>
-              <dd>{booking.customerPhone}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">이메일</dt>
-              <dd>{booking.customerEmail || '-'}</dd>
-            </div>
-          </dl>
+            {/* 이메일 */}
+            {booking.customerEmail && (
+              <div className="flex justify-between text-sm pt-2 border-t border-border">
+                <span className="text-muted-foreground">이메일</span>
+                <span>{booking.customerEmail}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 예식 정보 */}
@@ -398,12 +449,12 @@ export default function AdminBookingDetailPage() {
             {booking.reservationInfo?.createdAt && (
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">예약글 작성일</dt>
-                <dd className="font-medium text-accent">{new Date(booking.reservationInfo.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</dd>
+                <dd className="font-medium text-accent">{formatDateTime(booking.reservationInfo.createdAt)}</dd>
               </div>
             )}
             <div className="flex justify-between">
               <dt className="text-muted-foreground">예식일</dt>
-              <dd className="font-medium">{new Date(booking.weddingDate).toLocaleDateString('ko-KR')}</dd>
+              <dd className="font-medium">{formatDate(booking.weddingDate)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">예식 시간</dt>
@@ -426,7 +477,10 @@ export default function AdminBookingDetailPage() {
           <dl className="space-y-3">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">정가</dt>
-              <dd>{booking.listPriceFormatted}</dd>
+              <dd className={booking.listPrice === 0 ? 'text-red-500 font-medium' : ''}>
+                {booking.listPriceFormatted}
+                {booking.listPrice === 0 && ' (미설정)'}
+              </dd>
             </div>
             {booking.travelFee > 0 && (
               <div className="flex justify-between">
@@ -442,6 +496,12 @@ export default function AdminBookingDetailPage() {
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">특별 할인</dt>
                 <dd className="text-green-600">-{booking.eventDiscountFormatted}</dd>
+              </div>
+            )}
+            {booking.newYearDiscount > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">신년 할인</dt>
+                <dd className="text-green-600">-{booking.newYearDiscountFormatted}</dd>
               </div>
             )}
             {booking.referralDiscount > 0 && (
@@ -598,6 +658,16 @@ export default function AdminBookingDetailPage() {
               <label className="block text-sm font-medium mb-2">
                 특별 할인 금액 (예: 체험단 50만원)
               </label>
+              {booking.eventDiscount > 0 && (
+                <p className="text-xs text-muted-foreground mb-2">
+                  현재 적용된 특별 할인: {booking.eventDiscount.toLocaleString()}원
+                </p>
+              )}
+              {booking.newYearDiscount > 0 && (
+                <p className="text-xs text-muted-foreground mb-2">
+                  신년 할인 적용 중: {booking.newYearDiscount.toLocaleString()}원 (자동)
+                </p>
+              )}
               <input
                 type="number"
                 value={specialDiscount}
@@ -607,7 +677,7 @@ export default function AdminBookingDetailPage() {
                 className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                체험단 등 특별 할인 금액을 입력하세요. (원 단위)
+                체험단 등 특별 할인 금액을 입력하세요. 저장 시 기존 할인이 이 금액으로 대체됩니다. (원 단위)
               </p>
             </div>
             <button
@@ -616,6 +686,41 @@ export default function AdminBookingDetailPage() {
               className="w-full py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 disabled:opacity-50"
             >
               {updatingDiscount ? '저장 중...' : '할인 저장'}
+            </button>
+          </div>
+        </div>
+
+        {/* 상품가 변경 */}
+        <div className="bg-background rounded-xl border border-border p-6">
+          <h2 className="text-lg font-semibold mb-4">상품가 변경</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                상품가 (정가)
+              </label>
+              {booking.listPrice > 0 && (
+                <p className="text-xs text-muted-foreground mb-2">
+                  현재 상품가: {booking.listPrice.toLocaleString()}원
+                </p>
+              )}
+              <input
+                type="number"
+                value={listPriceInput}
+                onChange={(e) => setListPriceInput(e.target.value)}
+                placeholder="0"
+                min="0"
+                className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                상품가를 직접 변경합니다. 잔금이 자동 재계산됩니다. (원 단위)
+              </p>
+            </div>
+            <button
+              onClick={handleUpdateListPrice}
+              disabled={updatingListPrice}
+              className="w-full py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 disabled:opacity-50"
+            >
+              {updatingListPrice ? '저장 중...' : '상품가 저장'}
             </button>
           </div>
         </div>
@@ -908,8 +1013,8 @@ export default function AdminBookingDetailPage() {
           <textarea
             value={adminNote}
             onChange={(e) => setAdminNote(e.target.value)}
-            rows={4}
-            className="w-full px-4 py-2 rounded-lg border border-border bg-background resize-none"
+            rows={6}
+            className="w-full px-4 py-2 rounded-lg border border-border bg-background resize-y min-h-[100px]"
             placeholder="메모를 입력하세요..."
           />
           <button

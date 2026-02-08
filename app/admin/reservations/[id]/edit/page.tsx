@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import DateInput from "@/components/ui/DateInput";
+import TimeInput from "@/components/ui/TimeInput";
 
 type ProductType = "가성비형" | "기본형" | "시네마틱형" | "야외스냅" | "프리웨딩" | "";
 type EventType = "야외스냅" | "프리웨딩" | "";
@@ -675,26 +677,24 @@ export default function AdminReservationEditPage() {
                   <label htmlFor="weddingDate" className="mb-2 block text-sm font-medium">
                     예식 날짜
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     id="weddingDate"
                     name="weddingDate"
                     value={formData.weddingDate}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                    className="rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                   />
                 </div>
                 <div>
                   <label htmlFor="weddingTime" className="mb-2 block text-sm font-medium">
                     예식 시간
                   </label>
-                  <input
-                    type="time"
+                  <TimeInput
                     id="weddingTime"
                     name="weddingTime"
                     value={formData.weddingTime}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                    className="rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                   />
                 </div>
               </div>
@@ -1075,26 +1075,24 @@ export default function AdminReservationEditPage() {
                       <label htmlFor="shootDate" className="mb-2 block text-sm font-medium">
                         촬영 날짜
                       </label>
-                      <input
-                        type="date"
+                      <DateInput
                         id="shootDate"
                         name="shootDate"
                         value={formData.shootDate}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                       />
                     </div>
                     <div>
                       <label htmlFor="shootTime" className="mb-2 block text-sm font-medium">
                         촬영 시간
                       </label>
-                      <input
-                        type="time"
+                      <TimeInput
                         id="shootTime"
                         name="shootTime"
                         value={formData.shootTime}
                         onChange={handleChange}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="rounded-lg border border-border bg-background px-4 py-3 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                       />
                     </div>
                   </div>

@@ -34,10 +34,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // eventDiscount에 특별할인을 합산 (기존 이벤트 할인 제외한 순수 특별할인만 반영)
     const newEventDiscount = specialDiscount;
 
-    // 잔금 재계산
+    // 잔금 재계산 (출장비, 신년할인 포함)
     const newFinalBalance = Math.max(
       0,
-      booking.listPrice - booking.depositAmount - newEventDiscount - booking.referralDiscount - booking.reviewDiscount
+      booking.listPrice + booking.travelFee - booking.depositAmount - newEventDiscount - booking.newYearDiscount - booking.referralDiscount - booking.reviewDiscount
     );
 
     const updated = await prisma.booking.update({

@@ -52,10 +52,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       newReferralDiscount = 10000;
     }
 
-    // 잔금 재계산
+    // 잔금 재계산 (출장비, 신년할인 포함)
     const newFinalBalance = Math.max(
       0,
-      booking.listPrice - booking.depositAmount - booking.eventDiscount - newReferralDiscount - booking.reviewDiscount
+      booking.listPrice + booking.travelFee - booking.depositAmount - booking.eventDiscount - booking.newYearDiscount - newReferralDiscount - booking.reviewDiscount
     );
 
     await prisma.booking.update({

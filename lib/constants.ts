@@ -85,7 +85,6 @@ export type ProductType = typeof PRODUCT_TYPE[keyof typeof PRODUCT_TYPE];
 /**
  * 가성비형/1인1캠 상품인지 확인
  * - 예약후기 할인 혜택 제외 (1건만 인정, 원본영상 전달)
- * - 신년할인 제외
  */
 export function isBudgetProduct(productType: string | null | undefined): boolean {
   if (!productType) return false;
@@ -97,6 +96,28 @@ export function isBudgetProduct(productType: string | null | undefined): boolean
     normalized === '1인1캠'
   );
 }
+
+/**
+ * 신년할인 제외 대상인지 확인
+ * - 1인1캠(가성비형) 및 르메그라피 제휴가는 신년할인 적용 불가
+ */
+export function isExcludedFromNewYearDiscount(productName: string | null | undefined): boolean {
+  if (!productName) return false;
+  const normalized = productName.toLowerCase().replace(/\s/g, '');
+  return (
+    productName === '가성비형' ||
+    normalized.includes('가성비') ||
+    normalized.includes('1인1캠') ||
+    normalized.includes('르메그라피')
+  );
+}
+
+// ===== 상품 정가 (참조용) =====
+export const PRODUCT_PRICES: Record<string, number> = {
+  '가성비형': 340000,
+  '기본형': 600000,
+  '시네마틱형': 950000,
+} as const;
 
 // ===== 가격 상수 =====
 export const PRICING = {

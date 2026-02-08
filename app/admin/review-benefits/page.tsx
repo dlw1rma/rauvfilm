@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatDate } from '@/lib/formatDate';
 
 interface Reservation {
   id: number;
@@ -239,7 +240,7 @@ export default function ReviewBenefitsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {reservation.weddingDate
-                            ? new Date(reservation.weddingDate).toLocaleDateString('ko-KR')
+                            ? formatDate(reservation.weddingDate)
                             : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -387,7 +388,7 @@ export default function ReviewBenefitsPage() {
                               </span>
                             </div>
                             <span className="text-xs text-muted-foreground">
-                              {new Date(review.createdAt).toLocaleDateString('ko-KR')}
+                              {formatDate(review.createdAt)}
                             </span>
                           </div>
                           <a

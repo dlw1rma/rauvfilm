@@ -38,7 +38,16 @@ async function main() {
       });
       console.log(`Created product: ${product.name}`);
     } else {
-      console.log(`Product already exists: ${product.name}`);
+      // 가격이 다르면 업데이트
+      if (existing.price !== product.price) {
+        await prisma.product.update({
+          where: { id: existing.id },
+          data: { price: product.price },
+        });
+        console.log(`Updated product price: ${product.name} (${existing.price} → ${product.price})`);
+      } else {
+        console.log(`Product already exists: ${product.name}`);
+      }
     }
   }
 

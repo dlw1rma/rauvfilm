@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth";
 import { safeParseInt } from "@/lib/validation";
 import { decrypt } from "@/lib/encryption";
+import { isExcludedFromNewYearDiscount } from "@/lib/constants";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -49,10 +50,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const groomPhone = decrypt(reservation.groomPhone);
     const productEmail = decrypt(reservation.productEmail);
 
-    // 기본 상품 조회 (없으면 자동 생성)
-    let defaultProduct = await prisma.product.findFirst({ where: {} });
-    if (!defaultProduct) {
-      defaultProduct = await prisma.product.create({
+    // 상품 조회: productType으로 매칭, 없으면 기본 상품
+    let matchedProduct = reservation.productType
+      ? await prisma.product.findFirst({ where: { name: reservation.productType } })
+      : null;
+    if (!matchedProduct) {
+      matchedProduct = await prisma.product.findFirst({ where: {} });
+    }
+    if (!matchedProduct) {
+      matchedProduct = await prisma.product.create({
         data: { name: "기본 상품", price: 0, description: "자동 생성", isActive: true },
       });
     }
@@ -76,6 +82,25 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       phoneForBooking = bridePhone || groomPhone || "00000000000";
     }
 
+    // 신년할인 계산: discountNewYear 체크 + 제외 상품이 아닌 경우 5만원
+    const newYearDiscountAmount =
+      reservation.discountNewYear && !isExcludedFromNewYearDiscount(reservation.productType)
+        ? 50000
+        : 0;
+
+    // eventDiscount = 전체 할인에서 신년할인 제외한 금액
+    const totalDiscountAmount = reservation.discountAmount || 0;
+    const eventDiscountAmount = Math.max(0, totalDiscountAmount - newYearDiscountAmount);
+
+    const listPrice = reservation.totalAmount || matchedProduct.price;
+    const depositAmount = reservation.depositAmount || 100000;
+    const referralDiscountVal = reservation.referralDiscount || 0;
+    const reviewDiscountVal = reservation.reviewDiscount || 0;
+    const finalBalance = Math.max(
+      0,
+      listPrice - depositAmount - eventDiscountAmount - newYearDiscountAmount - referralDiscountVal - reviewDiscountVal
+    );
+
     // Booking 생성
     const booking = await prisma.booking.create({
       data: {
@@ -85,18 +110,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         weddingDate: weddingDateObj,
         weddingVenue: reservation.venueName || "미정",
         weddingTime: reservation.weddingTime || null,
-        productId: defaultProduct.id,
-        listPrice: reservation.totalAmount || defaultProduct.price,
-        depositAmount: reservation.depositAmount || 100000,
-        eventDiscount: reservation.discountAmount || 0,
-        referralDiscount: reservation.referralDiscount || 0,
-        reviewDiscount: reservation.reviewDiscount || 0,
-        finalBalance: reservation.finalBalance || Math.max(
-          0,
-          (reservation.totalAmount || defaultProduct.price) -
-            (reservation.depositAmount || 100000) -
-            (reservation.discountAmount || 0)
-        ),
+        productId: matchedProduct.id,
+        listPrice,
+        depositAmount,
+        eventDiscount: eventDiscountAmount,
+        newYearDiscount: newYearDiscountAmount,
+        referralDiscount: referralDiscountVal,
+        reviewDiscount: reviewDiscountVal,
+        finalBalance,
         status: reservation.status === "CANCELLED" ? "CANCELLED" : "CONFIRMED",
         reservationId: reservation.id,
         referredBy:

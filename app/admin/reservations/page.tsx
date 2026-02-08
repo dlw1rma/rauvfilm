@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import Pagination from "@/components/ui/Pagination";
 import { BOOKING_STATUS_LABELS, BOOKING_STATUS_COLORS } from "@/lib/constants";
+import { formatDateTime, formatDate } from "@/lib/formatDate";
 
 interface Reservation {
   id: number;
@@ -187,7 +188,7 @@ export default function AdminReservationsPage() {
     txt += "[기본 정보]\n";
     txt += `제목: ${selectedReservation.title}\n`;
     txt += `작성자(계약자): ${selectedReservation.author}\n`;
-    txt += `작성일: ${new Date(selectedReservation.createdAt).toLocaleString("ko-KR")}\n`;
+    txt += `작성일: ${formatDateTime(selectedReservation.createdAt)}\n`;
     txt += `비밀글: ${selectedReservation.isPrivate ? "예" : "아니오"}\n`;
     if (selectedReservation.content) {
       txt += `문의 내용: ${selectedReservation.content}\n`;
@@ -281,7 +282,7 @@ export default function AdminReservationsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `예약문의_${selectedReservation.id}_${selectedReservation.author}_${new Date(selectedReservation.createdAt).toISOString().split("T")[0]}.txt`;
+    a.download = `예약문의_${selectedReservation.id}_${selectedReservation.author}_${formatDate(selectedReservation.createdAt)}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -394,7 +395,7 @@ export default function AdminReservationsPage() {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{reservation.author}</span>
                       <span>|</span>
-                      <span>{reservation.createdAt.split("T")[0]}</span>
+                      <span>{formatDateTime(reservation.createdAt)}</span>
                     </div>
                   </button>
                 ))
@@ -484,7 +485,7 @@ export default function AdminReservationsPage() {
                     <div>
                       <p className="text-muted-foreground">작성일</p>
                       <p className="font-medium">
-                        {new Date(selectedReservation.createdAt).toLocaleString("ko-KR")}
+                        {formatDateTime(selectedReservation.createdAt)}
                       </p>
                     </div>
                     {selectedReservation.content && (

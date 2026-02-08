@@ -213,40 +213,86 @@ async function fetchCafeArticleDesktop(cafeUrl: string, articleId: string): Prom
   }
 }
 
+// 중첩 div에서 매칭 종료 태그 찾기 (div open/close 카운팅)
+function extractDivContent(html: string, startIndex: number): string {
+  let depth = 1;
+  let i = startIndex;
+  const openTag = /<div[\s>]/gi;
+  const closeTag = /<\/div>/gi;
+
+  while (depth > 0 && i < html.length) {
+    openTag.lastIndex = i;
+    closeTag.lastIndex = i;
+    const openMatch = openTag.exec(html);
+    const closeMatch = closeTag.exec(html);
+
+    if (!closeMatch) break;
+
+    if (openMatch && openMatch.index < closeMatch.index) {
+      depth++;
+      i = openMatch.index + openMatch[0].length;
+    } else {
+      depth--;
+      if (depth === 0) {
+        return html.substring(startIndex, closeMatch.index);
+      }
+      i = closeMatch.index + closeMatch[0].length;
+    }
+  }
+  return html.substring(startIndex, Math.min(startIndex + 100000, html.length));
+}
+
 // HTML에서 본문 콘텐츠 추출 (여러 패턴 시도)
 function extractContent(html: string): string {
-  // 스마트에디터 3.0
-  const seMatch = html.match(/<div[^>]*class=["'][^"']*se-main-container[^"']*["'][^>]*>([\s\S]*?)(<\/div>\s*){3,}/i);
-  if (seMatch && seMatch[1]) {
-    const text = extractText(seMatch[1]);
+  // 스마트에디터 3.0 - se-text-paragraph 요소들 직접 추출
+  const paragraphs = html.match(/<p[^>]*class="[^"]*se-text-paragraph[^"]*"[^>]*>[\s\S]*?<\/p>/gi);
+  if (paragraphs && paragraphs.length > 0) {
+    const text = paragraphs.map(p => extractText(p)).join(' ');
     if (text.length > 50) return text;
   }
 
-  // 네이버 블로그 post-view
-  const postViewMatch = html.match(/<div[^>]*class=["'][^"']*post-view[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
-  if (postViewMatch && postViewMatch[1]) {
-    const text = extractText(postViewMatch[1]);
+  // se-main-container div 카운팅 방식
+  const seStart = html.match(/<div[^>]*class=["'][^"']*se-main-container[^"']*["'][^>]*>/i);
+  if (seStart) {
+    const contentStart = (seStart.index ?? 0) + seStart[0].length;
+    const innerHtml = extractDivContent(html, contentStart);
+    const text = extractText(innerHtml);
+    if (text.length > 50) return text;
+  }
+
+  // 네이버 블로그 post-view (div 카운팅)
+  const postViewStart = html.match(/<div[^>]*class=["'][^"']*post-view[^"']*["'][^>]*>/i);
+  if (postViewStart) {
+    const contentStart = (postViewStart.index ?? 0) + postViewStart[0].length;
+    const innerHtml = extractDivContent(html, contentStart);
+    const text = extractText(innerHtml);
     if (text.length > 50) return text;
   }
 
   // 네이버 카페 article_body
-  const articleBodyMatch = html.match(/<div[^>]*class=["'][^"']*article_body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
-  if (articleBodyMatch && articleBodyMatch[1]) {
-    const text = extractText(articleBodyMatch[1]);
+  const articleBodyStart = html.match(/<div[^>]*class=["'][^"']*article_body[^"']*["'][^>]*>/i);
+  if (articleBodyStart) {
+    const contentStart = (articleBodyStart.index ?? 0) + articleBodyStart[0].length;
+    const innerHtml = extractDivContent(html, contentStart);
+    const text = extractText(innerHtml);
     if (text.length > 50) return text;
   }
 
   // postContentArea
-  const contentAreaMatch = html.match(/<div[^>]*id=["']postContentArea["'][^>]*>([\s\S]*?)<\/div>/i);
-  if (contentAreaMatch && contentAreaMatch[1]) {
-    const text = extractText(contentAreaMatch[1]);
+  const contentAreaStart = html.match(/<div[^>]*id=["']postContentArea["'][^>]*>/i);
+  if (contentAreaStart) {
+    const contentStart = (contentAreaStart.index ?? 0) + contentAreaStart[0].length;
+    const innerHtml = extractDivContent(html, contentStart);
+    const text = extractText(innerHtml);
     if (text.length > 50) return text;
   }
 
   // postViewArea
-  const postViewAreaMatch = html.match(/<div[^>]*id=["']postViewArea["'][^>]*>([\s\S]*?)<\/div>/i);
-  if (postViewAreaMatch && postViewAreaMatch[1]) {
-    const text = extractText(postViewAreaMatch[1]);
+  const postViewAreaStart = html.match(/<div[^>]*id=["']postViewArea["'][^>]*>/i);
+  if (postViewAreaStart) {
+    const contentStart = (postViewAreaStart.index ?? 0) + postViewAreaStart[0].length;
+    const innerHtml = extractDivContent(html, contentStart);
+    const text = extractText(innerHtml);
     if (text.length > 50) return text;
   }
 
@@ -403,19 +449,54 @@ export async function verifyReview(url: string): Promise<VerificationResult> {
         };
       }
     } else {
-      // 네이버 블로그: PostView.naver 형식으로 변환
-      const fetchUrl = toNaverBlogPostUrl(url) || url;
-      const response = await fetch(fetchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Referer': 'https://www.naver.com/',
-        },
-        redirect: 'follow',
-      });
+      // 네이버 블로그: PostView.naver 형식으로 변환 후 시도
+      const fetchHeaders = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': 'https://www.naver.com/',
+      };
 
-      if (!response.ok) {
+      // 1차: PostView.naver URL
+      const postViewUrl = toNaverBlogPostUrl(url);
+      if (postViewUrl) {
+        const response = await fetch(postViewUrl, { headers: fetchHeaders, redirect: 'follow' });
+        if (response.ok) {
+          const html = await response.text();
+          title = extractTitle(html);
+          content = extractContent(html);
+        }
+      }
+
+      // 2차: PostView 실패 시 직접 URL로 재시도 (PostList 형식)
+      if (!content || content.length < 30) {
+        const match = url.match(/blog\.naver\.com\/([^\/\?]+)\/(\d+)/);
+        if (match) {
+          const listUrl = `https://blog.naver.com/PostList.naver?blogId=${match[1]}&from=postList&categoryNo=0`;
+          try {
+            const listRes = await fetch(listUrl, {
+              headers: { ...fetchHeaders, Referer: `https://blog.naver.com/${match[1]}` },
+              redirect: 'follow',
+            });
+            if (listRes.ok) {
+              const listHtml = await listRes.text();
+              // PostList 페이지에 해당 포스트가 포함되어 있으면 추출
+              if (listHtml.includes(match[2])) {
+                if (!title) title = extractTitle(listHtml);
+                const listContent = extractContent(listHtml);
+                if (listContent.length > (content?.length || 0)) {
+                  content = listContent;
+                }
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      // 모든 방법 실패 시
+      if (!title && (!content || content.length < 30)) {
         return {
           platform,
           canAutoVerify: false,
@@ -426,10 +507,6 @@ export async function verifyReview(url: string): Promise<VerificationResult> {
           errorMessage: '네이버 블로그 후기를 확인할 수 없습니다. 게시글이 전체공개로 설정되어 있는지 확인해주세요.',
         };
       }
-
-      const html = await response.text();
-      title = extractTitle(html);
-      content = extractContent(html);
     }
 
     // 제목 검증
